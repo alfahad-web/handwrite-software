@@ -13,13 +13,15 @@ const ImageCanvas: React.FC = () => {
   const innerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const currentImageData = useEditorStore((s) => s.currentImageData);
+  const draftRgb = useEditorStore((s) => s.draftRgb);
+  const draftBinary = useEditorStore((s) => s.draftBinary);
   const imageWidth = useEditorStore((s) => s.imageWidth);
   const imageHeight = useEditorStore((s) => s.imageHeight);
   const zoom = useEditorStore((s) => s.zoom);
   const activeTool = useEditorStore((s) => s.activeTool);
   const brushRadius = useEditorStore((s) => s.brushRadius);
   const paintWhiteCircle = useEditorStore((s) => s.paintWhiteCircle);
+  const ensureDraftBinary = useEditorStore((s) => s.ensureDraftBinary);
 
   const [viewSize, setViewSize] = useState({ w: 0, h: 0 });
   const [pointerInner, setPointerInner] = useState<{
@@ -57,16 +59,24 @@ const ImageCanvas: React.FC = () => {
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
 
-    if (!currentImageData) {
+    const visibleImageData =
+      activeTool === "erase" ? draftBinary : draftRgb;
+
+    if (!visibleImageData) {
       canvas.width = 0;
       canvas.height = 0;
       return;
     }
 
-    canvas.width = currentImageData.width;
-    canvas.height = currentImageData.height;
-    ctx.putImageData(currentImageData, 0, 0);
-  }, [currentImageData]);
+    canvas.width = visibleImageData.width;
+    canvas.height = visibleImageData.height;
+    ctx.putImageData(visibleImageData, 0, 0);
+  }, [draftRgb, draftBinary, activeTool]);
+
+  useEffect(() => {
+    if (activeTool !== "erase") return;
+    ensureDraftBinary();
+  }, [activeTool, ensureDraftBinary]);
 
   const clientToImage = useCallback(
     (clientX: number, clientY: number) => {
@@ -96,7 +106,7 @@ const ImageCanvas: React.FC = () => {
   );
 
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (activeTool !== "correction") return;
+    if (activeTool !== "erase") return;
     if (e.button !== 0) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     isDrawingRef.current = true;
@@ -106,7 +116,7 @@ const ImageCanvas: React.FC = () => {
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (activeTool === "correction") {
+    if (activeTool === "erase") {
       updatePointerFromEvent(e);
       if (isDrawingRef.current) {
         const img = clientToImage(e.clientX, e.clientY);
@@ -132,21 +142,23 @@ const ImageCanvas: React.FC = () => {
     iw > 0 && displayW > 0 ? brushRadius * (displayW / iw) : 0;
 
   const showBrush =
-    activeTool === "correction" &&
+    activeTool === "erase" &&
     pointerInner !== null &&
-    currentImageData &&
+    draftBinary &&
     screenBrushRadius > 0;
 
   return (
     <div className="image-canvas-viewport" ref={viewportRef}>
-      {!currentImageData && (
+      {!(activeTool === "erase" ? draftBinary : draftRgb) && (
         <div className="image-canvas-empty">
           <p>No image loaded</p>
-          <p className="image-canvas-hint">Use Import to open a JPEG or PNG</p>
+          <p className="image-canvas-hint">
+            Use File &gt; Import (image) or Open (.hw)
+          </p>
         </div>
       )}
 
-      {currentImageData && (
+      {(activeTool === "erase" ? draftBinary : draftRgb) && (
         <div className="image-canvas-scroll">
           <div
             ref={innerRef}
@@ -161,7 +173,7 @@ const ImageCanvas: React.FC = () => {
             <canvas
               ref={canvasRef}
               className={
-                activeTool === "correction"
+                activeTool === "erase"
                   ? "image-canvas correction-mode"
                   : "image-canvas"
               }

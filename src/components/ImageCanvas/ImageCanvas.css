@@ -55,7 +55,7 @@
   z-index: 2;
   pointer-events: none;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.65);
-  background: rgba(255, 255, 255, 0.12);
+  border: 2px solid rgba(74, 222, 128, 0.65);
+  background: rgba(74, 222, 128, 0.12);
   box-sizing: border-box;
 }

@@ -44,6 +44,16 @@ export function createWindow(): BrowserWindow {
     win.show();
   });
 
+  // Intercept all close attempts (title bar, OS controls, Alt+F4).
+  // Renderer decides whether to save/cancel/discard, then calls confirm-close.
+  (win as BrowserWindow & { __allowClose?: boolean }).__allowClose = false;
+  win.on("close", (event) => {
+    const w = win as BrowserWindow & { __allowClose?: boolean };
+    if (w.__allowClose) return;
+    event.preventDefault();
+    win.webContents.send("app-close-requested");
+  });
+
   if (isDev) {
     win.webContents.openDevTools();
   }

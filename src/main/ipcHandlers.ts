@@ -25,6 +25,28 @@ export function registerIpcHandlers(): void {
     return null;
   });
 
+  ipcMain.handle("select-hw-file", async () => {
+    const result = await dialog.showOpenDialog({
+      properties: ["openFile"],
+      filters: [{ name: "Handwrite Project", extensions: ["hw"] }],
+    });
+
+    if (!result.canceled && result.filePaths.length > 0) {
+      return result.filePaths[0];
+    }
+    return null;
+  });
+
+  ipcMain.handle("select-save-hw-file", async () => {
+    const result = await dialog.showSaveDialog({
+      filters: [{ name: "Handwrite Project", extensions: ["hw"] }],
+      defaultPath: "project.hw",
+    });
+
+    if (result.canceled) return null;
+    return result.filePath ?? null;
+  });
+
   ipcMain.handle(
     "read-image-file",
     async (_event, filePath: string): Promise<{ base64: string } | null> => {
@@ -46,6 +68,42 @@ export function registerIpcHandlers(): void {
     }
   );
 
+  ipcMain.handle(
+    "read-hw-file",
+    async (_event, filePath: string): Promise<any | null> => {
+      try {
+        if (!filePath || typeof filePath !== "string") return null;
+        const txt = fs.readFileSync(filePath, "utf-8");
+        const parsed = JSON.parse(txt) as any;
+        return parsed?.version ? parsed : parsed; // tolerate missing version
+      } catch (error) {
+        logger.error(
+          "ipcHandlers.ts",
+          "read-hw-file",
+          `Failed to read .hw file: ${(error as Error).message}`,
+          error as Error
+        );
+        throw error;
+      }
+    }
+  );
+
+  ipcMain.handle(
+    "write-hw-file",
+    async (_event, filePath: string, payload: any): Promise<void> => {
+      if (!filePath || typeof filePath !== "string") {
+        throw new Error("Invalid .hw file path");
+      }
+
+      const toWrite = {
+        version: 1,
+        ...payload,
+      };
+
+      fs.writeFileSync(filePath, JSON.stringify(toWrite), "utf-8");
+    }
+  );
+
   ipcMain.handle("minimize-window", () => {
     const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
     win?.minimize();
@@ -64,5 +122,12 @@ export function registerIpcHandlers(): void {
   ipcMain.handle("close-window", () => {
     const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
     win?.close();
+  });
+
+  ipcMain.handle("confirm-close", () => {
+    const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
+    if (!win) return;
+    (win as BrowserWindow & { __allowClose?: boolean }).__allowClose = true;
+    win.close();
   });
 }
