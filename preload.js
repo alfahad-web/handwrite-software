@@ -2,14 +2,10 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("electronAPI", {
-  selectImageFile: () => ipcRenderer.invoke("select-image-file"),
-  readImageFile: (filePath) => ipcRenderer.invoke("read-image-file", filePath),
-
-  selectHwFile: () => ipcRenderer.invoke("select-hw-file"),
-  readHwFile: (filePath) => ipcRenderer.invoke("read-hw-file", filePath),
-  selectSaveHwFile: () => ipcRenderer.invoke("select-save-hw-file"),
-  writeHwFile: (filePath, payload) =>
-    ipcRenderer.invoke("write-hw-file", filePath, payload),
+  platform: process.platform,
+  selectOrCreateTxtFile: () => ipcRenderer.invoke("select-or-create-txt-file"),
+  appendTxtLines: (filePath, lines) =>
+    ipcRenderer.invoke("append-txt-lines", filePath, lines),
 
   minimizeWindow: () => ipcRenderer.invoke("minimize-window"),
   maximizeWindow: () => ipcRenderer.invoke("maximize-window"),

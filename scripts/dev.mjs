@@ -32,8 +32,13 @@ let electronStarted = false;
 
 function maybeStartElectron(line) {
   if (electronStarted) return;
-  const isReadyLine = line.includes("Local:") || line.includes("ready in");
-  if (!isReadyLine) return;
+  // "ready in" can appear before the dev server socket accepts connections.
+  // Wait for the printed listen URL so Electron does not load a blank/error page.
+  const isServerListening =
+    line.includes("Local:") ||
+    line.includes("localhost:3000") ||
+    line.includes("127.0.0.1:3000");
+  if (!isServerListening) return;
   electronStarted = true;
   console.log("Vite is ready, launching Electron...");
   electronProc = spawn(process.execPath, [electronCli, "."], {

@@ -1,208 +1,491 @@
-import React, {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useEditorStore } from "../../context/index.ts";
+import { MIN_STROKE_SAMPLE_PX } from "../../context/store.ts";
+import type { PointPx, SelectionRect } from "../../context/types.ts";
+import { buildExportStrokes } from "../../utils/exportSelection.ts";
+import { resolveScreenDpi } from "../../utils/units.ts";
 import "./ImageCanvas.css";
 
 const ImageCanvas: React.FC = () => {
   const viewportRef = useRef<HTMLDivElement>(null);
-  const innerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
 
-  const draftRgb = useEditorStore((s) => s.draftRgb);
-  const draftBinary = useEditorStore((s) => s.draftBinary);
-  const imageWidth = useEditorStore((s) => s.imageWidth);
-  const imageHeight = useEditorStore((s) => s.imageHeight);
+  const strokes = useEditorStore((s) => s.strokes);
   const zoom = useEditorStore((s) => s.zoom);
-  const activeTool = useEditorStore((s) => s.activeTool);
-  const brushRadius = useEditorStore((s) => s.brushRadius);
-  const paintWhiteCircle = useEditorStore((s) => s.paintWhiteCircle);
-  const ensureDraftBinary = useEditorStore((s) => s.ensureDraftBinary);
+  const toolMode = useEditorStore((s) => s.toolMode);
+  const strokePx = useEditorStore((s) => s.strokePx);
+  const captureGapUm = useEditorStore((s) => s.captureGapUm);
+  const selectionRect = useEditorStore((s) => s.selectionRect);
+  const selectionDraftRect = useEditorStore((s) => s.selectionDraftRect);
+  const startStroke = useEditorStore((s) => s.startStroke);
+  const endStroke = useEditorStore((s) => s.endStroke);
+  const setSelectionDraftRect = useEditorStore((s) => s.setSelectionDraftRect);
+  const commitSelectionDraftRect = useEditorStore((s) => s.commitSelectionDraftRect);
+  const setSelectionResizeState = useEditorStore((s) => s.setSelectionResizeState);
+  const setSelectionRect = useEditorStore((s) => s.setSelectionRect);
 
-  const [viewSize, setViewSize] = useState({ w: 0, h: 0 });
-  const [pointerInner, setPointerInner] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
-  const isDrawingRef = useRef(false);
+  const [penStrokeActive, setPenStrokeActive] = useState(false);
 
-  useEffect(() => {
-    const el = viewportRef.current;
+  const drawCrossRef = useRef<HTMLDivElement>(null);
+  const lastCrossBoardRef = useRef<PointPx | null>(null);
+
+  const updateDrawCross = useCallback((p: PointPx | null) => {
+    const el = drawCrossRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(() => {
-      setViewSize({ w: el.clientWidth, h: el.clientHeight });
-    });
-    ro.observe(el);
-    setViewSize({ w: el.clientWidth, h: el.clientHeight });
-    return () => ro.disconnect();
-  }, []);
-
-  const iw = imageWidth || 0;
-  const ih = imageHeight || 0;
-  const vw = viewSize.w;
-  const vh = viewSize.h;
-
-  const baseFit =
-    iw > 0 && ih > 0 && vw > 0 && vh > 0
-      ? Math.min(vw / iw, vh / ih)
-      : 1;
-  const scale = baseFit * (zoom / 100);
-  const displayW = iw * scale;
-  const displayH = ih * scale;
-
-  useLayoutEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext("2d");
-    if (!canvas || !ctx) return;
-
-    const visibleImageData =
-      activeTool === "erase" ? draftBinary : draftRgb;
-
-    if (!visibleImageData) {
-      canvas.width = 0;
-      canvas.height = 0;
+    if (!p) {
+      lastCrossBoardRef.current = null;
+      el.style.display = "none";
       return;
     }
+    lastCrossBoardRef.current = p;
+    const sc = zoom / 100;
+    el.style.display = "block";
+    el.style.left = `${p.x * sc}px`;
+    el.style.top = `${p.y * sc}px`;
+  }, [zoom]);
 
-    canvas.width = visibleImageData.width;
-    canvas.height = visibleImageData.height;
-    ctx.putImageData(visibleImageData, 0, 0);
-  }, [draftRgb, draftBinary, activeTool]);
+  const liveStrokePointsRef = useRef<PointPx[]>([]);
+  const strokeSyncRafRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    if (activeTool !== "erase") return;
-    ensureDraftBinary();
-  }, [activeTool, ensureDraftBinary]);
+  const scheduleStrokeSync = useCallback(() => {
+    if (strokeSyncRafRef.current != null) return;
+    strokeSyncRafRef.current = requestAnimationFrame(() => {
+      strokeSyncRafRef.current = null;
+      const pts = liveStrokePointsRef.current;
+      if (pts.length === 0) return;
+      useEditorStore.getState().replaceActiveStrokePoints(pts);
+    });
+  }, []);
 
-  const clientToImage = useCallback(
-    (clientX: number, clientY: number) => {
-      const canvas = canvasRef.current;
-      if (!canvas || canvas.width === 0) return null;
-      const rect = canvas.getBoundingClientRect();
-      const sx = canvas.width / rect.width;
-      const sy = canvas.height / rect.height;
-      const x = (clientX - rect.left) * sx;
-      const y = (clientY - rect.top) * sy;
-      return { x, y };
+  const tryAppendLiveStrokePoint = useCallback(
+    (p: PointPx) => {
+      const arr = liveStrokePointsRef.current;
+      const last = arr[arr.length - 1];
+      if (last && Math.hypot(p.x - last.x, p.y - last.y) < MIN_STROKE_SAMPLE_PX) return;
+      arr.push(p);
+      scheduleStrokeSync();
     },
-    []
+    [scheduleStrokeSync]
   );
 
-  const updatePointerFromEvent = useCallback(
-    (e: React.PointerEvent | PointerEvent) => {
-      const inner = innerRef.current;
-      if (!inner) return;
-      const r = inner.getBoundingClientRect();
-      setPointerInner({
-        x: e.clientX - r.left,
-        y: e.clientY - r.top,
+  const draftRectPendingRef = useRef<SelectionRect | null>(null);
+  const draftRectRafRef = useRef<number | null>(null);
+
+  const scheduleSelectionDraftRect = useCallback(
+    (rect: SelectionRect) => {
+      draftRectPendingRef.current = rect;
+      if (draftRectRafRef.current != null) return;
+      draftRectRafRef.current = requestAnimationFrame(() => {
+        draftRectRafRef.current = null;
+        const r = draftRectPendingRef.current;
+        if (r) setSelectionDraftRect(r);
       });
     },
-    []
+    [setSelectionDraftRect]
   );
 
-  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (activeTool !== "erase") return;
-    if (e.button !== 0) return;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    isDrawingRef.current = true;
-    updatePointerFromEvent(e);
-    const img = clientToImage(e.clientX, e.clientY);
-    if (img) paintWhiteCircle(img.x, img.y, brushRadius);
-  };
+  const resizePointPendingRef = useRef<PointPx | null>(null);
+  const resizeRafRef = useRef<number | null>(null);
 
-  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (activeTool === "erase") {
-      updatePointerFromEvent(e);
-      if (isDrawingRef.current) {
-        const img = clientToImage(e.clientX, e.clientY);
-        if (img) paintWhiteCircle(img.x, img.y, brushRadius);
+  const applyResize = useCallback((current: PointPx) => {
+    const state = useEditorStore.getState().selectionResizeState;
+    if (!state) return;
+    const dx = current.x - state.startPoint.x;
+    const dy = current.y - state.startPoint.y;
+    const base = state.startRect;
+    let next = { ...base };
+    if (state.handle.includes("w")) {
+      next.x = base.x + dx;
+      next.width = base.width - dx;
+    }
+    if (state.handle.includes("e")) {
+      next.width = base.width + dx;
+    }
+    if (state.handle.includes("n")) {
+      next.y = base.y + dy;
+      next.height = base.height - dy;
+    }
+    if (state.handle.includes("s")) {
+      next.height = base.height + dy;
+    }
+    if (state.handle === "move") {
+      next.x = base.x + dx;
+      next.y = base.y + dy;
+    }
+    if (next.width < 0) {
+      next.x += next.width;
+      next.width = Math.abs(next.width);
+    }
+    if (next.height < 0) {
+      next.y += next.height;
+      next.height = Math.abs(next.height);
+    }
+    setSelectionRect(next);
+  }, [setSelectionRect]);
+
+  const scheduleResizeApply = useCallback(
+    (point: PointPx) => {
+      resizePointPendingRef.current = point;
+      if (resizeRafRef.current != null) return;
+      resizeRafRef.current = requestAnimationFrame(() => {
+        resizeRafRef.current = null;
+        const p = resizePointPendingRef.current;
+        if (p) applyResize(p);
+      });
+    },
+    [applyResize]
+  );
+
+  const toolModeRef = useRef(toolMode);
+  toolModeRef.current = toolMode;
+
+  const isDrawingRef = useRef(false);
+  const isSelectingRef = useRef(false);
+  const isResizingRef = useRef(false);
+  const selectStartRef = useRef<PointPx | null>(null);
+  const selectionRectRef = useRef<SelectionRect | null>(selectionRect);
+  selectionRectRef.current = selectionRect;
+
+  const [selectionCursor, setSelectionCursor] = useState("default");
+  const dpi = useMemo(() => resolveScreenDpi(), []);
+  const boardWidth = 3000;
+  const boardHeight = 2000;
+
+  const scale = zoom / 100;
+  const boardScreenWidth = boardWidth * scale;
+  const boardScreenHeight = boardHeight * scale;
+
+  const clientToBoard = useCallback(
+    (clientX: number, clientY: number, clampToBoard = false) => {
+      const board = boardRef.current;
+      if (!board) return null;
+      const rect = board.getBoundingClientRect();
+      const sc = zoom / 100;
+      const rawX = (clientX - rect.left) / sc;
+      const rawY = (clientY - rect.top) / sc;
+      const inside =
+        rawX >= 0 && rawX <= boardWidth && rawY >= 0 && rawY <= boardHeight;
+      if (!inside && !clampToBoard) return null;
+      return {
+        x: Math.max(0, Math.min(boardWidth, rawX)),
+        y: Math.max(0, Math.min(boardHeight, rawY)),
+      };
+    },
+    [zoom]
+  );
+
+  const hitHandle = useCallback(
+    (point: PointPx, rect: SelectionRect | null) => {
+      if (!rect) return null;
+      const sc = zoom / 100;
+      const hs = 10 / sc;
+      const left = rect.x;
+      const right = rect.x + rect.width;
+      const top = rect.y;
+      const bottom = rect.y + rect.height;
+      const near = (v: number, t: number) => Math.abs(v - t) <= hs;
+      const withinX = point.x >= left - hs && point.x <= right + hs;
+      const withinY = point.y >= top - hs && point.y <= bottom + hs;
+      if (near(point.x, left) && near(point.y, top)) return "nw";
+      if (near(point.x, right) && near(point.y, top)) return "ne";
+      if (near(point.x, left) && near(point.y, bottom)) return "sw";
+      if (near(point.x, right) && near(point.y, bottom)) return "se";
+      if (near(point.x, left) && withinY) return "w";
+      if (near(point.x, right) && withinY) return "e";
+      if (near(point.y, top) && withinX) return "n";
+      if (near(point.y, bottom) && withinX) return "s";
+      if (
+        point.x >= left + hs &&
+        point.x <= right - hs &&
+        point.y >= top + hs &&
+        point.y <= bottom - hs
+      ) {
+        return "move";
       }
+      return null;
+    },
+    [zoom]
+  );
+
+  const selectionForView = selectionDraftRect ?? selectionRect;
+
+  useEffect(() => {
+    return () => {
+      if (strokeSyncRafRef.current != null) cancelAnimationFrame(strokeSyncRafRef.current);
+      if (draftRectRafRef.current != null) cancelAnimationFrame(draftRectRafRef.current);
+      if (resizeRafRef.current != null) cancelAnimationFrame(resizeRafRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (toolMode !== "draw") {
+      updateDrawCross(null);
+    } else {
+      const last = lastCrossBoardRef.current;
+      if (last) updateDrawCross(last);
     }
-  };
+  }, [toolMode, updateDrawCross]);
 
-  const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    try {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch {
-      /* ignore */
+  useEffect(() => {
+    const last = lastCrossBoardRef.current;
+    if (toolMode === "draw" && last) {
+      updateDrawCross(last);
     }
-    isDrawingRef.current = false;
+  }, [zoom, toolMode, updateDrawCross]);
+
+  const finalizeMouseInteraction = useCallback(
+    (clientX: number, clientY: number) => {
+      if (isDrawingRef.current) {
+        if (strokeSyncRafRef.current != null) {
+          cancelAnimationFrame(strokeSyncRafRef.current);
+          strokeSyncRafRef.current = null;
+        }
+        const p = clientToBoard(clientX, clientY, true);
+        if (p) {
+          const arr = liveStrokePointsRef.current;
+          const last = arr[arr.length - 1];
+          if (!last || Math.hypot(p.x - last.x, p.y - last.y) >= 0.02) {
+            arr.push(p);
+          }
+        }
+        const final = liveStrokePointsRef.current.slice();
+        if (final.length > 0) {
+          useEditorStore.getState().replaceActiveStrokePoints(final);
+        }
+        liveStrokePointsRef.current = [];
+        isDrawingRef.current = false;
+        setPenStrokeActive(false);
+        endStroke();
+      }
+      if (isSelectingRef.current) {
+        if (draftRectRafRef.current != null) {
+          cancelAnimationFrame(draftRectRafRef.current);
+          draftRectRafRef.current = null;
+        }
+        const r = draftRectPendingRef.current;
+        if (r) setSelectionDraftRect(r);
+        draftRectPendingRef.current = null;
+        isSelectingRef.current = false;
+        selectStartRef.current = null;
+        commitSelectionDraftRect();
+      }
+      if (isResizingRef.current) {
+        if (resizeRafRef.current != null) {
+          cancelAnimationFrame(resizeRafRef.current);
+          resizeRafRef.current = null;
+        }
+        const rp = resizePointPendingRef.current;
+        if (rp) applyResize(rp);
+        resizePointPendingRef.current = null;
+        isResizingRef.current = false;
+        setSelectionResizeState(null);
+      }
+    },
+    [
+      applyResize,
+      clientToBoard,
+      commitSelectionDraftRect,
+      endStroke,
+      setSelectionDraftRect,
+      setSelectionResizeState,
+    ]
+  );
+
+  useEffect(() => {
+    const onWindowMouseMove = (e: MouseEvent) => {
+      const activeDrag =
+        isDrawingRef.current || isSelectingRef.current || isResizingRef.current;
+      const point = clientToBoard(e.clientX, e.clientY, activeDrag);
+
+      if (toolModeRef.current === "draw") {
+        updateDrawCross(point);
+      }
+
+      if (!point) return;
+
+      if (toolModeRef.current === "draw" && isDrawingRef.current) {
+        tryAppendLiveStrokePoint(point);
+        return;
+      }
+      if (toolModeRef.current === "select" && isSelectingRef.current) {
+        const start = selectStartRef.current;
+        if (start) {
+          scheduleSelectionDraftRect({
+            x: start.x,
+            y: start.y,
+            width: point.x - start.x,
+            height: point.y - start.y,
+          });
+        }
+        return;
+      }
+      if (toolModeRef.current === "select" && isResizingRef.current) {
+        scheduleResizeApply(point);
+        return;
+      }
+      if (toolModeRef.current === "select") {
+        const h = hitHandle(point, selectionRectRef.current);
+        const nextCursorByHandle: Record<string, string> = {
+          move: "move",
+          n: "ns-resize",
+          s: "ns-resize",
+          e: "ew-resize",
+          w: "ew-resize",
+          nw: "nwse-resize",
+          se: "nwse-resize",
+          ne: "nesw-resize",
+          sw: "nesw-resize",
+        };
+        setSelectionCursor(h ? nextCursorByHandle[h] : "default");
+      }
+    };
+
+    const onWindowMouseUp = (e: MouseEvent) => {
+      finalizeMouseInteraction(e.clientX, e.clientY);
+    };
+
+    window.addEventListener("mousemove", onWindowMouseMove, true);
+    window.addEventListener("mouseup", onWindowMouseUp, true);
+    return () => {
+      window.removeEventListener("mousemove", onWindowMouseMove, true);
+      window.removeEventListener("mouseup", onWindowMouseUp, true);
+    };
+  }, [
+    clientToBoard,
+    finalizeMouseInteraction,
+    hitHandle,
+    scheduleResizeApply,
+    scheduleSelectionDraftRect,
+    tryAppendLiveStrokePoint,
+    updateDrawCross,
+  ]);
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    const point = clientToBoard(e.clientX, e.clientY);
+    if (!point) return;
+    e.preventDefault();
+
+    if (toolMode === "draw") {
+      updateDrawCross(point);
+      setPenStrokeActive(true);
+      isDrawingRef.current = true;
+      liveStrokePointsRef.current = [point];
+      startStroke(point);
+      scheduleStrokeSync();
+      return;
+    }
+    const handle = hitHandle(point, selectionRect);
+    if (handle && selectionRect) {
+      isResizingRef.current = true;
+      setSelectionResizeState({
+        handle,
+        startRect: selectionRect,
+        startPoint: point,
+      });
+      return;
+    }
+    isSelectingRef.current = true;
+    selectStartRef.current = point;
+    setSelectionDraftRect({ x: point.x, y: point.y, width: 0, height: 0 });
   };
 
-  const handlePointerLeave = () => {
-    setPointerInner(null);
+  const handleMouseLeave = () => {
+    if (!isDrawingRef.current && toolMode === "draw") {
+      updateDrawCross(null);
+    }
+    setSelectionCursor("default");
   };
 
-  const screenBrushRadius =
-    iw > 0 && displayW > 0 ? brushRadius * (displayW / iw) : 0;
-
-  const showBrush =
-    activeTool === "erase" &&
-    pointerInner !== null &&
-    draftBinary &&
-    screenBrushRadius > 0;
+  const sampled = useMemo(() => {
+    if (penStrokeActive) return [];
+    return buildExportStrokes(strokes, selectionRect, captureGapUm, dpi);
+  }, [penStrokeActive, strokes, selectionRect, captureGapUm, dpi]);
 
   return (
-    <div className="image-canvas-viewport" ref={viewportRef}>
-      {!(activeTool === "erase" ? draftBinary : draftRgb) && (
-        <div className="image-canvas-empty">
-          <p>No image loaded</p>
-          <p className="image-canvas-hint">
-            Use File &gt; Import (image) or Open (.hw)
-          </p>
-        </div>
-      )}
-
-      {(activeTool === "erase" ? draftBinary : draftRgb) && (
-        <div className="image-canvas-scroll">
-          <div
-            ref={innerRef}
-            className="image-canvas-inner"
-            style={{
-              width: displayW,
-              height: displayH,
-              minWidth: displayW,
-              minHeight: displayH,
-            }}
+    <div
+      ref={viewportRef}
+      className={`image-canvas-viewport${toolMode === "draw" ? " image-canvas-draw-mode" : ""}`}
+    >
+      <div className="image-canvas-scroll">
+        <div
+          ref={boardRef}
+          className="whiteboard"
+          style={{
+            width: boardScreenWidth,
+            height: boardScreenHeight,
+            minWidth: boardScreenWidth,
+            minHeight: boardScreenHeight,
+            cursor: toolMode === "draw" ? "crosshair" : selectionCursor,
+          }}
+          onMouseDown={handleMouseDown}
+          onMouseLeave={handleMouseLeave}
+        >
+          <svg
+            className="whiteboard-svg"
+            width={boardScreenWidth}
+            height={boardScreenHeight}
+            viewBox={`0 0 ${boardWidth} ${boardHeight}`}
           >
-            <canvas
-              ref={canvasRef}
-              className={
-                activeTool === "erase"
-                  ? "image-canvas correction-mode"
-                  : "image-canvas"
+            {strokes.map((stroke) => {
+              if (stroke.points.length === 1) {
+                const pt = stroke.points[0];
+                return (
+                  <circle
+                    key={stroke.id}
+                    cx={pt.x}
+                    cy={pt.y}
+                    r={Math.max(1, strokePx / 2)}
+                    fill="#000000"
+                  />
+                );
               }
-              style={{
-                width: displayW,
-                height: displayH,
-                display: "block",
-                verticalAlign: "top",
-              }}
-              onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
-              onPointerCancel={handlePointerUp}
-              onPointerLeave={handlePointerLeave}
-            />
-            {showBrush && pointerInner && (
-              <div
-                className="brush-preview"
-                style={{
-                  left: pointerInner.x - screenBrushRadius,
-                  top: pointerInner.y - screenBrushRadius,
-                  width: screenBrushRadius * 2,
-                  height: screenBrushRadius * 2,
-                }}
+              if (stroke.points.length < 2) return null;
+              const d = stroke.points
+                .map((pt, idx) => `${idx === 0 ? "M" : "L"} ${pt.x} ${pt.y}`)
+                .join(" ");
+              return (
+                <path
+                  key={stroke.id}
+                  d={d}
+                  stroke="#000000"
+                  strokeWidth={strokePx}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+              );
+            })}
+            {sampled.map((stroke) =>
+              stroke.points.map((pt, idx) => (
+                <circle
+                  key={`${stroke.strokeId}-${idx}`}
+                  cx={(pt.xUm * dpi) / 25400}
+                  cy={(pt.yUm * dpi) / 25400}
+                  r={Math.max(1.5, strokePx * 0.22)}
+                  fill="#eab308"
+                />
+              ))
+            )}
+            {selectionForView && (
+              <rect
+                x={selectionForView.x}
+                y={selectionForView.y}
+                width={selectionForView.width}
+                height={selectionForView.height}
+                fill="rgba(59,130,246,0.28)"
+                stroke="#2563eb"
+                strokeWidth={1}
               />
             )}
-          </div>
+          </svg>
+          {toolMode === "draw" && (
+            <div ref={drawCrossRef} className="cross-cursor" style={{ display: "none" }} aria-hidden>
+              +
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };

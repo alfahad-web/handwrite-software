@@ -1,302 +1,183 @@
 import { create } from "zustand";
-import type { ActiveTool } from "./types.ts";
-import {
-  cloneImageData,
-  convertToBinary,
-  paintWhiteCircle as paintCircleOnData,
-} from "../utils/imageProcessing.ts";
+import type { PointPx, SelectionRect, Stroke, ToolMode } from "./types.ts";
 
-export interface EditorStore {
-  // Last opened/saved .hw path (used by Save / Save As)
-  hwPath: string | null;
-
-  // Committed state = what Save persists (after `tick`)
-  committedRgb: ImageData | null;
-  committedBinary: ImageData | null;
-  committedThreshold: number;
-
-  // Draft state = pending changes (after Import and/or Erase, before `tick`)
-  draftRgb: ImageData | null;
-  draftBinary: ImageData | null;
-  threshold: number; // draft-only
-
-  // Used to lazily regenerate draftBinary when draftRgb/threshold changes.
-  draftRgbVersion: number;
-  draftBinarySourceVersion: number | null;
-
-  isDirty: boolean;
-  needsSave: boolean;
-
-  imageWidth: number;
-  imageHeight: number;
-  activeTool: ActiveTool;
-  brushRadius: number;
-  zoom: number;
-
-  setImageFromImport: (path: string, data: ImageData) => void;
-  openHw: (filePath: string, payload: HwOpenPayload) => void;
-
-  setActiveTool: (tool: ActiveTool) => void;
-
-  tick: () => void;
-  cross: () => void;
-
-  ensureDraftBinary: () => void;
-
-  setThreshold: (value: number) => void;
-  setBrushRadius: (value: number) => void;
-  setZoom: (value: number) => void;
-
-  // Erase modifies draftBinary only.
-  paintWhiteCircle: (cx: number, cy: number, radius: number) => void;
-  clearImage: () => void;
-  markSaved: (path: string) => void;
+interface ResizeDragState {
+  handle:
+    | "move"
+    | "n"
+    | "s"
+    | "e"
+    | "w"
+    | "nw"
+    | "ne"
+    | "sw"
+    | "se";
+  startRect: SelectionRect;
+  startPoint: PointPx;
 }
 
-export type HwOpenPayload = {
-  width: number;
-  height: number;
-  threshold: number;
-  rgbRgbaBase64: string;
-  binaryRgbaBase64: string;
-};
+export interface EditorStore {
+  strokes: Stroke[];
+  currentStrokeId: string | null;
+  toolMode: ToolMode;
+  strokePx: number;
+  captureGapUm: number;
+  zoom: number;
+  selectionRect: SelectionRect | null;
+  selectionDraftRect: SelectionRect | null;
+  selectionResizeState: ResizeDragState | null;
+  openFilePath: string | null;
+  openFileName: string | null;
+  isDirty: boolean;
+
+  setToolMode: (mode: ToolMode) => void;
+  setStrokePx: (value: number) => void;
+  setCaptureGapUm: (value: number) => void;
+  setZoom: (value: number) => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
+  startStroke: (point: PointPx) => void;
+  appendStrokePoint: (point: PointPx, options?: { force?: boolean }) => void;
+  /** Replaces the active stroke's points in one update (used for rAF-batched drawing). */
+  replaceActiveStrokePoints: (points: PointPx[]) => void;
+  endStroke: () => void;
+  setSelectionDraftRect: (rect: SelectionRect | null) => void;
+  commitSelectionDraftRect: () => void;
+  clearSelection: () => void;
+  setSelectionRect: (rect: SelectionRect | null) => void;
+  setSelectionResizeState: (state: ResizeDragState | null) => void;
+  setOpenFile: (path: string | null) => void;
+  markSaved: () => void;
+  markDirty: () => void;
+  closeFile: () => void;
+}
+
+const DEFAULT_STROKE_PX = 6;
+const DEFAULT_CAPTURE_GAP_UM = 350;
+const MIN_RECT_SIDE = 4;
+/** Minimum board-space movement before recording another point (reduces React/SVG work per drag). */
+export const MIN_STROKE_SAMPLE_PX = 0.45;
 
 function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n));
 }
 
+function toBaseRect(rect: SelectionRect): SelectionRect {
+  const x = rect.width < 0 ? rect.x + rect.width : rect.x;
+  const y = rect.height < 0 ? rect.y + rect.height : rect.y;
+  const width = Math.abs(rect.width);
+  const height = Math.abs(rect.height);
+  return { x, y, width, height };
+}
+
+function normalizeRect(rect: SelectionRect): SelectionRect | null {
+  const normalized = toBaseRect(rect);
+  if (normalized.width < MIN_RECT_SIDE || normalized.height < MIN_RECT_SIDE) {
+    return null;
+  }
+  return normalized;
+}
+
 export const useEditorStore = create<EditorStore>((set, get) => ({
-  hwPath: null,
-
-  committedRgb: null,
-  committedBinary: null,
-  committedThreshold: 50,
-
-  draftRgb: null,
-  draftBinary: null,
-  threshold: 50,
-
-  draftRgbVersion: 0,
-  draftBinarySourceVersion: null,
-
-  isDirty: false,
-  needsSave: false,
-
-  imageWidth: 0,
-  imageHeight: 0,
-  activeTool: "none",
-  brushRadius: 10,
+  strokes: [],
+  currentStrokeId: null,
+  toolMode: "draw",
+  strokePx: DEFAULT_STROKE_PX,
+  captureGapUm: DEFAULT_CAPTURE_GAP_UM,
   zoom: 100,
+  selectionRect: null,
+  selectionDraftRect: null,
+  selectionResizeState: null,
+  openFilePath: null,
+  openFileName: null,
+  isDirty: false,
 
-  setImageFromImport: (path, data) => {
-    const orig = cloneImageData(data);
+  setToolMode: (mode) => set({ toolMode: mode }),
+  setStrokePx: (value) =>
     set({
-      // Import doesn't change currently saved .hw path.
-      hwPath: get().hwPath,
-      draftRgb: orig,
-      draftBinary: null,
-      draftRgbVersion: get().draftRgbVersion + 1,
-      draftBinarySourceVersion: null,
-      imageWidth: data.width,
-      imageHeight: data.height,
-      activeTool: "none",
-      isDirty: true,
-      needsSave: true,
-    });
-  },
-
-  setActiveTool: (tool) => set({ activeTool: tool }),
-
-  openHw: (filePath, payload) => {
-    const { width, height, threshold, rgbRgbaBase64, binaryRgbaBase64 } = payload;
-
-    // Decode base64 (RGBA bytes) -> ImageData.
-    const decodeRgbaBase64ToImageData = (
-      base64: string,
-      w: number,
-      h: number
-    ): ImageData => {
-      const raw = atob(base64);
-      const bytes = new Uint8Array(raw.length);
-      for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
-      return new ImageData(new Uint8ClampedArray(bytes), w, h);
-    };
-
-    const rgb = decodeRgbaBase64ToImageData(rgbRgbaBase64, width, height);
-    const binary = decodeRgbaBase64ToImageData(binaryRgbaBase64, width, height);
-
+      strokePx: clamp(Math.floor(Number.isFinite(value) ? value : DEFAULT_STROKE_PX), 1, 200),
+    }),
+  setCaptureGapUm: (value) =>
     set({
-      hwPath: filePath,
-
-      committedRgb: cloneImageData(rgb),
-      committedBinary: cloneImageData(binary),
-      committedThreshold: threshold,
-
-      draftRgb: cloneImageData(rgb),
-      draftBinary: cloneImageData(binary),
-      threshold,
-
-      draftRgbVersion: 1,
-      draftBinarySourceVersion: 1,
-      isDirty: false,
-      needsSave: false,
-
-      imageWidth: width,
-      imageHeight: height,
-      activeTool: "none",
-    });
-  },
-
-  tick: () => {
-    const { draftRgb, draftBinary, threshold, draftRgbVersion } = get();
-    if (!draftRgb) return;
-
-    const nextRgb = cloneImageData(draftRgb);
-    const nextThreshold = threshold;
-
-    // If draftBinary isn't generated yet, generate it now from draftRgb.
-    const nextBinary = draftBinary ?? convertToBinary(draftRgb, nextThreshold);
-
-    set({
-      committedRgb: cloneImageData(nextRgb),
-      committedBinary: cloneImageData(nextBinary),
-      committedThreshold: nextThreshold,
-
-      // Keep draft aligned with committed after tick.
-      draftRgb: cloneImageData(nextRgb),
-      draftBinary: cloneImageData(nextBinary),
-      threshold: nextThreshold,
-
-      draftRgbVersion,
-      draftBinarySourceVersion: draftRgbVersion,
-
-      isDirty: false,
-      needsSave: true,
-    });
-  },
-
-  cross: () => {
-    const { committedRgb, committedBinary, committedThreshold, needsSave } = get();
-    if (!committedRgb || !committedBinary) return;
-
-    const nextRgb = cloneImageData(committedRgb);
-    const nextBinary = cloneImageData(committedBinary);
-
-    const nextVersion = get().draftRgbVersion + 1;
-    set({
-      draftRgb: nextRgb,
-      draftBinary: nextBinary,
-      threshold: committedThreshold,
-
-      draftRgbVersion: nextVersion,
-      draftBinarySourceVersion: nextVersion,
-
-      imageWidth: nextRgb.width,
-      imageHeight: nextRgb.height,
-
-      isDirty: false,
-      needsSave,
-    });
-  },
-
-  ensureDraftBinary: () => {
-    const state = get();
-    if (!state.draftRgb) return;
-
-    const needsRegen =
-      !state.draftBinary ||
-      state.draftBinarySourceVersion !== state.draftRgbVersion;
-    if (!needsRegen) return;
-
-    const next = convertToBinary(state.draftRgb, state.threshold);
-    set({
-      draftBinary: next,
-      draftBinarySourceVersion: state.draftRgbVersion,
-    });
-  },
-
-  setThreshold: (value) => {
-    const next = clamp(Number.isFinite(value) ? value : 50, 0, 100);
-    const state = get();
-    if (next === state.threshold) return;
-
-    // Threshold tuning should be real-time: regenerate binary immediately
-    // so erase view updates without unloading the image.
-    const nextBinary = state.draftRgb
-      ? convertToBinary(state.draftRgb, next)
-      : state.draftBinary;
-
-    set({
-      threshold: next,
-      draftBinary: nextBinary,
-      draftBinarySourceVersion: state.draftRgb ? state.draftRgbVersion : null,
-      isDirty: state.draftRgb ? true : state.isDirty,
-      needsSave: state.draftRgb ? true : state.needsSave,
-    });
-  },
-
-  setBrushRadius: (value) =>
-    set({
-      brushRadius: Math.max(
+      captureGapUm: clamp(
+        Math.floor(Number.isFinite(value) ? value : DEFAULT_CAPTURE_GAP_UM),
         1,
-        Math.floor(Number.isFinite(value) ? value : 10)
+        200000
       ),
     }),
+  setZoom: (value) => set({ zoom: clamp(Number.isFinite(value) ? value : 100, 10, 800) }),
+  zoomIn: () => set((state) => ({ zoom: clamp(state.zoom + 10, 10, 800) })),
+  zoomOut: () => set((state) => ({ zoom: clamp(state.zoom - 10, 10, 800) })),
 
-  setZoom: (value) =>
-    set({
-      zoom: clamp(Number.isFinite(value) ? value : 100, 10, 500),
-    }),
-
-  paintWhiteCircle: (cx, cy, radius) => {
-    const state = get();
-    if (!state.draftRgb) return;
-
-    // Ensure erase stage exists.
-    if (!state.draftBinary) {
-      const nextBinary = convertToBinary(state.draftRgb, state.threshold);
-      set({
-        draftBinary: nextBinary,
-        draftBinarySourceVersion: state.draftRgbVersion,
-      });
-    }
-
-    const { draftBinary } = get();
-    if (!draftBinary) return;
-
-    const next = cloneImageData(draftBinary);
-    paintCircleOnData(next, cx, cy, radius);
-    set({
-      draftBinary: next,
-      draftBinarySourceVersion: get().draftRgbVersion,
+  startStroke: (point) => {
+    const id =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `stroke-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const stroke: Stroke = { id, points: [point], createdAt: Date.now() };
+    set((state) => ({
+      strokes: [...state.strokes, stroke],
+      currentStrokeId: id,
       isDirty: true,
-      needsSave: true,
-    });
+    }));
   },
 
-  markSaved: (path) =>
+  appendStrokePoint: (point, options) => {
+    const { currentStrokeId, strokes } = get();
+    if (!currentStrokeId) return;
+    const active = strokes.find((s) => s.id === currentStrokeId);
+    if (!active) return;
+    if (active.points.length > 0) {
+      const last = active.points[active.points.length - 1];
+      const dist = Math.hypot(point.x - last.x, point.y - last.y);
+      if (options?.force) {
+        if (dist < 0.02) return;
+      } else if (dist < MIN_STROKE_SAMPLE_PX) return;
+    }
+    set((state) => ({
+      strokes: state.strokes.map((stroke) =>
+        stroke.id === currentStrokeId
+          ? { ...stroke, points: [...stroke.points, point] }
+          : stroke
+      ),
+      isDirty: true,
+    }));
+  },
+
+  replaceActiveStrokePoints: (points) => {
+    const { currentStrokeId } = get();
+    if (!currentStrokeId || points.length === 0) return;
+    set((state) => ({
+      strokes: state.strokes.map((stroke) =>
+        stroke.id === currentStrokeId ? { ...stroke, points: [...points] } : stroke
+      ),
+      isDirty: true,
+    }));
+  },
+
+  endStroke: () => set({ currentStrokeId: null }),
+
+  setSelectionDraftRect: (rect) => set({ selectionDraftRect: rect }),
+
+  commitSelectionDraftRect: () => {
+    const draft = get().selectionDraftRect;
+    const next = draft ? normalizeRect(draft) : null;
+    set({ selectionRect: next, selectionDraftRect: null });
+  },
+
+  clearSelection: () => set({ selectionRect: null, selectionDraftRect: null, selectionResizeState: null }),
+
+  setSelectionRect: (rect) => set({ selectionRect: rect ? normalizeRect(rect) : null }),
+  setSelectionResizeState: (state) => set({ selectionResizeState: state }),
+
+  setOpenFile: (path) =>
     set({
-      hwPath: path,
-      needsSave: false,
+      openFilePath: path,
+      openFileName: path ? path.split(/[/\\]/).pop() ?? path : null,
     }),
 
-  clearImage: () =>
-    set({
-      hwPath: null,
-      committedRgb: null,
-      committedBinary: null,
-      committedThreshold: 50,
+  markSaved: () => set({ isDirty: false }),
+  markDirty: () => set({ isDirty: true }),
 
-      draftRgb: null,
-      draftBinary: null,
-      threshold: 50,
-
-      draftRgbVersion: 0,
-      draftBinarySourceVersion: null,
-      isDirty: false,
-      needsSave: false,
-      imageWidth: 0,
-      imageHeight: 0,
-      activeTool: "none",
-    }),
+  closeFile: () => set({ openFilePath: null, openFileName: null }),
 }));

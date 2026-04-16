@@ -1,13 +1,7 @@
 export interface ElectronAPI {
-  selectImageFile: () => Promise<string | null>;
-  readImageFile: (
-    filePath: string
-  ) => Promise<{ base64: string } | null>;
-
-  selectHwFile: () => Promise<string | null>;
-  readHwFile: (filePath: string) => Promise<any | null>;
-  selectSaveHwFile: () => Promise<string | null>;
-  writeHwFile: (filePath: string, payload: any) => Promise<void>;
+  platform: string;
+  selectOrCreateTxtFile: () => Promise<string | null>;
+  appendTxtLines: (filePath: string, lines: string[]) => Promise<void>;
 
   minimizeWindow: () => Promise<void>;
   maximizeWindow: () => Promise<void>;
@@ -18,7 +12,8 @@ export interface ElectronAPI {
 
 declare global {
   interface Window {
-    electronAPI: ElectronAPI;
+    /** Present when running inside Electron with preload; absent in a plain browser (e.g. Vite-only tab). */
+    electronAPI?: ElectronAPI;
   }
 }
 
