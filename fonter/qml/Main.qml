@@ -1,0 +1,290 @@
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import Handwrite 1.0
+
+ApplicationWindow {
+    id: root
+    visible: true
+    width: 1280
+    height: 840
+    minimumWidth: 900
+    minimumHeight: 640
+    title: "Handwrite Qt"
+    color: "#f4f4f5"
+    property int debugMoveCount: 0
+    property bool boardPanMode: false
+    property real panLastX: 0
+    property real panLastY: 0
+    Component.onCompleted: {
+        console.log("[qml] Main loaded. toolMode=", editorStoreModel.toolMode,
+                    "zoom=", editorStoreModel.zoom, "strokePx=", editorStoreModel.strokePx)
+    }
+    Connections {
+        target: editorStoreModel
+        function onToolModeChanged() {
+            if (editorStoreModel.toolMode !== "draw") appController.setBoardCursorActive(false)
+            if (editorStoreModel.toolMode === "erase") {
+                appController.setEraseCursorActive(true, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+            } else {
+                appController.setEraseCursorActive(false, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+            }
+        }
+        function onEraseRadiusPxChanged() {
+            if (editorStoreModel.toolMode === "erase") {
+                appController.setEraseCursorActive(true, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+            }
+        }
+        function onZoomChanged() {
+            if (editorStoreModel.toolMode === "erase") {
+                appController.setEraseCursorActive(true, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+            }
+        }
+    }
+    onClosing: appController.setBoardCursorActive(false)
+    property string pendingSelectionAssignId: ""
+
+    header: Frame {
+        background: Rectangle { color: "#fafafa"; border.color: "#d4d4d8" }
+        padding: 10
+        RowLayout {
+            anchors.fill: parent
+            spacing: 10
+
+            Label { text: "Stroke" }
+            SpinBox {
+                from: 1; to: 200
+                value: editorStoreModel.strokePx
+                onValueModified: editorStoreModel.setStrokePx(value)
+            }
+
+            Label { text: "Gap (um)" }
+            SpinBox {
+                from: 1; to: 200000
+                value: editorStoreModel.captureGapUm
+                editable: true
+                onValueModified: editorStoreModel.setCaptureGapUm(value)
+            }
+
+            Button {
+                id: fileButton
+                text: editorStoreModel.projectFileName.length > 0 ? editorStoreModel.projectFileName : "File"
+                onClicked: fileMenu.open()
+            }
+            Menu {
+                id: fileMenu
+                y: fileButton.height
+                MenuItem {
+                    text: "New"
+                    onTriggered: appController.newProject()
+                }
+                MenuItem {
+                    text: "Open"
+                    onTriggered: appController.openProject()
+                }
+                MenuItem {
+                    text: "Save"
+                    onTriggered: appController.saveProject()
+                }
+            }
+
+            Button {
+                text: "-"
+                onClicked: editorStoreModel.zoomOut()
+            }
+            SpinBox {
+                from: 10; to: 800
+                value: editorStoreModel.zoom
+                onValueModified: editorStoreModel.setZoom(value)
+            }
+            Button {
+                text: "+"
+                onClicked: editorStoreModel.zoomIn()
+            }
+
+            Button {
+                text: editorStoreModel.toolMode === "select" ? "Selection On" : "Selection Off"
+                highlighted: editorStoreModel.toolMode === "select"
+                onClicked: editorStoreModel.setToolMode("select")
+            }
+            Button {
+                text: editorStoreModel.toolMode === "draw" ? "Draw On" : "Draw"
+                highlighted: editorStoreModel.toolMode === "draw"
+                onClicked: editorStoreModel.setToolMode("draw")
+            }
+            Button {
+                text: editorStoreModel.toolMode === "erase" ? "Erase On" : "Erase"
+                highlighted: editorStoreModel.toolMode === "erase"
+                onClicked: editorStoreModel.setToolMode("erase")
+            }
+            Label { text: "Erase r(px)" }
+            SpinBox {
+                from: 1; to: 500
+                value: editorStoreModel.eraseRadiusPx
+                onValueModified: editorStoreModel.setEraseRadiusPx(value)
+            }
+            Button {
+                text: "Delete Sel"
+                enabled: editorStoreModel.hasSelectedSelection
+                onClicked: appController.deleteSelectedSelection()
+            }
+            Button {
+                text: "Generate Fonts"
+                onClicked: appController.generateFonts()
+            }
+
+            Item { Layout.fillWidth: true }
+
+            Label {
+                text: editorStoreModel.isDirty ? "Unsaved board" : "Saved board"
+                color: "#1e293b"
+            }
+        }
+    }
+
+    ColumnLayout {
+        anchors.fill: parent
+        spacing: 0
+
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            color: "#f4f4f5"
+            clip: true
+
+            Flickable {
+                id: boardFlick
+                anchors.fill: parent
+                contentWidth: 3000 * editorStoreModel.zoom / 100
+                contentHeight: 2000 * editorStoreModel.zoom / 100
+                boundsBehavior: Flickable.StopAtBounds
+                interactive: false
+
+                CanvasItem {
+                    id: boardCanvas
+                    width: 3000 * editorStoreModel.zoom / 100
+                    height: 2000 * editorStoreModel.zoom / 100
+                    editorStore: editorStoreModel
+                    onSelectionDoubleClicked: (selectionId) => {
+                        pendingSelectionAssignId = selectionId
+                        assignDialog.open()
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: boardCanvas
+                    hoverEnabled: true
+                    acceptedButtons: Qt.LeftButton
+                    onEntered: {
+                        console.log("[qml] MouseArea entered; toolMode=", editorStoreModel.toolMode)
+                        if (editorStoreModel.toolMode === "draw") {
+                            appController.setEraseCursorActive(false, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+                            appController.setBoardCursorActive(true)
+                        } else if (editorStoreModel.toolMode === "erase") {
+                            appController.setBoardCursorActive(false)
+                            appController.setEraseCursorActive(true, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+                        } else {
+                            appController.setBoardCursorActive(false)
+                            appController.setEraseCursorActive(false, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+                        }
+                    }
+                    onExited: {
+                        console.log("[qml] MouseArea exited")
+                        appController.setBoardCursorActive(false)
+                        appController.setEraseCursorActive(false, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+                        boardPanMode = false
+                    }
+                    onPressed: (mouse) => {
+                        console.log("[qml] press", mouse.x, mouse.y, "button=", mouse.button)
+                        if (boardPanMode) {
+                            panLastX = mouse.x
+                            panLastY = mouse.y
+                            return
+                        }
+                        boardCanvas.pointerDown(mouse.x, mouse.y, mouse.button)
+                    }
+                    onPositionChanged: (mouse) => {
+                        root.debugMoveCount += 1
+                        if ((root.debugMoveCount % 25) === 0) {
+                            console.log("[qml] move#", root.debugMoveCount, mouse.x, mouse.y, "contains=", containsMouse)
+                        }
+                        if (boardPanMode) {
+                            const dx = mouse.x - panLastX
+                            const dy = mouse.y - panLastY
+                            boardFlick.contentX = Math.max(0, Math.min(boardFlick.contentWidth - boardFlick.width, boardFlick.contentX - dx))
+                            boardFlick.contentY = Math.max(0, Math.min(boardFlick.contentHeight - boardFlick.height, boardFlick.contentY - dy))
+                            panLastX = mouse.x
+                            panLastY = mouse.y
+                            return
+                        }
+                        boardCanvas.pointerMove(mouse.x, mouse.y)
+                        if (containsMouse && editorStoreModel.toolMode === "draw") {
+                            appController.setEraseCursorActive(false, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+                            appController.setBoardCursorActive(true)
+                        } else if (containsMouse && editorStoreModel.toolMode === "erase") {
+                            appController.setBoardCursorActive(false)
+                            appController.setEraseCursorActive(true, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+                        }
+                    }
+                    onReleased: (mouse) => {
+                        console.log("[qml] release", mouse.x, mouse.y, "button=", mouse.button)
+                        if (boardPanMode) {
+                            boardPanMode = false
+                            appController.setEraseCursorActive(editorStoreModel.toolMode === "erase", editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+                            return
+                        }
+                        boardCanvas.pointerUp(mouse.x, mouse.y, mouse.button)
+                        if (!containsMouse || editorStoreModel.toolMode !== "draw") appController.setBoardCursorActive(false)
+                        if (!containsMouse || editorStoreModel.toolMode !== "erase") {
+                            appController.setEraseCursorActive(false, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+                        }
+                    }
+                    onDoubleClicked: (mouse) => {
+                        const consumed = boardCanvas.pointerDoubleClick(mouse.x, mouse.y, mouse.button)
+                        if (!consumed && mouse.button === Qt.LeftButton && !boardCanvas.hasSelectionAt(mouse.x, mouse.y)) {
+                            boardPanMode = true
+                            panLastX = mouse.x
+                            panLastY = mouse.y
+                            appController.setBoardCursorActive(false)
+                            appController.setEraseCursorActive(false, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+                        }
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            height: 30
+            color: "#e2e8f0"
+            Label {
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.left: parent.left
+                anchors.leftMargin: 10
+                text: appController.statusMessage.length > 0 ? appController.statusMessage : "Ready"
+                color: "#1e293b"
+            }
+        }
+    }
+
+    Dialog {
+        id: assignDialog
+        title: "Assign Character"
+        modal: true
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        width: 360
+        contentItem: ColumnLayout {
+            spacing: 8
+            Label { text: "Enter exactly one ASCII character:" }
+            TextField {
+                id: assignInput
+                placeholderText: "Example: A or #"
+                selectByMouse: true
+            }
+        }
+        onOpened: assignInput.text = ""
+        onAccepted: {
+            appController.assignSelectionCharacter(pendingSelectionAssignId, assignInput.text)
+        }
+    }
+}
