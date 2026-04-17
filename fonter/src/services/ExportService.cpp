@@ -92,7 +92,9 @@ QStringList ExportService::serializeExportLines(const QVector<SampledStrokeUm> &
         for (const SampledPointUm &p : stroke.points) {
             parts << QString::number(p.xUm) << QString::number(p.yUm);
         }
-        lines << parts.join(" ");
+        if (parts.isEmpty()) continue;
+        // One curve per line; trailing ';' matches WriterQt font parser (curves split by ';').
+        lines << parts.join(QLatin1Char(' ')) + QLatin1Char(';');
     }
     return lines;
 }
