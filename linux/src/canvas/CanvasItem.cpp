@@ -214,17 +214,18 @@ void CanvasItem::mouseReleaseEvent(QMouseEvent *event) {
 }
 
 void CanvasItem::mouseDoubleClickEvent(QMouseEvent *event) {
-    pointerDoubleClick(event->position().x(), event->position().y(), static_cast<int>(event->button()));
+    (void)pointerDoubleClick(event->position().x(), event->position().y(), static_cast<int>(event->button()));
 }
 
-void CanvasItem::pointerDoubleClick(qreal x, qreal y, int button) {
-    if (!m_store || m_store->toolModeValue() != ToolMode::Select || button != Qt::LeftButton) return;
+bool CanvasItem::pointerDoubleClick(qreal x, qreal y, int button) {
+    if (!m_store || m_store->toolModeValue() != ToolMode::Select || button != Qt::LeftButton) return false;
     const QPointF p = toBoard(QPointF(x, y), false);
-    if (p.x() < 0 || p.y() < 0) return;
+    if (p.x() < 0 || p.y() < 0) return false;
     const QString selId = hitSelectionId(p);
-    if (selId.isEmpty()) return;
+    if (selId.isEmpty()) return false;
     m_store->setSelectedSelectionId(selId);
     emit selectionDoubleClicked(selId);
+    return true;
 }
 
 void CanvasItem::keyPressEvent(QKeyEvent *event) {
@@ -375,6 +376,12 @@ QString CanvasItem::hitSelectionId(const QPointF &point) const {
         }
     }
     return QString();
+}
+
+bool CanvasItem::hasSelectionAt(qreal x, qreal y) const {
+    const QPointF p = toBoard(QPointF(x, y), false);
+    if (p.x() < 0 || p.y() < 0) return false;
+    return !hitSelectionId(p).isEmpty();
 }
 
 void CanvasItem::updateToolCursor() {

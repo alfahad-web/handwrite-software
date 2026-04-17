@@ -143,6 +143,9 @@ void AppController::setBoardCursorActive(bool active) {
     m_boardCursorActive = active;
 
     if (active) {
+        if (m_eraseCursorActive) {
+            m_eraseCursorActive = false;
+        }
         QPixmap pixmap(21, 21);
         pixmap.fill(Qt::transparent);
         QPainter painter(&pixmap);
@@ -166,5 +169,38 @@ void AppController::setBoardCursorActive(bool active) {
         QApplication::restoreOverrideCursor();
     } else {
         qInfo() << "[cursor] no override cursor to restore";
+    }
+}
+
+void AppController::setEraseCursorActive(bool active, int radiusPx, int zoomPercent) {
+    if (active == m_eraseCursorActive && active) {
+        // Keep cursor size synced with runtime radius/zoom changes.
+    } else if (active == m_eraseCursorActive) {
+        return;
+    }
+    m_eraseCursorActive = active;
+    if (active) {
+        if (m_boardCursorActive) m_boardCursorActive = false;
+        const qreal scale = qMax(0.1, zoomPercent / 100.0);
+        const int radius = qMax(2, static_cast<int>(qRound(radiusPx * scale)));
+        const int size = radius * 2 + 8;
+        QPixmap pixmap(size, size);
+        pixmap.fill(Qt::transparent);
+        QPainter painter(&pixmap);
+        painter.setRenderHint(QPainter::Antialiasing, true);
+        painter.setPen(QPen(QColor(15, 23, 42, 190), 1.5));
+        painter.setBrush(QColor(59, 130, 246, 70));
+        painter.drawEllipse(QPointF(size / 2.0, size / 2.0), radius, radius);
+        painter.end();
+        const QCursor eraseCursor(pixmap, size / 2, size / 2);
+        if (QApplication::overrideCursor()) {
+            QApplication::changeOverrideCursor(eraseCursor);
+        } else {
+            QApplication::setOverrideCursor(eraseCursor);
+        }
+        return;
+    }
+    if (QApplication::overrideCursor()) {
+        QApplication::restoreOverrideCursor();
     }
 }

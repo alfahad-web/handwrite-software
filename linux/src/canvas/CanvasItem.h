@@ -19,7 +19,8 @@ public:
     Q_INVOKABLE void pointerDown(qreal x, qreal y, int button);
     Q_INVOKABLE void pointerMove(qreal x, qreal y);
     Q_INVOKABLE void pointerUp(qreal x, qreal y, int button);
-    Q_INVOKABLE void pointerDoubleClick(qreal x, qreal y, int button);
+    Q_INVOKABLE bool pointerDoubleClick(qreal x, qreal y, int button);
+    Q_INVOKABLE bool hasSelectionAt(qreal x, qreal y) const;
 
 signals:
     void editorStoreChanged();

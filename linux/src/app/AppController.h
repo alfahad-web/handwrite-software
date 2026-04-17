@@ -22,6 +22,7 @@ public:
     Q_INVOKABLE void deleteSelectedSelection();
     Q_INVOKABLE void assignSelectionCharacter(const QString &selectionId, const QString &text);
     Q_INVOKABLE void setBoardCursorActive(bool active);
+    Q_INVOKABLE void setEraseCursorActive(bool active, int radiusPx, int zoomPercent);
 
 signals:
     void statusMessageChanged();
@@ -32,4 +33,5 @@ private:
     ProjectService m_projectService;
     QString m_statusMessage;
     bool m_boardCursorActive = false;
+    bool m_eraseCursorActive = false;
 };

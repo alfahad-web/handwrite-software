@@ -13,9 +13,33 @@ ApplicationWindow {
     title: "Handwrite Qt"
     color: "#f4f4f5"
     property int debugMoveCount: 0
+    property bool boardPanMode: false
+    property real panLastX: 0
+    property real panLastY: 0
     Component.onCompleted: {
         console.log("[qml] Main loaded. toolMode=", editorStoreModel.toolMode,
                     "zoom=", editorStoreModel.zoom, "strokePx=", editorStoreModel.strokePx)
+    }
+    Connections {
+        target: editorStoreModel
+        function onToolModeChanged() {
+            if (editorStoreModel.toolMode !== "draw") appController.setBoardCursorActive(false)
+            if (editorStoreModel.toolMode === "erase") {
+                appController.setEraseCursorActive(true, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+            } else {
+                appController.setEraseCursorActive(false, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+            }
+        }
+        function onEraseRadiusPxChanged() {
+            if (editorStoreModel.toolMode === "erase") {
+                appController.setEraseCursorActive(true, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+            }
+        }
+        function onZoomChanged() {
+            if (editorStoreModel.toolMode === "erase") {
+                appController.setEraseCursorActive(true, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+            }
+        }
     }
     onClosing: appController.setBoardCursorActive(false)
     property string pendingSelectionAssignId: ""
@@ -129,6 +153,7 @@ ApplicationWindow {
             clip: true
 
             Flickable {
+                id: boardFlick
                 anchors.fill: parent
                 contentWidth: 3000 * editorStoreModel.zoom / 100
                 contentHeight: 2000 * editorStoreModel.zoom / 100
@@ -152,14 +177,30 @@ ApplicationWindow {
                     acceptedButtons: Qt.LeftButton
                     onEntered: {
                         console.log("[qml] MouseArea entered; toolMode=", editorStoreModel.toolMode)
-                        if (editorStoreModel.toolMode === "draw") appController.setBoardCursorActive(true)
+                        if (editorStoreModel.toolMode === "draw") {
+                            appController.setEraseCursorActive(false, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+                            appController.setBoardCursorActive(true)
+                        } else if (editorStoreModel.toolMode === "erase") {
+                            appController.setBoardCursorActive(false)
+                            appController.setEraseCursorActive(true, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+                        } else {
+                            appController.setBoardCursorActive(false)
+                            appController.setEraseCursorActive(false, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+                        }
                     }
                     onExited: {
                         console.log("[qml] MouseArea exited")
                         appController.setBoardCursorActive(false)
+                        appController.setEraseCursorActive(false, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+                        boardPanMode = false
                     }
                     onPressed: (mouse) => {
                         console.log("[qml] press", mouse.x, mouse.y, "button=", mouse.button)
+                        if (boardPanMode) {
+                            panLastX = mouse.x
+                            panLastY = mouse.y
+                            return
+                        }
                         boardCanvas.pointerDown(mouse.x, mouse.y, mouse.button)
                     }
                     onPositionChanged: (mouse) => {
@@ -167,16 +208,46 @@ ApplicationWindow {
                         if ((root.debugMoveCount % 25) === 0) {
                             console.log("[qml] move#", root.debugMoveCount, mouse.x, mouse.y, "contains=", containsMouse)
                         }
+                        if (boardPanMode) {
+                            const dx = mouse.x - panLastX
+                            const dy = mouse.y - panLastY
+                            boardFlick.contentX = Math.max(0, Math.min(boardFlick.contentWidth - boardFlick.width, boardFlick.contentX - dx))
+                            boardFlick.contentY = Math.max(0, Math.min(boardFlick.contentHeight - boardFlick.height, boardFlick.contentY - dy))
+                            panLastX = mouse.x
+                            panLastY = mouse.y
+                            return
+                        }
                         boardCanvas.pointerMove(mouse.x, mouse.y)
-                        if (containsMouse && editorStoreModel.toolMode === "draw") appController.setBoardCursorActive(true)
+                        if (containsMouse && editorStoreModel.toolMode === "draw") {
+                            appController.setEraseCursorActive(false, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+                            appController.setBoardCursorActive(true)
+                        } else if (containsMouse && editorStoreModel.toolMode === "erase") {
+                            appController.setBoardCursorActive(false)
+                            appController.setEraseCursorActive(true, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+                        }
                     }
                     onReleased: (mouse) => {
                         console.log("[qml] release", mouse.x, mouse.y, "button=", mouse.button)
+                        if (boardPanMode) {
+                            boardPanMode = false
+                            appController.setEraseCursorActive(editorStoreModel.toolMode === "erase", editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+                            return
+                        }
                         boardCanvas.pointerUp(mouse.x, mouse.y, mouse.button)
                         if (!containsMouse || editorStoreModel.toolMode !== "draw") appController.setBoardCursorActive(false)
+                        if (!containsMouse || editorStoreModel.toolMode !== "erase") {
+                            appController.setEraseCursorActive(false, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+                        }
                     }
                     onDoubleClicked: (mouse) => {
-                        boardCanvas.pointerDoubleClick(mouse.x, mouse.y, mouse.button)
+                        const consumed = boardCanvas.pointerDoubleClick(mouse.x, mouse.y, mouse.button)
+                        if (!consumed && mouse.button === Qt.LeftButton && !boardCanvas.hasSelectionAt(mouse.x, mouse.y)) {
+                            boardPanMode = true
+                            panLastX = mouse.x
+                            panLastY = mouse.y
+                            appController.setBoardCursorActive(false)
+                            appController.setEraseCursorActive(false, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+                        }
                     }
                 }
             }
