@@ -20,6 +20,14 @@ body {
   flex-direction: column;
 }
 
+/* Electron + Linux (GNOME/Wayland): without explicit no-drag, Chromium can treat the whole client
+   area as a window-drag region and swallow pointer events (no hover/click), similar to frameless
+   title-bar bugs. Scoped to Linux Electron only via App.tsx. */
+html[data-handwrite-linux-electron="1"] .app,
+html[data-handwrite-linux-electron="1"] .app * {
+  -webkit-app-region: no-drag !important;
+}
+
 /* Scrollbar Styling */
 ::-webkit-scrollbar {
   width: 8px;

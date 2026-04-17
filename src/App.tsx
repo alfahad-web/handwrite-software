@@ -5,8 +5,25 @@ import ImageCanvas from "./components/ImageCanvas/ImageCanvas.tsx";
 import { useEditorStore } from "./context/index.ts";
 import "./App.css";
 
+const LINUX_ELECTRON_ATTR = "data-handwrite-linux-electron";
+
+/** True when running under Electron on Linux (preload platform or UA fallback if preload glitches). */
+function isLinuxElectronClient(): boolean {
+  const p = window.electronAPI?.platform;
+  if (p === "linux") return true;
+  if (p === "win32" || p === "darwin") return false;
+  if (typeof navigator === "undefined") return false;
+  return /linux/i.test(navigator.userAgent) && /electron/i.test(navigator.userAgent);
+}
+
 const App: React.FC = () => {
-  const isLinux = window.electronAPI?.platform === "linux";
+  const hideCustomTitleBar = isLinuxElectronClient();
+
+  useEffect(() => {
+    if (!isLinuxElectronClient()) return;
+    document.documentElement.setAttribute(LINUX_ELECTRON_ATTR, "1");
+    return () => document.documentElement.removeAttribute(LINUX_ELECTRON_ATTR);
+  }, []);
 
   const handleAppCloseRequested = useCallback(async () => {
     const api = window.electronAPI;
@@ -37,7 +54,7 @@ const App: React.FC = () => {
 
   return (
     <div className="app">
-      {!isLinux && <TitleBar />}
+      {!hideCustomTitleBar && <TitleBar />}
       <TopMenuBar />
       <main className="main-content">
         <ImageCanvas />

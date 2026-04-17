@@ -70,8 +70,28 @@ export function createWindow(): BrowserWindow {
     win.loadFile(path.join(__dirname, "../../dist/index.html"));
   }
 
+  const showWhenReady = () => {
+    if (win.isDestroyed()) return;
+    if (!win.isVisible()) win.show();
+  };
+
+  const fallbackMs = 4000;
+  const fallbackTimer = setTimeout(() => {
+    if (win.isDestroyed()) return;
+    if (!win.isVisible()) {
+      logger.warn(
+        "windowManager.ts",
+        "show-fallback",
+        `Window still hidden after ${fallbackMs}ms; forcing show (ready-to-show may not have fired).`,
+        "BG"
+      );
+      showWhenReady();
+    }
+  }, fallbackMs);
+
   win.once("ready-to-show", () => {
-    win.show();
+    clearTimeout(fallbackTimer);
+    showWhenReady();
   });
 
   // Intercept all close attempts (title bar, OS controls, Alt+F4).

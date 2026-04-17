@@ -46,16 +46,39 @@ const ImageCanvas: React.FC = () => {
 
   const liveStrokePointsRef = useRef<PointPx[]>([]);
   const strokeSyncRafRef = useRef<number | null>(null);
+  const liveStrokePathRef = useRef<SVGPathElement | null>(null);
+
+  const currentStrokeId = useEditorStore((s) => s.currentStrokeId);
+
+  const syncLiveStrokePathDom = useCallback(() => {
+    const el = liveStrokePathRef.current;
+    if (!el) return;
+    const pts = liveStrokePointsRef.current;
+    const px = useEditorStore.getState().strokePx;
+    if (pts.length === 0) {
+      el.setAttribute("d", "");
+      el.style.display = "none";
+      return;
+    }
+    el.style.display = "";
+    el.setAttribute("stroke-width", String(px));
+    let d: string;
+    if (pts.length === 1) {
+      const p = pts[0];
+      d = `M ${p.x} ${p.y} L ${p.x + 0.35} ${p.y + 0.35}`;
+    } else {
+      d = pts.map((pt, idx) => `${idx === 0 ? "M" : "L"} ${pt.x} ${pt.y}`).join(" ");
+    }
+    el.setAttribute("d", d);
+  }, []);
 
   const scheduleStrokeSync = useCallback(() => {
     if (strokeSyncRafRef.current != null) return;
     strokeSyncRafRef.current = requestAnimationFrame(() => {
       strokeSyncRafRef.current = null;
-      const pts = liveStrokePointsRef.current;
-      if (pts.length === 0) return;
-      useEditorStore.getState().replaceActiveStrokePoints(pts);
+      syncLiveStrokePathDom();
     });
-  }, []);
+  }, [syncLiveStrokePathDom]);
 
   const tryAppendLiveStrokePoint = useCallback(
     (p: PointPx) => {
@@ -136,15 +159,10 @@ const ImageCanvas: React.FC = () => {
     [applyResize]
   );
 
-  const toolModeRef = useRef(toolMode);
-  toolModeRef.current = toolMode;
-
   const isDrawingRef = useRef(false);
   const isSelectingRef = useRef(false);
   const isResizingRef = useRef(false);
   const selectStartRef = useRef<PointPx | null>(null);
-  const selectionRectRef = useRef<SelectionRect | null>(selectionRect);
-  selectionRectRef.current = selectionRect;
 
   const [selectionCursor, setSelectionCursor] = useState("default");
   const dpi = useMemo(() => resolveScreenDpi(), []);
@@ -233,6 +251,24 @@ const ImageCanvas: React.FC = () => {
     }
   }, [zoom, toolMode, updateDrawCross]);
 
+  const windowDragListenersRef = useRef<{
+    onMove: (e: PointerEvent) => void;
+    onUp: (e: PointerEvent) => void;
+  } | null>(null);
+
+  const detachWindowDragListeners = useCallback(() => {
+    const cur = windowDragListenersRef.current;
+    if (!cur) return;
+    window.removeEventListener("pointermove", cur.onMove);
+    window.removeEventListener("pointerup", cur.onUp);
+    window.removeEventListener("pointercancel", cur.onUp);
+    windowDragListenersRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    return () => detachWindowDragListeners();
+  }, [detachWindowDragListeners]);
+
   const finalizeMouseInteraction = useCallback(
     (clientX: number, clientY: number) => {
       if (isDrawingRef.current) {
@@ -254,6 +290,7 @@ const ImageCanvas: React.FC = () => {
         }
         liveStrokePointsRef.current = [];
         isDrawingRef.current = false;
+        syncLiveStrokePathDom();
         setPenStrokeActive(false);
         endStroke();
       }
@@ -288,83 +325,18 @@ const ImageCanvas: React.FC = () => {
       endStroke,
       setSelectionDraftRect,
       setSelectionResizeState,
+      syncLiveStrokePathDom,
     ]
   );
 
-  useEffect(() => {
-    const onWindowMouseMove = (e: MouseEvent) => {
-      const activeDrag =
-        isDrawingRef.current || isSelectingRef.current || isResizingRef.current;
-      const point = clientToBoard(e.clientX, e.clientY, activeDrag);
-
-      if (toolModeRef.current === "draw") {
-        updateDrawCross(point);
-      }
-
-      if (!point) return;
-
-      if (toolModeRef.current === "draw" && isDrawingRef.current) {
-        tryAppendLiveStrokePoint(point);
-        return;
-      }
-      if (toolModeRef.current === "select" && isSelectingRef.current) {
-        const start = selectStartRef.current;
-        if (start) {
-          scheduleSelectionDraftRect({
-            x: start.x,
-            y: start.y,
-            width: point.x - start.x,
-            height: point.y - start.y,
-          });
-        }
-        return;
-      }
-      if (toolModeRef.current === "select" && isResizingRef.current) {
-        scheduleResizeApply(point);
-        return;
-      }
-      if (toolModeRef.current === "select") {
-        const h = hitHandle(point, selectionRectRef.current);
-        const nextCursorByHandle: Record<string, string> = {
-          move: "move",
-          n: "ns-resize",
-          s: "ns-resize",
-          e: "ew-resize",
-          w: "ew-resize",
-          nw: "nwse-resize",
-          se: "nwse-resize",
-          ne: "nesw-resize",
-          sw: "nesw-resize",
-        };
-        setSelectionCursor(h ? nextCursorByHandle[h] : "default");
-      }
-    };
-
-    const onWindowMouseUp = (e: MouseEvent) => {
-      finalizeMouseInteraction(e.clientX, e.clientY);
-    };
-
-    window.addEventListener("mousemove", onWindowMouseMove, true);
-    window.addEventListener("mouseup", onWindowMouseUp, true);
-    return () => {
-      window.removeEventListener("mousemove", onWindowMouseMove, true);
-      window.removeEventListener("mouseup", onWindowMouseUp, true);
-    };
-  }, [
-    clientToBoard,
-    finalizeMouseInteraction,
-    hitHandle,
-    scheduleResizeApply,
-    scheduleSelectionDraftRect,
-    tryAppendLiveStrokePoint,
-    updateDrawCross,
-  ]);
-
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     const point = clientToBoard(e.clientX, e.clientY);
     if (!point) return;
-    e.preventDefault();
+
+    detachWindowDragListeners();
+
+    const modeAtDown = toolMode;
 
     if (toolMode === "draw") {
       updateDrawCross(point);
@@ -373,21 +345,108 @@ const ImageCanvas: React.FC = () => {
       liveStrokePointsRef.current = [point];
       startStroke(point);
       scheduleStrokeSync();
+    } else {
+      const handle = hitHandle(point, selectionRect);
+      if (handle && selectionRect) {
+        isResizingRef.current = true;
+        setSelectionResizeState({
+          handle,
+          startRect: selectionRect,
+          startPoint: point,
+        });
+      } else {
+        isSelectingRef.current = true;
+        selectStartRef.current = point;
+        setSelectionDraftRect({ x: point.x, y: point.y, width: 0, height: 0 });
+      }
+    }
+
+    const pointerId = e.pointerId;
+    const onWinMove = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
+      const dragging =
+        isDrawingRef.current || isSelectingRef.current || isResizingRef.current;
+      if (!dragging) return;
+      const pt = clientToBoard(ev.clientX, ev.clientY, true);
+      if (modeAtDown === "draw") {
+        updateDrawCross(pt);
+      }
+      if (!pt) return;
+      if (modeAtDown === "draw" && isDrawingRef.current) {
+        tryAppendLiveStrokePoint(pt);
+        return;
+      }
+      if (modeAtDown === "select" && isSelectingRef.current) {
+        const start = selectStartRef.current;
+        if (start) {
+          scheduleSelectionDraftRect({
+            x: start.x,
+            y: start.y,
+            width: pt.x - start.x,
+            height: pt.y - start.y,
+          });
+        }
+        return;
+      }
+      if (modeAtDown === "select" && isResizingRef.current) {
+        scheduleResizeApply(pt);
+      }
+    };
+
+    const onWinUp = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
+      try {
+        finalizeMouseInteraction(ev.clientX, ev.clientY);
+      } finally {
+        detachWindowDragListeners();
+      }
+    };
+
+    windowDragListenersRef.current = { onMove: onWinMove, onUp: onWinUp };
+    window.addEventListener("pointermove", onWinMove);
+    window.addEventListener("pointerup", onWinUp);
+    window.addEventListener("pointercancel", onWinUp);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const activeDrag =
+      isDrawingRef.current || isSelectingRef.current || isResizingRef.current;
+    if (activeDrag) {
       return;
     }
-    const handle = hitHandle(point, selectionRect);
-    if (handle && selectionRect) {
-      isResizingRef.current = true;
-      setSelectionResizeState({
-        handle,
-        startRect: selectionRect,
-        startPoint: point,
-      });
+    const point = clientToBoard(e.clientX, e.clientY, false);
+
+    if (toolMode === "draw") {
+      updateDrawCross(point);
+    }
+
+    if (!point) return;
+    if (toolMode === "select") {
+      const h = hitHandle(point, selectionRect);
+      const nextCursorByHandle: Record<string, string> = {
+        move: "move",
+        n: "ns-resize",
+        s: "ns-resize",
+        e: "ew-resize",
+        w: "ew-resize",
+        nw: "nwse-resize",
+        se: "nwse-resize",
+        ne: "nesw-resize",
+        sw: "nesw-resize",
+      };
+      setSelectionCursor(h ? nextCursorByHandle[h] : "default");
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDrawingRef.current && !isSelectingRef.current && !isResizingRef.current) {
       return;
     }
-    isSelectingRef.current = true;
-    selectStartRef.current = point;
-    setSelectionDraftRect({ x: point.x, y: point.y, width: 0, height: 0 });
+    try {
+      finalizeMouseInteraction(e.clientX, e.clientY);
+    } finally {
+      detachWindowDragListeners();
+    }
   };
 
   const handleMouseLeave = () => {
@@ -418,7 +477,10 @@ const ImageCanvas: React.FC = () => {
             minHeight: boardScreenHeight,
             cursor: toolMode === "draw" ? "crosshair" : selectionCursor,
           }}
-          onMouseDown={handleMouseDown}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
           onMouseLeave={handleMouseLeave}
         >
           <svg
@@ -427,7 +489,10 @@ const ImageCanvas: React.FC = () => {
             height={boardScreenHeight}
             viewBox={`0 0 ${boardWidth} ${boardHeight}`}
           >
-            {strokes.map((stroke) => {
+            {(penStrokeActive && currentStrokeId
+              ? strokes.filter((s) => s.id !== currentStrokeId)
+              : strokes
+            ).map((stroke) => {
               if (stroke.points.length === 1) {
                 const pt = stroke.points[0];
                 return (
@@ -456,6 +521,16 @@ const ImageCanvas: React.FC = () => {
                 />
               );
             })}
+            <path
+              ref={liveStrokePathRef}
+              fill="none"
+              stroke="#000000"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={strokePx}
+              style={{ display: "none" }}
+              d=""
+            />
             {sampled.map((stroke) =>
               stroke.points.map((pt, idx) => (
                 <circle
