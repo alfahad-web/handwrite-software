@@ -1,8 +1,11 @@
 #pragma once
 
 #include <QObject>
+#include <QHash>
 #include <QPointF>
+#include <QSet>
 #include <QString>
+#include <QVariantList>
 #include <QVector>
 
 #include "EditorTypes.h"
@@ -14,9 +17,11 @@ class EditorStore : public QObject {
     Q_PROPERTY(int zoom READ zoom WRITE setZoom NOTIFY zoomChanged)
     Q_PROPERTY(QString toolMode READ toolMode WRITE setToolMode NOTIFY toolModeChanged)
     Q_PROPERTY(bool hasSelection READ hasSelection NOTIFY selectionChanged)
+    Q_PROPERTY(bool hasSelectedSelection READ hasSelectedSelection NOTIFY selectionChanged)
+    Q_PROPERTY(int eraseRadiusPx READ eraseRadiusPx WRITE setEraseRadiusPx NOTIFY eraseRadiusPxChanged)
     Q_PROPERTY(bool isDirty READ isDirty NOTIFY isDirtyChanged)
-    Q_PROPERTY(QString openFilePath READ openFilePath NOTIFY openFilePathChanged)
-    Q_PROPERTY(QString openFileName READ openFileName NOTIFY openFileNameChanged)
+    Q_PROPERTY(QString projectFilePath READ projectFilePath NOTIFY projectFilePathChanged)
+    Q_PROPERTY(QString projectFileName READ projectFileName NOTIFY projectFileNameChanged)
 
 public:
     explicit EditorStore(QObject *parent = nullptr);
@@ -26,14 +31,20 @@ public:
     int zoom() const;
     QString toolMode() const;
     bool hasSelection() const;
+    bool hasSelectedSelection() const;
+    int eraseRadiusPx() const;
     bool isDirty() const;
-    QString openFilePath() const;
-    QString openFileName() const;
+    QString projectFilePath() const;
+    QString projectFileName() const;
+    QString selectedSelectionId() const;
 
     const QVector<Stroke> &strokes() const;
     QString currentStrokeId() const;
     ToolMode toolModeValue() const;
-    const SelectionRect *selectionRect() const;
+    const QVector<SelectionBox> &selectionBoxes() const;
+    const SelectionBox *selectedSelection() const;
+    const SelectionBox *selectionById(const QString &id) const;
+    SelectionBox *selectionByIdMutable(const QString &id);
     const SelectionRect *selectionDraftRect() const;
     const ResizeDragState *selectionResizeState() const;
 
@@ -44,18 +55,30 @@ public:
     Q_INVOKABLE void zoomOut();
     Q_INVOKABLE void setToolMode(const QString &mode);
     Q_INVOKABLE void toggleToolMode();
+    Q_INVOKABLE void setEraseRadiusPx(int value);
+    Q_INVOKABLE bool deleteSelectedSelection();
 
     void startStroke(const QPointF &point);
     void replaceActiveStrokePoints(const QVector<QPointF> &points);
     void endStroke();
     void setSelectionDraftRect(const SelectionRect *rect);
-    void commitSelectionDraftRect();
-    void clearSelection();
-    void setSelectionRect(const SelectionRect *rect);
+    QString commitSelectionDraftRect();
+    void clearSelectionDraft();
+    void setSelectionRect(const QString &selectionId, const SelectionRect *rect);
+    void setSelectedSelectionId(const QString &selectionId);
     void setSelectionResizeState(const ResizeDragState *state);
+    bool erasePointsInSelectedSelection(const QPointF &center, qreal radiusPx);
 
-    void setOpenFile(const QString &path);
-    void closeFile();
+    void setProjectFilePath(const QString &path);
+    void clearProjectFilePath();
+    void clearAll();
+    QString fileStemForAscii(int asciiCode);
+    Q_INVOKABLE QVariantList selectionBoxesModel() const;
+
+    const QHash<int, QString> &specialCharStemMap() const;
+    void setSpecialCharStemMap(const QHash<int, QString> &map);
+    void setStrokes(const QVector<Stroke> &strokes);
+    void setSelectionBoxes(const QVector<SelectionBox> &boxes, const QString &selectedId);
     void markSaved();
     void markDirty();
 
@@ -66,15 +89,19 @@ signals:
     void toolModeChanged();
     void selectionChanged();
     void strokesChanged();
+    void eraseRadiusPxChanged();
     void isDirtyChanged();
-    void openFilePathChanged();
-    void openFileNameChanged();
+    void projectFilePathChanged();
+    void projectFileNameChanged();
 
 private:
     static SelectionRect normalizeRect(const SelectionRect &rect, bool *ok = nullptr);
     static int clampInt(int value, int min, int max);
     static QString makeStrokeId();
+    static QString makeSelectionId();
+    static QString makeSpecialStem();
     int findStrokeIndexById(const QString &id) const;
+    int findSelectionIndexById(const QString &id) const;
 
     QVector<Stroke> m_strokes;
     QString m_currentStrokeId;
@@ -82,13 +109,16 @@ private:
     int m_strokePx;
     int m_captureGapUm;
     int m_zoom;
-    bool m_hasSelectionRect;
-    SelectionRect m_selectionRect;
+    int m_eraseRadiusPx;
+    QVector<SelectionBox> m_selectionBoxes;
+    QString m_selectedSelectionId;
     bool m_hasSelectionDraftRect;
     SelectionRect m_selectionDraftRect;
     bool m_hasResizeState;
     ResizeDragState m_resizeState;
-    QString m_openFilePath;
-    QString m_openFileName;
+    int m_nextSelectionOrder;
+    QString m_projectFilePath;
+    QString m_projectFileName;
+    QHash<int, QString> m_specialCharStemMap;
     bool m_isDirty;
 };

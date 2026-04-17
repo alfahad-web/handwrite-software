@@ -16,6 +16,12 @@ struct SampledStrokeUm {
     QVector<SampledPointUm> points;
 };
 
+struct SelectionExportFile {
+    QString selectionId;
+    QString fileName;
+    QStringList lines;
+};
+
 class ExportService : public QObject {
     Q_OBJECT
 public:
@@ -24,6 +30,12 @@ public:
     static QVector<SampledStrokeUm> buildExportStrokes(
         const QVector<Stroke> &strokes,
         const SelectionRect *selectionRect,
+        int captureGapUm,
+        double dpi
+    );
+    static QVector<SelectionExportFile> buildSelectionExports(
+        const QVector<Stroke> &strokes,
+        const QVector<SelectionBox> &selectionBoxes,
         int captureGapUm,
         double dpi
     );

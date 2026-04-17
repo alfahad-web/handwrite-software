@@ -7,7 +7,8 @@
 
 enum class ToolMode {
     Draw,
-    Select
+    Select,
+    Erase
 };
 
 enum class ResizeHandle {
@@ -32,12 +33,26 @@ struct SelectionRect {
 
 struct Stroke {
     QString id;
-    QVector<QPointF> points;
+    struct StrokePoint {
+        QPointF pos;
+        bool erased = false;
+    };
+    QVector<StrokePoint> points;
     qint64 createdAt = QDateTime::currentMSecsSinceEpoch();
 };
 
 struct ResizeDragState {
     ResizeHandle handle = ResizeHandle::None;
+    QString selectionId;
     SelectionRect startRect;
     QPointF startPoint;
+};
+
+struct SelectionBox {
+    QString id;
+    int orderIndex = 0;
+    SelectionRect rect;
+    bool assigned = false;
+    int assignedAscii = -1;
+    QString fileStem;
 };

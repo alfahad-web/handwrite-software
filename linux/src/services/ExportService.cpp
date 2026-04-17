@@ -32,8 +32,9 @@ QVector<SampledStrokeUm> ExportService::buildExportStrokes(
     for (const Stroke &stroke : strokes) {
         QVector<QPointF> inside;
         inside.reserve(stroke.points.size());
-        for (const QPointF &p : stroke.points) {
-            if (isPointInsideRect(p, *selectionRect)) inside.push_back(p);
+        for (const Stroke::StrokePoint &pt : stroke.points) {
+            if (pt.erased) continue;
+            if (isPointInsideRect(pt.pos, *selectionRect)) inside.push_back(pt.pos);
         }
         if (inside.isEmpty()) continue;
 
@@ -51,15 +52,37 @@ QVector<SampledStrokeUm> ExportService::buildExportStrokes(
         SampledStrokeUm out;
         out.strokeId = stroke.id;
         out.points.reserve(sampled.size());
+        const qreal selectionBottomY = selectionRect->y + selectionRect->height;
         for (const QPointF &p : sampled) {
+            const double localXPx = p.x() - selectionRect->x;
+            const double localYPx = selectionBottomY - p.y();
             out.points.push_back(SampledPointUm{
-                static_cast<qint64>(std::llround(pxToUm(p.x(), dpi))),
-                static_cast<qint64>(std::llround(pxToUm(p.y(), dpi)))
+                static_cast<qint64>(std::llround(pxToUm(localXPx, dpi))),
+                static_cast<qint64>(std::llround(pxToUm(localYPx, dpi)))
             });
         }
         output.push_back(out);
     }
     return output;
+}
+
+QVector<SelectionExportFile> ExportService::buildSelectionExports(
+    const QVector<Stroke> &strokes,
+    const QVector<SelectionBox> &selectionBoxes,
+    int captureGapUm,
+    double dpi
+) {
+    QVector<SelectionExportFile> files;
+    for (const SelectionBox &box : selectionBoxes) {
+        if (!box.assigned || box.fileStem.isEmpty()) continue;
+        const auto sampled = buildExportStrokes(strokes, &box.rect, captureGapUm, dpi);
+        SelectionExportFile f;
+        f.selectionId = box.id;
+        f.fileName = QString("%1.txt").arg(box.fileStem);
+        f.lines = serializeExportLines(sampled);
+        files.push_back(f);
+    }
+    return files;
 }
 
 QStringList ExportService::serializeExportLines(const QVector<SampledStrokeUm> &strokes) {

@@ -3,59 +3,135 @@
 #include <QApplication>
 #include <QCursor>
 #include <QDebug>
+#include <QDir>
+#include <QFileInfo>
+#include <QInputDialog>
 #include <QPainter>
 #include <QPen>
 #include <QPixmap>
+#include <algorithm>
 
 AppController::AppController(EditorStore *store, QObject *parent)
     : QObject(parent), m_store(store) {}
 
 QString AppController::statusMessage() const { return m_statusMessage; }
 
-void AppController::openOrCreateFile() {
-    const QString selected = m_fileService.selectOrCreateTxtFile();
+void AppController::newProject() {
+    const QString selected = m_fileService.createNewHwFile();
     if (selected.isEmpty()) return;
-    m_store->setOpenFile(selected);
-    m_statusMessage = QStringLiteral("Target file ready.");
+    m_store->clearAll();
+    m_store->setProjectFilePath(selected);
+    m_statusMessage = QStringLiteral("New project created.");
     emit statusMessageChanged();
 }
 
-bool AppController::canWriteSelection() const {
-    return m_store && !m_store->openFilePath().isEmpty() && m_store->selectionRect() != nullptr &&
-           !m_store->strokes().isEmpty();
-}
-
-bool AppController::writeSelectionInternal() {
-    if (!canWriteSelection()) return false;
-    const double dpi = ExportService::resolveScreenDpi();
-    const auto sampled = ExportService::buildExportStrokes(
-        m_store->strokes(),
-        m_store->selectionRect(),
-        m_store->captureGapUm(),
-        dpi
-    );
-    const QStringList lines = ExportService::serializeExportLines(sampled);
+void AppController::openProject() {
+    const QString selected = m_fileService.openHwFile();
+    if (selected.isEmpty()) return;
     QString error;
-    if (!m_fileService.appendTxtLines(m_store->openFilePath(), lines, &error)) {
-        m_statusMessage = QStringLiteral("Write failed: %1").arg(error);
-        emit statusMessageChanged();
-        return false;
+    if (!m_projectService.loadProject(selected, m_store, &error)) {
+        m_statusMessage = QStringLiteral("Open failed: %1").arg(error);
+    } else {
+        m_statusMessage = QStringLiteral("Project loaded.");
     }
-    m_store->markSaved();
-    m_statusMessage = QStringLiteral("Selection appended.");
     emit statusMessageChanged();
-    return true;
 }
 
-void AppController::appendSelection() {
-    (void)writeSelectionInternal();
+void AppController::saveProject() {
+    if (!m_store) return;
+    QString path = m_store->projectFilePath();
+    if (path.isEmpty()) path = m_fileService.createNewHwFile();
+    if (path.isEmpty()) return;
+    QString error;
+    if (!m_projectService.saveProject(path, *m_store, &error)) {
+        m_statusMessage = QStringLiteral("Save failed: %1").arg(error);
+    } else {
+        m_store->setProjectFilePath(path);
+        m_store->markSaved();
+        m_statusMessage = QStringLiteral("Project saved.");
+    }
+    emit statusMessageChanged();
 }
 
-void AppController::appendSelectionAndClose() {
-    if (m_store->openFilePath().isEmpty()) return;
-    (void)writeSelectionInternal();
-    m_store->closeFile();
-    m_statusMessage = QStringLiteral("File session closed.");
+void AppController::assignSelectionCharacter(const QString &selectionId, const QString &text) {
+    if (!m_store) return;
+    if (text.size() != 1) {
+        m_statusMessage = QStringLiteral("Assignment must be one ASCII character.");
+        emit statusMessageChanged();
+        return;
+    }
+    const QChar ch = text[0];
+    const ushort code = ch.unicode();
+    if (code > 127) {
+        m_statusMessage = QStringLiteral("Only ASCII characters are allowed.");
+        emit statusMessageChanged();
+        return;
+    }
+    SelectionBox *box = m_store->selectionByIdMutable(selectionId);
+    if (!box) return;
+    box->assigned = true;
+    box->assignedAscii = static_cast<int>(code);
+    box->fileStem = m_store->fileStemForAscii(box->assignedAscii);
+    m_store->markDirty();
+    m_statusMessage = QStringLiteral("Selection assigned.");
+    emit statusMessageChanged();
+}
+
+void AppController::deleteSelectedSelection() {
+    if (!m_store) return;
+    if (m_store->deleteSelectedSelection()) {
+        m_statusMessage = QStringLiteral("Selection deleted.");
+    } else {
+        m_statusMessage = QStringLiteral("No active selection.");
+    }
+    emit statusMessageChanged();
+}
+
+void AppController::generateFonts() {
+    if (!m_store) return;
+    if (m_store->projectFilePath().isEmpty()) {
+        m_statusMessage = QStringLiteral("Save project first.");
+        emit statusMessageChanged();
+        return;
+    }
+    QString error;
+    const QString outDir = m_fileService.ensureNextFontOutputDir(QFileInfo(m_store->projectFilePath()).absolutePath(), &error);
+    if (outDir.isEmpty()) {
+        m_statusMessage = QStringLiteral("Generate failed: %1").arg(error);
+        emit statusMessageChanged();
+        return;
+    }
+    const double dpi = ExportService::resolveScreenDpi();
+    auto boxes = m_store->selectionBoxes();
+    std::sort(boxes.begin(), boxes.end(), [](const SelectionBox &a, const SelectionBox &b) {
+        return a.orderIndex < b.orderIndex;
+    });
+    QHash<QString, int> stemCounter;
+    int generated = 0;
+    int skipped = 0;
+    for (const SelectionBox &box : boxes) {
+        if (!box.assigned || box.fileStem.isEmpty()) {
+            ++skipped;
+            continue;
+        }
+        const int seq = stemCounter.value(box.fileStem, 0) + 1;
+        stemCounter.insert(box.fileStem, seq);
+        SelectionBox exportBox = box;
+        exportBox.fileStem = QString("%1.%2").arg(box.fileStem).arg(seq);
+        const auto files = ExportService::buildSelectionExports(
+            m_store->strokes(),
+            QVector<SelectionBox>{exportBox},
+            m_store->captureGapUm(),
+            dpi
+        );
+        for (const SelectionExportFile &f : files) {
+            if (f.lines.isEmpty()) continue;
+            if (m_fileService.writeTextFileLines(QDir(outDir).absoluteFilePath(f.fileName), f.lines, &error)) {
+                ++generated;
+            }
+        }
+    }
+    m_statusMessage = QStringLiteral("Generated %1 files (%2 skipped) in %3").arg(generated).arg(skipped).arg(outDir);
     emit statusMessageChanged();
 }
 

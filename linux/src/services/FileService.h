@@ -9,6 +9,8 @@ class FileService : public QObject {
 public:
     explicit FileService(QObject *parent = nullptr);
 
-    Q_INVOKABLE QString selectOrCreateTxtFile();
-    Q_INVOKABLE bool appendTxtLines(const QString &filePath, const QStringList &lines, QString *errorMessage = nullptr);
+    Q_INVOKABLE QString createNewHwFile();
+    Q_INVOKABLE QString openHwFile();
+    Q_INVOKABLE bool writeTextFileLines(const QString &filePath, const QStringList &lines, QString *errorMessage = nullptr);
+    Q_INVOKABLE QString ensureNextFontOutputDir(const QString &projectDir, QString *errorMessage = nullptr);
 };

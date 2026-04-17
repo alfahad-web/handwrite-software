@@ -18,6 +18,7 @@ ApplicationWindow {
                     "zoom=", editorStoreModel.zoom, "strokePx=", editorStoreModel.strokePx)
     }
     onClosing: appController.setBoardCursorActive(false)
+    property string pendingSelectionAssignId: ""
 
     header: Frame {
         background: Rectangle { color: "#fafafa"; border.color: "#d4d4d8" }
@@ -42,20 +43,25 @@ ApplicationWindow {
             }
 
             Button {
-                text: editorStoreModel.openFileName.length > 0 ? editorStoreModel.openFileName : "Open/Create .txt"
-                onClicked: appController.openOrCreateFile()
+                id: fileButton
+                text: editorStoreModel.projectFileName.length > 0 ? editorStoreModel.projectFileName : "File"
+                onClicked: fileMenu.open()
             }
-
-            Button {
-                text: "\u2713"
-                enabled: appController.canWriteSelection()
-                onClicked: appController.appendSelection()
-            }
-
-            Button {
-                text: "\u2715"
-                enabled: editorStoreModel.openFilePath.length > 0
-                onClicked: appController.appendSelectionAndClose()
+            Menu {
+                id: fileMenu
+                y: fileButton.height
+                MenuItem {
+                    text: "New"
+                    onTriggered: appController.newProject()
+                }
+                MenuItem {
+                    text: "Open"
+                    onTriggered: appController.openProject()
+                }
+                MenuItem {
+                    text: "Save"
+                    onTriggered: appController.saveProject()
+                }
             }
 
             Button {
@@ -75,7 +81,32 @@ ApplicationWindow {
             Button {
                 text: editorStoreModel.toolMode === "select" ? "Selection On" : "Selection Off"
                 highlighted: editorStoreModel.toolMode === "select"
-                onClicked: editorStoreModel.toggleToolMode()
+                onClicked: editorStoreModel.setToolMode("select")
+            }
+            Button {
+                text: editorStoreModel.toolMode === "draw" ? "Draw On" : "Draw"
+                highlighted: editorStoreModel.toolMode === "draw"
+                onClicked: editorStoreModel.setToolMode("draw")
+            }
+            Button {
+                text: editorStoreModel.toolMode === "erase" ? "Erase On" : "Erase"
+                highlighted: editorStoreModel.toolMode === "erase"
+                onClicked: editorStoreModel.setToolMode("erase")
+            }
+            Label { text: "Erase r(px)" }
+            SpinBox {
+                from: 1; to: 500
+                value: editorStoreModel.eraseRadiusPx
+                onValueModified: editorStoreModel.setEraseRadiusPx(value)
+            }
+            Button {
+                text: "Delete Sel"
+                enabled: editorStoreModel.hasSelectedSelection
+                onClicked: appController.deleteSelectedSelection()
+            }
+            Button {
+                text: "Generate Fonts"
+                onClicked: appController.generateFonts()
             }
 
             Item { Layout.fillWidth: true }
@@ -109,6 +140,10 @@ ApplicationWindow {
                     width: 3000 * editorStoreModel.zoom / 100
                     height: 2000 * editorStoreModel.zoom / 100
                     editorStore: editorStoreModel
+                    onSelectionDoubleClicked: (selectionId) => {
+                        pendingSelectionAssignId = selectionId
+                        assignDialog.open()
+                    }
                 }
 
                 MouseArea {
@@ -140,6 +175,9 @@ ApplicationWindow {
                         boardCanvas.pointerUp(mouse.x, mouse.y, mouse.button)
                         if (!containsMouse || editorStoreModel.toolMode !== "draw") appController.setBoardCursorActive(false)
                     }
+                    onDoubleClicked: (mouse) => {
+                        boardCanvas.pointerDoubleClick(mouse.x, mouse.y, mouse.button)
+                    }
                 }
             }
         }
@@ -155,6 +193,27 @@ ApplicationWindow {
                 text: appController.statusMessage.length > 0 ? appController.statusMessage : "Ready"
                 color: "#1e293b"
             }
+        }
+    }
+
+    Dialog {
+        id: assignDialog
+        title: "Assign Character"
+        modal: true
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        width: 360
+        contentItem: ColumnLayout {
+            spacing: 8
+            Label { text: "Enter exactly one ASCII character:" }
+            TextField {
+                id: assignInput
+                placeholderText: "Example: A or #"
+                selectByMouse: true
+            }
+        }
+        onOpened: assignInput.text = ""
+        onAccepted: {
+            appController.assignSelectionCharacter(pendingSelectionAssignId, assignInput.text)
         }
     }
 }

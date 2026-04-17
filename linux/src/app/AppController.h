@@ -5,6 +5,7 @@
 #include "../core/EditorStore.h"
 #include "../services/ExportService.h"
 #include "../services/FileService.h"
+#include "../services/ProjectService.h"
 
 class AppController : public QObject {
     Q_OBJECT
@@ -14,21 +15,21 @@ public:
 
     QString statusMessage() const;
 
-    Q_INVOKABLE void openOrCreateFile();
-    Q_INVOKABLE void appendSelection();
-    Q_INVOKABLE void appendSelectionAndClose();
-    Q_INVOKABLE bool canWriteSelection() const;
+    Q_INVOKABLE void newProject();
+    Q_INVOKABLE void openProject();
+    Q_INVOKABLE void saveProject();
+    Q_INVOKABLE void generateFonts();
+    Q_INVOKABLE void deleteSelectedSelection();
+    Q_INVOKABLE void assignSelectionCharacter(const QString &selectionId, const QString &text);
     Q_INVOKABLE void setBoardCursorActive(bool active);
 
 signals:
     void statusMessageChanged();
 
 private:
-    bool writeSelectionInternal();
-
     EditorStore *m_store;
-    ExportService m_exportService;
     FileService m_fileService;
+    ProjectService m_projectService;
     QString m_statusMessage;
     bool m_boardCursorActive = false;
 };

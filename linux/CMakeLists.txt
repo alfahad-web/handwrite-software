@@ -21,6 +21,8 @@ qt_add_executable(HandwriteQt
   src/services/ExportService.h
   src/services/FileService.cpp
   src/services/FileService.h
+  src/services/ProjectService.cpp
+  src/services/ProjectService.h
   src/app/AppController.cpp
   src/app/AppController.h
 )
