@@ -21,6 +21,7 @@ struct LayoutGlyph {
 struct LayoutResult {
     QVector<LayoutGlyph> glyphs;
     double totalHeightCm = 0;
+    bool anyGlyphExceedsLineHeight = false;
 };
 
 class LayoutEngine {

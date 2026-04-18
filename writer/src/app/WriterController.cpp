@@ -70,3 +70,9 @@ void WriterController::stopRun() {
     m_runActive = false;
     emit runActiveChanged();
 }
+
+void WriterController::notifyLineHeightCollision(bool exceeds) {
+    if (exceeds && !m_wasLineHeightExceeding)
+        emit lineHeightCollisionWarning();
+    m_wasLineHeightExceeding = exceeds;
+}

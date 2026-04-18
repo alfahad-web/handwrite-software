@@ -43,6 +43,8 @@ public:
     Q_INVOKABLE void startRun();
     Q_INVOKABLE void stopRun();
 
+    Q_INVOKABLE void notifyLineHeightCollision(bool exceeds);
+
     QHash<int, QPointF> anchorOverrides() const { return m_anchorOverrides; }
     void setAnchorOverrides(const QHash<int, QPointF> &h);
     void clearAnchorOverrides();
@@ -54,6 +56,7 @@ signals:
     void layoutInvalidated();
     void settingsOpenChanged();
     void runActiveChanged();
+    void lineHeightCollisionWarning();
 
 private:
     void loadFontsFromPath(const QString &path);
@@ -67,4 +70,5 @@ private:
     QHash<int, QPointF> m_anchorOverrides;
     bool m_settingsOpen = false;
     bool m_runActive = false;
+    bool m_wasLineHeightExceeding = false;
 };

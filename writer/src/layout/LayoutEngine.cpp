@@ -36,10 +36,11 @@ GlyphData spaceGlyph(double lineHeightCm, double fontUnitToCm) {
     return g;
 }
 
+// Font .txt coords are y-up (see fonter ExportService); map to Qt y-down cm space.
 QVector<QVector<QPointF>> transformPolylines(const GlyphData &g, double fontUnitToCm, const QPointF &bottomLeftCm) {
     const QRectF bb = g.bboxFontUnits;
     const double blx = bb.left() * fontUnitToCm;
-    const double bly = bb.bottom() * fontUnitToCm;
+    const double bty = bb.top() * fontUnitToCm;
     QVector<QVector<QPointF>> out;
     out.reserve(g.polylinesFontUnits.size());
     for (const QVector<QPointF> &poly : g.polylinesFontUnits) {
@@ -47,7 +48,7 @@ QVector<QVector<QPointF>> transformPolylines(const GlyphData &g, double fontUnit
         t.reserve(poly.size());
         for (const QPointF &p : poly) {
             const double x = bottomLeftCm.x() + (p.x() * fontUnitToCm - blx);
-            const double y = bottomLeftCm.y() + (p.y() * fontUnitToCm - bly);
+            const double y = bottomLeftCm.y() - (p.y() * fontUnitToCm - bty);
             t.push_back(QPointF(x, y));
         }
         if (t.size() >= 2) out.push_back(t);
@@ -95,7 +96,8 @@ LayoutResult LayoutEngine::layout(
     const GlyphData missing = missingGlyph(lineHeightCm, fontUnitToCm);
     const GlyphData space = spaceGlyph(lineHeightCm, fontUnitToCm);
 
-    auto pageTopY = [&](int p) { return p * (pageHeightCm + verticalGapCm); };
+    // verticalGapCm is a top band inside each page (included in pageHeightCm); pages stack by full height only.
+    auto pageTopY = [&](int p) { return p * pageHeightCm; };
 
     int pageIndex = 0;
     int lineIndex = 0;
@@ -103,11 +105,11 @@ LayoutResult LayoutEngine::layout(
     double baselineY = 0;
 
     auto recomputeBaseline = [&]() {
-        baselineY = pageTopY(pageIndex) + hyCm + (lineIndex + 1) * lineHeightCm;
+        baselineY = pageTopY(pageIndex) + verticalGapCm + hyCm + (lineIndex + 1) * lineHeightCm;
     };
 
     auto ensurePage = [&]() {
-        while (hyCm + (lineIndex + 1) * lineHeightCm > pageHeightCm + 1e-9) {
+        while (verticalGapCm + hyCm + (lineIndex + 1) * lineHeightCm > pageHeightCm + 1e-9) {
             ++pageIndex;
             lineIndex = 0;
             cursorX = contentLeft;
@@ -145,9 +147,9 @@ LayoutResult LayoutEngine::layout(
         QPointF bottomLeft;
         if (hasForced(forcedBottomLeftCmByDocIndex, i)) {
             bottomLeft = forcedBottomLeftCmByDocIndex.value(i);
-            pageIndex = qMax(0, static_cast<int>(qFloor(bottomLeft.y() / (pageHeightCm + verticalGapCm))));
+            pageIndex = qMax(0, static_cast<int>(qFloor(bottomLeft.y() / pageHeightCm)));
             const double localY = bottomLeft.y() - pageTopY(pageIndex);
-            lineIndex = qMax(0, static_cast<int>(qRound((localY - hyCm) / lineHeightCm - 1.0)));
+            lineIndex = qMax(0, static_cast<int>(qRound((localY - verticalGapCm - hyCm) / lineHeightCm - 1.0)));
             cursorX = bottomLeft.x() + gw;
             baselineY = bottomLeft.y();
         } else {
@@ -174,6 +176,9 @@ LayoutResult LayoutEngine::layout(
         lg.pageIndex = pageIndex;
         lg.lineIndex = lineIndex;
         res.glyphs.push_back(lg);
+
+        if (bbox.height() > lineHeightCm + 1e-6)
+            res.anyGlyphExceedsLineHeight = true;
     }
 
     if (text.isEmpty()) {

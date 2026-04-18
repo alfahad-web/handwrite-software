@@ -1,0 +1,6 @@
+in the letter selection panel, we will introduce join signal. instead of just entering the
+letter, we will have checkboxes for l & r. checking l will mean the letter is written to
+be left joinable. same for r.
+then when we put two letters, we pick randomly, and when two adjacent letters are right 
+joinable and left joinable, then we interpolate their points to join them and it generates
+a joined text. we skip this check when we have a space.

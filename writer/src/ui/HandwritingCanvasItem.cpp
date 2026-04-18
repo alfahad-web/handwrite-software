@@ -105,6 +105,7 @@ void HandwritingCanvasItem::rebuildLayout() {
         st->lineHeightCm(),
         m_ctrl->anchorOverrides()
     );
+    m_ctrl->notifyLineHeightCollision(m_layout.anyGlyphExceedsLineHeight);
     const double hPx = qMax(100.0, m_layout.totalHeightCm * pxPerCm());
     setImplicitHeight(hPx);
 }
@@ -238,7 +239,7 @@ void HandwritingCanvasItem::paint(QPainter *painter) {
     const double rm = st->rightMarginCm();
     const QColor green(72, 180, 96, 55);
 
-    auto pageTop = [&](int p) { return p * (pageH + gap); };
+    auto pageTop = [&](int p) { return p * pageH; };
 
     int lastPage = 0;
     for (const LayoutGlyph &lg : m_layout.glyphs)
@@ -253,16 +254,16 @@ void HandwritingCanvasItem::paint(QPainter *painter) {
         painter->setBrush(Qt::NoBrush);
         painter->drawRect(pagePx);
 
+        if (gap > 1e-9) {
+            const QRectF topGapCm(0, top, pageW, gap);
+            painter->fillRect(QRectF(topGapCm.topLeft() * s, topGapCm.size() * s), green);
+        }
+
         const QRectF leftCm(0, top, lm, pageH);
         painter->fillRect(QRectF(leftCm.topLeft() * s, leftCm.size() * s), green);
 
         const QRectF rightCm(pageW - rm, top, rm, pageH);
         painter->fillRect(QRectF(rightCm.topLeft() * s, rightCm.size() * s), green);
-
-        if (p < lastPage) {
-            const QRectF gapCm(0, top + pageH, pageW, gap);
-            painter->fillRect(QRectF(gapCm.topLeft() * s, gapCm.size() * s), green);
-        }
     }
 
     painter->setPen(QPen(Qt::black, 1.2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));

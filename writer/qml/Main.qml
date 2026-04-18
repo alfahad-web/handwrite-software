@@ -12,6 +12,35 @@ ApplicationWindow {
     minimumHeight: 640
     title: "CNC handwriting preview"
     color: "#f4f4f5"
+    Component.onCompleted: Qt.callLater(function () {
+        if (writerController.viewMode === "typing")
+            typeArea.forceActiveFocus()
+    })
+
+    readonly property color settingsTitleColor: "#1e3a8a"
+
+    Connections {
+        target: writerController
+        function onLineHeightCollisionWarning() {
+            lineHeightWarnDialog.open()
+        }
+    }
+
+    Dialog {
+        id: lineHeightWarnDialog
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        modal: true
+        title: "Layout warning"
+        standardButtons: Dialog.Ok
+        width: Math.min(420, root.width - 48)
+        contentItem: Label {
+            text: "After scaling, at least one glyph is taller than the line height. Lines may overlap or collide. Reduce the font unit scale or increase line height."
+            wrapMode: Text.Wrap
+            color: "#dc2626"
+            width: parent ? parent.width : implicitWidth
+        }
+    }
 
     header: ToolBar {
         RowLayout {
@@ -60,12 +89,28 @@ ApplicationWindow {
             Layout.fillHeight: true
             clip: true
 
+            Connections {
+                target: writerController
+                function onViewModeChanged() {
+                    if (writerController.viewMode === "typing")
+                        Qt.callLater(function () { typeArea.forceActiveFocus() })
+                }
+            }
+
             TextArea {
                 id: typeArea
                 anchors.fill: parent
                 visible: writerController.viewMode === "typing"
+                z: writerController.viewMode === "typing" ? 2 : 0
                 wrapMode: TextArea.Wrap
                 selectByMouse: true
+                selectByKeyboard: true
+                cursorVisible: true
+                font.pixelSize: 15
+                color: "#18181b"
+                selectedTextColor: "#fafafa"
+                selectionColor: "#2563eb"
+                placeholderTextColor: "#71717a"
                 property bool docSync: false
                 text: writerController.document.text
                 onTextChanged: {
@@ -83,13 +128,22 @@ ApplicationWindow {
                         typeArea.docSync = false
                     }
                 }
-                background: Rectangle { color: "#fafafa" }
+                background: Rectangle {
+                    color: "#fafafa"
+                    border.color: "#e4e4e7"
+                    border.width: 1
+                }
+                leftPadding: 12
+                rightPadding: 12
+                topPadding: 10
+                bottomPadding: 10
             }
 
             Flickable {
                 id: handFlick
                 anchors.fill: parent
                 visible: writerController.viewMode === "handwriting"
+                z: writerController.viewMode === "handwriting" ? 2 : 0
                 clip: true
                 contentWidth: width
                 contentHeight: handCanvas.implicitHeight
@@ -155,91 +209,120 @@ ApplicationWindow {
                 width: settingsPanel.width - 36
                 spacing: 10
 
-                Label { text: "Feed rate (cm/s)"; font.bold: true }
+                Label { text: "Feed rate (cm/s)"; font.bold: true; color: root.settingsTitleColor }
                 SpinBox {
                     from: 1
                     to: 50000
                     stepSize: 1
                     editable: true
+                    wheelEnabled: true
                     value: Math.round(writerController.settings.feedRateCmPerS * 1000)
                     onValueModified: writerController.settings.feedRateCmPerS = value / 1000.0
                 }
 
-                Label { text: "Page width (cm)"; font.bold: true }
+                Label { text: "Page width (mm)"; font.bold: true; color: root.settingsTitleColor }
                 SpinBox {
-                    from: 10
-                    to: 500000
-                    value: Math.round(writerController.settings.pageWidthCm * 1000)
-                    onValueModified: writerController.settings.pageWidthCm = value / 1000.0
+                    from: 100
+                    to: 5000000
+                    stepSize: 100
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.pageWidthCm * 10 * 1000)
+                    onValueModified: writerController.settings.pageWidthCm = value / 10000.0
                 }
 
-                Label { text: "Page height (cm)"; font.bold: true }
+                Label { text: "Page height (mm)"; font.bold: true; color: root.settingsTitleColor }
                 SpinBox {
-                    from: 10
-                    to: 500000
-                    value: Math.round(writerController.settings.pageHeightCm * 1000)
-                    onValueModified: writerController.settings.pageHeightCm = value / 1000.0
+                    from: 100
+                    to: 5000000
+                    stepSize: 100
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.pageHeightCm * 10 * 1000)
+                    onValueModified: writerController.settings.pageHeightCm = value / 10000.0
                 }
 
-                Label { text: "Left margin (cm)"; font.bold: true }
-                SpinBox {
-                    from: 0
-                    to: 500000
-                    value: Math.round(writerController.settings.leftMarginCm * 1000)
-                    onValueModified: writerController.settings.leftMarginCm = value / 1000.0
-                }
-
-                Label { text: "Right margin (cm)"; font.bold: true }
+                Label { text: "Left margin (mm)"; font.bold: true; color: root.settingsTitleColor }
                 SpinBox {
                     from: 0
-                    to: 500000
-                    value: Math.round(writerController.settings.rightMarginCm * 1000)
-                    onValueModified: writerController.settings.rightMarginCm = value / 1000.0
+                    to: 5000000
+                    stepSize: 100
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.leftMarginCm * 10 * 1000)
+                    onValueModified: writerController.settings.leftMarginCm = value / 10000.0
                 }
 
-                Label { text: "Vertical gap (cm)"; font.bold: true }
+                Label { text: "Right margin (mm)"; font.bold: true; color: root.settingsTitleColor }
                 SpinBox {
                     from: 0
-                    to: 500000
-                    value: Math.round(writerController.settings.verticalGapCm * 1000)
-                    onValueModified: writerController.settings.verticalGapCm = value / 1000.0
+                    to: 5000000
+                    stepSize: 100
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.rightMarginCm * 10 * 1000)
+                    onValueModified: writerController.settings.rightMarginCm = value / 10000.0
                 }
 
-                Label { text: "hx (cm)"; font.bold: true }
+                Label { text: "Vertical gap (mm)"; font.bold: true; color: root.settingsTitleColor }
                 SpinBox {
                     from: 0
-                    to: 500000
-                    value: Math.round(writerController.settings.hxCm * 1000)
-                    onValueModified: writerController.settings.hxCm = value / 1000.0
+                    to: 5000000
+                    stepSize: 100
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.verticalGapCm * 10 * 1000)
+                    onValueModified: writerController.settings.verticalGapCm = value / 10000.0
                 }
 
-                Label { text: "hy (cm)"; font.bold: true }
+                Label { text: "hx (mm)"; font.bold: true; color: root.settingsTitleColor }
                 SpinBox {
                     from: 0
-                    to: 500000
-                    value: Math.round(writerController.settings.hyCm * 1000)
-                    onValueModified: writerController.settings.hyCm = value / 1000.0
+                    to: 5000000
+                    stepSize: 100
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.hxCm * 10 * 1000)
+                    onValueModified: writerController.settings.hxCm = value / 10000.0
                 }
 
-                Label { text: "Line height (cm)"; font.bold: true }
+                Label { text: "hy (mm)"; font.bold: true; color: root.settingsTitleColor }
                 SpinBox {
-                    from: 10
-                    to: 500000
-                    value: Math.round(writerController.settings.lineHeightCm * 1000)
-                    onValueModified: writerController.settings.lineHeightCm = value / 1000.0
+                    from: 0
+                    to: 5000000
+                    stepSize: 100
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.hyCm * 10 * 1000)
+                    onValueModified: writerController.settings.hyCm = value / 10000.0
                 }
 
-                Label { text: "Font unit → cm scale"; font.bold: true }
+                Label { text: "Line height (mm)"; font.bold: true; color: root.settingsTitleColor }
+                SpinBox {
+                    from: 100
+                    to: 5000000
+                    stepSize: 100
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.lineHeightCm * 10 * 1000)
+                    onValueModified: writerController.settings.lineHeightCm = value / 10000.0
+                }
+
+                Label { text: "Font unit → mm scale"; font.bold: true; color: root.settingsTitleColor }
                 Label {
-                    text: "Multiply coordinates from .txt by this (µm→cm use 0.0001)"
+                    text: "Multiply coordinates from .txt by this (µm→mm use 0.001)"
                     wrapMode: Text.Wrap
                     Layout.fillWidth: true
+                    color: "#3f3f46"
                 }
                 SpinBox {
                     from: 1
-                    to: 100000000
-                    value: Math.round(writerController.settings.fontUnitToCm * 1000000)
-                    onValueModified: writerController.settings.fontUnitToCm = value / 1000000.0
+                    to: 1000000000
+                    stepSize: 1000
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.fontUnitToCm * 10 * 1000000)
+                    onValueModified: writerController.settings.fontUnitToCm = value / 10000000.0
                 }
 
                 RowLayout {
