@@ -97,46 +97,56 @@ ApplicationWindow {
                 }
             }
 
-            TextArea {
-                id: typeArea
+            ScrollView {
+                id: typeScroll
                 anchors.fill: parent
                 visible: writerController.viewMode === "typing"
                 z: writerController.viewMode === "typing" ? 2 : 0
-                wrapMode: TextArea.Wrap
-                selectByMouse: true
-                selectByKeyboard: true
-                cursorVisible: true
-                font.pixelSize: 15
-                color: "#18181b"
-                selectedTextColor: "#fafafa"
-                selectionColor: "#2563eb"
-                placeholderTextColor: "#71717a"
-                property bool docSync: false
-                text: writerController.document.text
-                onTextChanged: {
-                    if (docSync) return
-                    docSync = true
-                    writerController.document.text = text
-                    docSync = false
+                clip: true
+                ScrollBar.vertical: ScrollBar {
+                    policy: ScrollBar.AlwaysOn
                 }
-                Connections {
-                    target: writerController.document
-                    function onTextChanged() {
-                        if (typeArea.text === writerController.document.text) return
-                        typeArea.docSync = true
-                        typeArea.text = writerController.document.text
-                        typeArea.docSync = false
+
+                TextArea {
+                    id: typeArea
+                    width: typeScroll.availableWidth
+                    implicitHeight: contentHeight + topPadding + bottomPadding
+                    wrapMode: TextArea.Wrap
+                    selectByMouse: true
+                    selectByKeyboard: true
+                    cursorVisible: true
+                    font.pixelSize: 15
+                    color: "#18181b"
+                    selectedTextColor: "#fafafa"
+                    selectionColor: "#2563eb"
+                    placeholderTextColor: "#71717a"
+                    property bool docSync: false
+                    text: writerController.document.text
+                    onTextChanged: {
+                        if (docSync) return
+                        docSync = true
+                        writerController.document.text = text
+                        docSync = false
                     }
+                    Connections {
+                        target: writerController.document
+                        function onTextChanged() {
+                            if (typeArea.text === writerController.document.text) return
+                            typeArea.docSync = true
+                            typeArea.text = writerController.document.text
+                            typeArea.docSync = false
+                        }
+                    }
+                    background: Rectangle {
+                        color: "#fafafa"
+                        border.color: "#e4e4e7"
+                        border.width: 1
+                    }
+                    leftPadding: 12
+                    rightPadding: 12
+                    topPadding: 10
+                    bottomPadding: 10
                 }
-                background: Rectangle {
-                    color: "#fafafa"
-                    border.color: "#e4e4e7"
-                    border.width: 1
-                }
-                leftPadding: 12
-                rightPadding: 12
-                topPadding: 10
-                bottomPadding: 10
             }
 
             Flickable {
@@ -148,6 +158,9 @@ ApplicationWindow {
                 contentWidth: width
                 contentHeight: handCanvas.implicitHeight
                 boundsBehavior: Flickable.StopAtBounds
+                ScrollBar.vertical: ScrollBar {
+                    policy: ScrollBar.AlwaysOn
+                }
 
                 HandwritingCanvasItem {
                     id: handCanvas
@@ -220,109 +233,111 @@ ApplicationWindow {
                     onValueModified: writerController.settings.feedRateCmPerS = value / 1000.0
                 }
 
+                // SpinBox value is integer mm (stored settings remain cm): ±1 == ±1 mm on the page.
                 Label { text: "Page width (mm)"; font.bold: true; color: root.settingsTitleColor }
                 SpinBox {
-                    from: 100
-                    to: 5000000
-                    stepSize: 100
+                    from: 10
+                    to: 50000
+                    stepSize: 1
                     editable: true
                     wheelEnabled: true
-                    value: Math.round(writerController.settings.pageWidthCm * 10 * 1000)
-                    onValueModified: writerController.settings.pageWidthCm = value / 10000.0
+                    value: Math.round(writerController.settings.pageWidthCm * 10)
+                    onValueModified: writerController.settings.pageWidthCm = value / 10.0
                 }
 
                 Label { text: "Page height (mm)"; font.bold: true; color: root.settingsTitleColor }
                 SpinBox {
-                    from: 100
-                    to: 5000000
-                    stepSize: 100
+                    from: 10
+                    to: 50000
+                    stepSize: 1
                     editable: true
                     wheelEnabled: true
-                    value: Math.round(writerController.settings.pageHeightCm * 10 * 1000)
-                    onValueModified: writerController.settings.pageHeightCm = value / 10000.0
+                    value: Math.round(writerController.settings.pageHeightCm * 10)
+                    onValueModified: writerController.settings.pageHeightCm = value / 10.0
                 }
 
                 Label { text: "Left margin (mm)"; font.bold: true; color: root.settingsTitleColor }
                 SpinBox {
                     from: 0
-                    to: 5000000
-                    stepSize: 100
+                    to: 5000
+                    stepSize: 1
                     editable: true
                     wheelEnabled: true
-                    value: Math.round(writerController.settings.leftMarginCm * 10 * 1000)
-                    onValueModified: writerController.settings.leftMarginCm = value / 10000.0
+                    value: Math.round(writerController.settings.leftMarginCm * 10)
+                    onValueModified: writerController.settings.leftMarginCm = value / 10.0
                 }
 
                 Label { text: "Right margin (mm)"; font.bold: true; color: root.settingsTitleColor }
                 SpinBox {
                     from: 0
-                    to: 5000000
-                    stepSize: 100
+                    to: 5000
+                    stepSize: 1
                     editable: true
                     wheelEnabled: true
-                    value: Math.round(writerController.settings.rightMarginCm * 10 * 1000)
-                    onValueModified: writerController.settings.rightMarginCm = value / 10000.0
+                    value: Math.round(writerController.settings.rightMarginCm * 10)
+                    onValueModified: writerController.settings.rightMarginCm = value / 10.0
                 }
 
                 Label { text: "Vertical gap (mm)"; font.bold: true; color: root.settingsTitleColor }
                 SpinBox {
                     from: 0
-                    to: 5000000
-                    stepSize: 100
+                    to: 5000
+                    stepSize: 1
                     editable: true
                     wheelEnabled: true
-                    value: Math.round(writerController.settings.verticalGapCm * 10 * 1000)
-                    onValueModified: writerController.settings.verticalGapCm = value / 10000.0
+                    value: Math.round(writerController.settings.verticalGapCm * 10)
+                    onValueModified: writerController.settings.verticalGapCm = value / 10.0
                 }
 
                 Label { text: "hx (mm)"; font.bold: true; color: root.settingsTitleColor }
                 SpinBox {
                     from: 0
-                    to: 5000000
-                    stepSize: 100
+                    to: 5000
+                    stepSize: 1
                     editable: true
                     wheelEnabled: true
-                    value: Math.round(writerController.settings.hxCm * 10 * 1000)
-                    onValueModified: writerController.settings.hxCm = value / 10000.0
+                    value: Math.round(writerController.settings.hxCm * 10)
+                    onValueModified: writerController.settings.hxCm = value / 10.0
                 }
 
                 Label { text: "hy (mm)"; font.bold: true; color: root.settingsTitleColor }
                 SpinBox {
                     from: 0
-                    to: 5000000
-                    stepSize: 100
+                    to: 5000
+                    stepSize: 1
                     editable: true
                     wheelEnabled: true
-                    value: Math.round(writerController.settings.hyCm * 10 * 1000)
-                    onValueModified: writerController.settings.hyCm = value / 10000.0
+                    value: Math.round(writerController.settings.hyCm * 10)
+                    onValueModified: writerController.settings.hyCm = value / 10.0
                 }
 
                 Label { text: "Line height (mm)"; font.bold: true; color: root.settingsTitleColor }
                 SpinBox {
-                    from: 100
-                    to: 5000000
-                    stepSize: 100
+                    from: 1
+                    to: 5000
+                    stepSize: 1
                     editable: true
                     wheelEnabled: true
-                    value: Math.round(writerController.settings.lineHeightCm * 10 * 1000)
-                    onValueModified: writerController.settings.lineHeightCm = value / 10000.0
+                    value: Math.round(writerController.settings.lineHeightCm * 10)
+                    onValueModified: writerController.settings.lineHeightCm = value / 10.0
                 }
 
                 Label { text: "Font unit → mm scale"; font.bold: true; color: root.settingsTitleColor }
                 Label {
-                    text: "Multiply coordinates from .txt by this (µm→mm use 0.001)"
+                    text: "Multiply stroke coordinates from .txt to mm on paper (µm→mm: use 0.001). Each step ±1 here changes the scale by 0.00001 mm per font unit."
                     wrapMode: Text.Wrap
                     Layout.fillWidth: true
                     color: "#3f3f46"
                 }
+                // value/1e6 == fontUnitToCm; ±1 == ±1e-6 cm == ±10 nm per font unit on the scale factor (fontUnitToMm ±0.00001).
                 SpinBox {
                     from: 1
-                    to: 1000000000
-                    stepSize: 1000
+                    to: 100000000
+                    stepSize: 1
                     editable: true
                     wheelEnabled: true
-                    value: Math.round(writerController.settings.fontUnitToCm * 10 * 1000000)
-                    onValueModified: writerController.settings.fontUnitToCm = value / 10000000.0
+                    value: Math.round(writerController.settings.fontUnitToCm * 1000000)
+                    onValueModified: writerController.settings.fontUnitToCm = value / 1000000.0
                 }
 
                 RowLayout {
