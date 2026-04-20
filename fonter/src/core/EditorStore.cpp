@@ -2,7 +2,9 @@
 
 #include <QFileInfo>
 #include <QHash>
+#include <QLineF>
 #include <QRandomGenerator>
+#include <QRectF>
 
 namespace {
 constexpr int kDefaultStrokePx = 6;
@@ -10,6 +12,29 @@ constexpr int kDefaultCaptureGapUm = 350;
 constexpr int kDefaultEraseRadiusPx = 20;
 constexpr int kMinRectSide = 4;
 constexpr char kStemAlphabet[] = "abcdefghijklmnopqrstuvwxyz0123456789";
+
+bool rectsIntersect(const SelectionRect &a, const SelectionRect &b) {
+    const QRectF ra(a.x, a.y, a.width, a.height);
+    const QRectF rb(b.x, b.y, b.width, b.height);
+    return ra.normalized().intersects(rb.normalized());
+}
+
+QPointF anchorBoardForBox(const SelectionBox &self, const QVector<SelectionBox> &allCommitted) {
+    const SelectionBox *bestPred = nullptr;
+    int bestOrder = -1;
+    for (const SelectionBox &b : allCommitted) {
+        if (b.id == self.id) continue;
+        if (b.orderIndex >= self.orderIndex) continue;
+        if (!rectsIntersect(b.rect, self.rect)) continue;
+        if (b.orderIndex > bestOrder) {
+            bestOrder = b.orderIndex;
+            bestPred = &b;
+        }
+    }
+    if (!bestPred)
+        return QPointF(self.rect.x, self.rect.y + self.rect.height);
+    return QPointF(bestPred->rect.x + bestPred->rect.width, bestPred->rect.y + bestPred->rect.height);
+}
 }
 
 EditorStore::EditorStore(QObject *parent)
@@ -35,6 +60,7 @@ QString EditorStore::toolMode() const {
 bool EditorStore::hasSelection() const { return !m_selectionBoxes.isEmpty() || m_hasSelectionDraftRect; }
 bool EditorStore::hasSelectedSelection() const { return !m_selectedSelectionId.isEmpty(); }
 int EditorStore::eraseRadiusPx() const { return m_eraseRadiusPx; }
+bool EditorStore::drawStrokeEraseActive() const { return m_drawStrokeEraseActive; }
 bool EditorStore::isDirty() const { return m_isDirty; }
 QString EditorStore::projectFilePath() const { return m_projectFilePath; }
 QString EditorStore::projectFileName() const { return m_projectFileName; }
@@ -93,7 +119,17 @@ void EditorStore::setToolMode(const QString &mode) {
     ToolMode next = ToolMode::Draw;
     if (mode == "select") next = ToolMode::Select;
     if (mode == "erase") next = ToolMode::Erase;
-    if (next == m_toolMode) return;
+    if (next == m_toolMode) {
+        if (next == ToolMode::Draw && m_drawStrokeEraseActive) {
+            m_drawStrokeEraseActive = false;
+            emit drawStrokeEraseActiveChanged();
+        }
+        return;
+    }
+    if (m_drawStrokeEraseActive) {
+        m_drawStrokeEraseActive = false;
+        emit drawStrokeEraseActiveChanged();
+    }
     m_toolMode = next;
     emit toolModeChanged();
 }
@@ -109,6 +145,14 @@ void EditorStore::setEraseRadiusPx(int value) {
     emit eraseRadiusPxChanged();
 }
 
+void EditorStore::setDrawStrokeEraseActive(bool active) {
+    if (active && m_toolMode != ToolMode::Draw)
+        return;
+    if (m_drawStrokeEraseActive == active) return;
+    m_drawStrokeEraseActive = active;
+    emit drawStrokeEraseActiveChanged();
+}
+
 bool EditorStore::deleteSelectedSelection() {
     if (m_selectedSelectionId.isEmpty()) return false;
     const int idx = findSelectionIndexById(m_selectedSelectionId);
@@ -116,8 +160,8 @@ bool EditorStore::deleteSelectedSelection() {
     m_selectionBoxes.removeAt(idx);
     m_selectedSelectionId.clear();
     m_hasResizeState = false;
+    recomputeSelectionAnchors();
     markDirty();
-    emit selectionChanged();
     return true;
 }
 
@@ -172,8 +216,8 @@ QString EditorStore::commitSelectionDraftRect() {
     box.rect = normalized;
     m_selectionBoxes.push_back(box);
     m_selectedSelectionId = box.id;
+    recomputeSelectionAnchors();
     markDirty();
-    emit selectionChanged();
     return box.id;
 }
 
@@ -191,8 +235,8 @@ void EditorStore::setSelectionRect(const QString &selectionId, const SelectionRe
     const SelectionRect normalized = normalizeRect(*rect, &ok);
     if (!ok) return;
     m_selectionBoxes[idx].rect = normalized;
+    recomputeSelectionAnchors();
     markDirty();
-    emit selectionChanged();
 }
 
 void EditorStore::setSelectedSelectionId(const QString &selectionId) {
@@ -235,6 +279,64 @@ bool EditorStore::erasePointsInSelectedSelection(const QPointF &center, qreal ra
     return changed;
 }
 
+bool EditorStore::removeStrokePointsNear(const QPointF &center, qreal radiusPx) {
+    const qreal rsq = radiusPx * radiusPx;
+    const qreal splitDistThresh = qMax(radiusPx * 3.0, static_cast<qreal>(m_strokePx) * 5.0);
+    QVector<Stroke> next;
+    next.reserve(m_strokes.size() + 4);
+    bool changed = false;
+    const QString priorCurrentId = m_currentStrokeId;
+
+    for (const Stroke &stroke : m_strokes) {
+        QVector<Stroke::StrokePoint> kept;
+        kept.reserve(stroke.points.size());
+        for (const Stroke::StrokePoint &pt : stroke.points) {
+            const qreal dx = pt.pos.x() - center.x();
+            const qreal dy = pt.pos.y() - center.y();
+            if (dx * dx + dy * dy <= rsq) {
+                changed = true;
+                continue;
+            }
+            kept.push_back(pt);
+        }
+        if (kept.isEmpty()) continue;
+
+        QVector<QVector<Stroke::StrokePoint>> runs;
+        QVector<Stroke::StrokePoint> run;
+        for (const Stroke::StrokePoint &pt : kept) {
+            if (run.isEmpty()) {
+                run.push_back(pt);
+                continue;
+            }
+            if (QLineF(run.last().pos, pt.pos).length() > splitDistThresh) {
+                runs.push_back(run);
+                run = {pt};
+            } else {
+                run.push_back(pt);
+            }
+        }
+        if (!run.isEmpty()) runs.push_back(run);
+
+        for (const QVector<Stroke::StrokePoint> &r : runs) {
+            if (r.isEmpty()) continue;
+            Stroke s;
+            s.id = makeStrokeId();
+            s.createdAt = stroke.createdAt;
+            s.points = r;
+            next.push_back(std::move(s));
+        }
+    }
+
+    if (!changed) return false;
+
+    m_strokes = std::move(next);
+    if (!priorCurrentId.isEmpty() && findStrokeIndexById(priorCurrentId) < 0)
+        m_currentStrokeId.clear();
+    markDirty();
+    emit strokesChanged();
+    return true;
+}
+
 void EditorStore::setProjectFilePath(const QString &path) {
     m_projectFilePath = path;
     m_projectFileName = path.isEmpty() ? QString() : QFileInfo(path).fileName();
@@ -260,6 +362,10 @@ void EditorStore::clearAll() {
     m_nextSelectionOrder = 1;
     m_specialCharStemMap.clear();
     m_isDirty = false;
+    if (m_drawStrokeEraseActive) {
+        m_drawStrokeEraseActive = false;
+        emit drawStrokeEraseActiveChanged();
+    }
     emit strokesChanged();
     emit selectionChanged();
     emit isDirtyChanged();
@@ -292,6 +398,9 @@ QVariantList EditorStore::selectionBoxesModel() const {
         item.insert("assigned", box.assigned);
         item.insert("assignedAscii", box.assignedAscii);
         item.insert("fileStem", box.fileStem);
+        item.insert("joinMode", joinModeToString(box.joinMode));
+        item.insert("anchorX", box.anchorX);
+        item.insert("anchorY", box.anchorY);
         item.insert("selected", box.id == m_selectedSelectionId);
         out.push_back(item);
     }
@@ -319,7 +428,26 @@ void EditorStore::setSelectionBoxes(const QVector<SelectionBox> &boxes, const QS
     if (!m_selectedSelectionId.isEmpty() && findSelectionIndexById(m_selectedSelectionId) < 0) {
         m_selectedSelectionId.clear();
     }
+    recomputeSelectionAnchors();
+}
+
+void EditorStore::recomputeSelectionAnchors() {
+    for (SelectionBox &box : m_selectionBoxes) {
+        const QPointF a = anchorBoardForBox(box, m_selectionBoxes);
+        box.anchorX = a.x();
+        box.anchorY = a.y();
+    }
     emit selectionChanged();
+}
+
+QPointF EditorStore::draftAnchorBoard() const {
+    if (!m_hasSelectionDraftRect) return QPointF();
+    SelectionBox self;
+    self.id = QStringLiteral("_draft");
+    self.orderIndex = m_nextSelectionOrder;
+    self.rect = m_selectionDraftRect;
+    self.joinMode = JoinMode::N;
+    return anchorBoardForBox(self, m_selectionBoxes);
 }
 
 void EditorStore::markSaved() {

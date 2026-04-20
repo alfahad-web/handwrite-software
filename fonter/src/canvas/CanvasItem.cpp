@@ -41,6 +41,10 @@ void CanvasItem::setEditorStore(QObject *storeObj) {
             updateToolCursor();
             update();
         });
+        connect(m_store, &EditorStore::drawStrokeEraseActiveChanged, this, [this]() {
+            updateToolCursor();
+            update();
+        });
         updateToolCursor();
     }
     emit editorStoreChanged();
@@ -119,6 +123,18 @@ void CanvasItem::paint(QPainter *painter) {
             }
         }
     }
+
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(QColor(34, 197, 94));
+    const qreal anchorRadiusBoard = 3.0;
+    for (const SelectionBox &box : m_store->selectionBoxes()) {
+        painter->drawEllipse(QPointF(box.anchorX, box.anchorY), anchorRadiusBoard, anchorRadiusBoard);
+    }
+    if (draft && draft->width > 0 && draft->height > 0) {
+        const QPointF da = m_store->draftAnchorBoard();
+        painter->drawEllipse(da, anchorRadiusBoard, anchorRadiusBoard);
+    }
+
     painter->restore();
 }
 
@@ -133,6 +149,12 @@ void CanvasItem::pointerDown(qreal x, qreal y, int button) {
     if (p.x() < 0 || p.y() < 0) return;
 
     if (m_store->toolModeValue() == ToolMode::Draw) {
+        if (m_store->drawStrokeEraseActive()) {
+            m_isStrokeHardErasing = true;
+            (void)m_store->removeStrokePointsNear(p, m_store->eraseRadiusPx());
+            update();
+            return;
+        }
         m_isDrawing = true;
         m_livePoints = {p};
         m_store->startStroke(p);
@@ -178,7 +200,7 @@ void CanvasItem::pointerMove(qreal x, qreal y) {
                 << "drawing=" << m_isDrawing << "selecting=" << m_isSelecting << "resizing=" << m_isResizing;
     }
     updateToolCursor();
-    const QPointF p = toBoard(QPointF(x, y), m_isDrawing || m_isSelecting || m_isResizing);
+    const QPointF p = toBoard(QPointF(x, y), m_isDrawing || m_isSelecting || m_isResizing || m_isStrokeHardErasing);
     if (p.x() < 0 || p.y() < 0) return;
 
     if (m_isDrawing) {
@@ -201,6 +223,11 @@ void CanvasItem::pointerMove(qreal x, qreal y) {
     }
     if (m_isErasing) {
         (void)m_store->erasePointsInSelectedSelection(p, m_store->eraseRadiusPx());
+        update();
+        return;
+    }
+    if (m_isStrokeHardErasing) {
+        (void)m_store->removeStrokePointsNear(p, m_store->eraseRadiusPx());
         update();
         return;
     }
@@ -245,10 +272,16 @@ void CanvasItem::pointerUp(qreal x, qreal y, int button) {
 }
 
 void CanvasItem::hoverMoveEvent(QHoverEvent *event) {
-    if (!m_store || (m_store->toolModeValue() != ToolMode::Select && m_store->toolModeValue() != ToolMode::Erase)) return;
-    if (m_isDrawing || m_isSelecting || m_isResizing) return;
+    if (!m_store) return;
+    if (m_store->toolModeValue() != ToolMode::Select && m_store->toolModeValue() != ToolMode::Erase
+        && !(m_store->toolModeValue() == ToolMode::Draw && m_store->drawStrokeEraseActive())) return;
+    if (m_isDrawing || m_isSelecting || m_isResizing || m_isStrokeHardErasing) return;
     const QPointF p = toBoard(event->position(), false);
     if (p.x() < 0 || p.y() < 0) return;
+    if (m_store->toolModeValue() == ToolMode::Draw && m_store->drawStrokeEraseActive()) {
+        updateToolCursor();
+        return;
+    }
     updateCursorForSelection(p);
 }
 
@@ -363,6 +396,7 @@ void CanvasItem::finalizeInteraction(const QPointF &point) {
         m_isResizing = false;
     }
     if (m_isErasing) m_isErasing = false;
+    if (m_isStrokeHardErasing) m_isStrokeHardErasing = false;
     update();
 }
 
@@ -387,6 +421,10 @@ bool CanvasItem::hasSelectionAt(qreal x, qreal y) const {
 void CanvasItem::updateToolCursor() {
     if (!m_store) return;
     if (m_store->toolModeValue() == ToolMode::Draw) {
+        if (m_store->drawStrokeEraseActive()) {
+            unsetCursor();
+            return;
+        }
         setCursor(Qt::CrossCursor);
         return;
     }

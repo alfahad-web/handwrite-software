@@ -15,15 +15,27 @@ QChar stemToChar(const QString &stem) {
     return stem.at(0);
 }
 
-bool variantLessThan(const QString &a, const QString &b) {
-    if (a == QStringLiteral("_fallback")) return false;
-    if (b == QStringLiteral("_fallback")) return true;
-    bool okA = false, okB = false;
-    const int na = a.toInt(&okA);
-    const int nb = b.toInt(&okB);
-    if (okA && okB) return na < nb;
-    return a < b;
+int joinRank(const QString &join) {
+    if (join == QStringLiteral("L")) return 0;
+    if (join == QStringLiteral("R")) return 1;
+    if (join == QStringLiteral("LR")) return 2;
+    return 3;
 }
+
+QString sortKeyJoin(const QString &join, int index) {
+    return QLatin1String("j") + QString::number(index).rightJustified(8, QLatin1Char('0'))
+        + QString::number(joinRank(join));
+}
+
+QString sortKeyLegacyVariant(const QString &variant) {
+    if (variant == QStringLiteral("_fallback")) return QLatin1String("y_fallback");
+    bool ok = false;
+    const int n = variant.toInt(&ok);
+    if (ok) return QLatin1String("l") + QString::number(n).rightJustified(8, QLatin1Char('0'));
+    return QLatin1String("z") + variant;
+}
+
+QString sortKeySimpleStem() { return QLatin1String("s00000000"); }
 }
 
 bool FontLoader::parseFile(const QString &path, GlyphData *out, QString *errorMessage) {
@@ -36,11 +48,33 @@ bool FontLoader::parseFile(const QString &path, GlyphData *out, QString *errorMe
     QVector<QVector<QPointF>> all;
     QRectF bbox;
     bool any = false;
+    bool consumedFirstLine = false;
+    out->hasGlyphAnchor = false;
+
     while (!ts.atEnd()) {
         const QString line = ts.readLine().trimmed();
         if (line.isEmpty()) continue;
-        const QStringList segments = line.split(QLatin1Char(';'), Qt::SkipEmptyParts);
-        for (const QString &seg : segments) {
+        QStringList segments = line.split(QLatin1Char(';'), Qt::SkipEmptyParts);
+        if (!consumedFirstLine) {
+            consumedFirstLine = true;
+            if (!segments.isEmpty()) {
+                const QString firstSeg = segments.first().trimmed();
+                const QStringList nums = firstSeg.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
+                if (nums.size() == 2) {
+                    bool okx = false, oky = false;
+                    const double ax = nums[0].toDouble(&okx);
+                    const double ay = nums[1].toDouble(&oky);
+                    if (okx && oky) {
+                        out->hasGlyphAnchor = true;
+                        out->glyphAnchorFontUnits = QPointF(ax, ay);
+                        segments.removeFirst();
+                    }
+                }
+            }
+        }
+        for (const QString &segRaw : segments) {
+            const QString seg = segRaw.trimmed();
+            if (seg.isEmpty()) continue;
             const QStringList nums = seg.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
             if (nums.size() < 4 || (nums.size() % 2) != 0) continue;
             QVector<QPointF> poly;
@@ -67,6 +101,11 @@ bool FontLoader::parseFile(const QString &path, GlyphData *out, QString *errorMe
         }
     }
     if (all.isEmpty()) {
+        if (out->hasGlyphAnchor) {
+            out->polylinesFontUnits.clear();
+            out->bboxFontUnits = QRectF(out->glyphAnchorFontUnits, QSizeF(0, 0));
+            return true;
+        }
         if (errorMessage) *errorMessage = QStringLiteral("No polylines in file.");
         return false;
     }
@@ -82,35 +121,53 @@ QHash<QChar, GlyphData> FontLoader::loadDirectory(const QString &dirPath, QStrin
         if (errorMessage) *errorMessage = QStringLiteral("Directory does not exist.");
         return map;
     }
-    static const QRegularExpression kNameRe(QStringLiteral("^(.+)\\.([^./]+)\\.txt$"));
+    static const QRegularExpression kJoinStemRe(QStringLiteral(R"(^([^.]+)\.(L|R|LR|N)\.(\d+)\.txt$)"));
+    static const QRegularExpression kLegacyRe(QStringLiteral(R"(^([^.]+)\.([^./]+)\.txt$)"));
+    static const QRegularExpression kSimpleRe(QStringLiteral(R"(^([^./]+)\.txt$)"));
+
     const QFileInfoList files = dir.entryInfoList(QStringList() << QStringLiteral("*.txt"), QDir::Files);
-    QHash<QChar, QPair<QString, QString>> bestStemVariant;
+    QHash<QChar, QPair<QString, QString>> bestPathSortKey;
+
+    auto consider = [&](QChar ch, const QString &absPath, const QString &sortKey) {
+        if (ch.isNull()) return;
+        if (!bestPathSortKey.contains(ch) || sortKey < bestPathSortKey[ch].second)
+            bestPathSortKey.insert(ch, qMakePair(absPath, sortKey));
+    };
+
     for (const QFileInfo &fi : files) {
-        const QRegularExpressionMatch m = kNameRe.match(fi.fileName());
+        const QString name = fi.fileName();
+        const QRegularExpressionMatch mj = kJoinStemRe.match(name);
+        if (!mj.hasMatch()) continue;
+        const QString stem = mj.captured(1);
+        const QString join = mj.captured(2);
+        const int idx = mj.captured(3).toInt();
+        const QChar ch = stemToChar(stem);
+        consider(ch, fi.absoluteFilePath(), sortKeyJoin(join, idx));
+    }
+
+    for (const QFileInfo &fi : files) {
+        const QString name = fi.fileName();
+        if (kJoinStemRe.match(name).hasMatch()) continue;
+        const QRegularExpressionMatch m = kLegacyRe.match(name);
         if (!m.hasMatch()) continue;
         const QString stem = m.captured(1);
         const QString variant = m.captured(2);
         const QChar ch = stemToChar(stem);
-        if (ch.isNull()) continue;
-        if (!bestStemVariant.contains(ch) || variantLessThan(variant, bestStemVariant[ch].second)) {
-            bestStemVariant.insert(ch, qMakePair(fi.absoluteFilePath(), variant));
-        }
+        consider(ch, fi.absoluteFilePath(), sortKeyLegacyVariant(variant));
     }
-    static const QRegularExpression kSimpleRe(QStringLiteral("^([^./]+)\\.txt$"));
+
     for (const QFileInfo &fi : files) {
         const QString name = fi.fileName();
-        if (kNameRe.match(name).hasMatch()) continue;
+        if (kJoinStemRe.match(name).hasMatch()) continue;
+        if (kLegacyRe.match(name).hasMatch()) continue;
         const QRegularExpressionMatch sm = kSimpleRe.match(name);
         if (!sm.hasMatch()) continue;
         const QString stem = sm.captured(1);
         const QChar ch = stemToChar(stem);
-        if (ch.isNull()) continue;
-        const QString variant = QStringLiteral("_fallback");
-        if (!bestStemVariant.contains(ch) || variantLessThan(variant, bestStemVariant[ch].second)) {
-            bestStemVariant.insert(ch, qMakePair(fi.absoluteFilePath(), variant));
-        }
+        consider(ch, fi.absoluteFilePath(), sortKeySimpleStem());
     }
-    for (auto it = bestStemVariant.constBegin(); it != bestStemVariant.constEnd(); ++it) {
+
+    for (auto it = bestPathSortKey.constBegin(); it != bestPathSortKey.constEnd(); ++it) {
         GlyphData g;
         g.sourceFile = it.value().first;
         QString err;

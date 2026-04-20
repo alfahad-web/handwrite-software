@@ -19,6 +19,7 @@ class EditorStore : public QObject {
     Q_PROPERTY(bool hasSelection READ hasSelection NOTIFY selectionChanged)
     Q_PROPERTY(bool hasSelectedSelection READ hasSelectedSelection NOTIFY selectionChanged)
     Q_PROPERTY(int eraseRadiusPx READ eraseRadiusPx WRITE setEraseRadiusPx NOTIFY eraseRadiusPxChanged)
+    Q_PROPERTY(bool drawStrokeEraseActive READ drawStrokeEraseActive WRITE setDrawStrokeEraseActive NOTIFY drawStrokeEraseActiveChanged)
     Q_PROPERTY(bool isDirty READ isDirty NOTIFY isDirtyChanged)
     Q_PROPERTY(QString projectFilePath READ projectFilePath NOTIFY projectFilePathChanged)
     Q_PROPERTY(QString projectFileName READ projectFileName NOTIFY projectFileNameChanged)
@@ -33,6 +34,7 @@ public:
     bool hasSelection() const;
     bool hasSelectedSelection() const;
     int eraseRadiusPx() const;
+    bool drawStrokeEraseActive() const;
     bool isDirty() const;
     QString projectFilePath() const;
     QString projectFileName() const;
@@ -56,6 +58,7 @@ public:
     Q_INVOKABLE void setToolMode(const QString &mode);
     Q_INVOKABLE void toggleToolMode();
     Q_INVOKABLE void setEraseRadiusPx(int value);
+    Q_INVOKABLE void setDrawStrokeEraseActive(bool active);
     Q_INVOKABLE bool deleteSelectedSelection();
 
     void startStroke(const QPointF &point);
@@ -68,6 +71,7 @@ public:
     void setSelectedSelectionId(const QString &selectionId);
     void setSelectionResizeState(const ResizeDragState *state);
     bool erasePointsInSelectedSelection(const QPointF &center, qreal radiusPx);
+    bool removeStrokePointsNear(const QPointF &center, qreal radiusPx);
 
     void setProjectFilePath(const QString &path);
     void clearProjectFilePath();
@@ -82,6 +86,9 @@ public:
     void markSaved();
     void markDirty();
 
+    void recomputeSelectionAnchors();
+    QPointF draftAnchorBoard() const;
+
 signals:
     void strokePxChanged();
     void captureGapUmChanged();
@@ -90,6 +97,7 @@ signals:
     void selectionChanged();
     void strokesChanged();
     void eraseRadiusPxChanged();
+    void drawStrokeEraseActiveChanged();
     void isDirtyChanged();
     void projectFilePathChanged();
     void projectFileNameChanged();
@@ -110,6 +118,7 @@ private:
     int m_captureGapUm;
     int m_zoom;
     int m_eraseRadiusPx;
+    bool m_drawStrokeEraseActive = false;
     QVector<SelectionBox> m_selectionBoxes;
     QString m_selectedSelectionId;
     bool m_hasSelectionDraftRect;

@@ -1,5 +1,7 @@
 #include "AppController.h"
 
+#include "../core/EditorTypes.h"
+
 #include <QApplication>
 #include <QCursor>
 #include <QDebug>
@@ -53,7 +55,7 @@ void AppController::saveProject() {
     emit statusMessageChanged();
 }
 
-void AppController::assignSelectionCharacter(const QString &selectionId, const QString &text) {
+void AppController::assignSelectionCharacter(const QString &selectionId, const QString &text, const QString &joinMode) {
     if (!m_store) return;
     if (text.size() != 1) {
         m_statusMessage = QStringLiteral("Assignment must be one ASCII character.");
@@ -67,11 +69,19 @@ void AppController::assignSelectionCharacter(const QString &selectionId, const Q
         emit statusMessageChanged();
         return;
     }
+    if (joinMode != QStringLiteral("L") && joinMode != QStringLiteral("R") && joinMode != QStringLiteral("LR")
+        && joinMode != QStringLiteral("N")) {
+        m_statusMessage = QStringLiteral("Join mode must be L, R, LR, or N.");
+        emit statusMessageChanged();
+        return;
+    }
     SelectionBox *box = m_store->selectionByIdMutable(selectionId);
     if (!box) return;
     box->assigned = true;
     box->assignedAscii = static_cast<int>(code);
     box->fileStem = m_store->fileStemForAscii(box->assignedAscii);
+    box->joinMode = joinModeFromString(joinMode);
+    m_store->recomputeSelectionAnchors();
     m_store->markDirty();
     m_statusMessage = QStringLiteral("Selection assigned.");
     emit statusMessageChanged();
@@ -101,6 +111,7 @@ void AppController::generateFonts() {
         emit statusMessageChanged();
         return;
     }
+    m_store->recomputeSelectionAnchors();
     const double dpi = ExportService::resolveScreenDpi();
     auto boxes = m_store->selectionBoxes();
     std::sort(boxes.begin(), boxes.end(), [](const SelectionBox &a, const SelectionBox &b) {
@@ -114,10 +125,14 @@ void AppController::generateFonts() {
             ++skipped;
             continue;
         }
-        const int seq = stemCounter.value(box.fileStem, 0) + 1;
-        stemCounter.insert(box.fileStem, seq);
+        const QString stemJoin = QStringLiteral("%1.%2").arg(box.fileStem).arg(joinModeToString(box.joinMode));
+        const int seq = stemCounter.value(stemJoin, 0) + 1;
+        stemCounter.insert(stemJoin, seq);
         SelectionBox exportBox = box;
-        exportBox.fileStem = QString("%1.%2").arg(box.fileStem).arg(seq);
+        exportBox.fileStem = QStringLiteral("%1.%2.%3")
+                                 .arg(box.fileStem)
+                                 .arg(joinModeToString(box.joinMode))
+                                 .arg(seq);
         const auto files = ExportService::buildSelectionExports(
             m_store->strokes(),
             QVector<SelectionBox>{exportBox},

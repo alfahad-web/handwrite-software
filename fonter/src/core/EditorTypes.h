@@ -11,6 +11,30 @@ enum class ToolMode {
     Erase
 };
 
+enum class JoinMode {
+    L,
+    R,
+    LR,
+    N
+};
+
+inline QString joinModeToString(JoinMode m) {
+    switch (m) {
+    case JoinMode::L: return QStringLiteral("L");
+    case JoinMode::R: return QStringLiteral("R");
+    case JoinMode::LR: return QStringLiteral("LR");
+    case JoinMode::N: return QStringLiteral("N");
+    }
+    return QStringLiteral("N");
+}
+
+inline JoinMode joinModeFromString(const QString &s) {
+    if (s == QStringLiteral("LR")) return JoinMode::LR;
+    if (s == QStringLiteral("L")) return JoinMode::L;
+    if (s == QStringLiteral("R")) return JoinMode::R;
+    return JoinMode::N;
+}
+
 enum class ResizeHandle {
     None,
     Move,
@@ -55,4 +79,7 @@ struct SelectionBox {
     bool assigned = false;
     int assignedAscii = -1;
     QString fileStem;
+    JoinMode joinMode = JoinMode::N;
+    double anchorX = 0;
+    double anchorY = 0;
 };

@@ -11,6 +11,8 @@ struct GlyphData {
     QVector<QVector<QPointF>> polylinesFontUnits;
     QRectF bboxFontUnits;
     QString sourceFile;
+    bool hasGlyphAnchor = false;
+    QPointF glyphAnchorFontUnits;
 };
 
 class FontLoader {

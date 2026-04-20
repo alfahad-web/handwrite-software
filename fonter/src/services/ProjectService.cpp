@@ -1,5 +1,7 @@
 #include "ProjectService.h"
 
+#include "../core/EditorTypes.h"
+
 #include <QFile>
 #include <QHash>
 #include <QJsonArray>
@@ -14,7 +16,7 @@ bool ProjectService::saveProject(const QString &path, const EditorStore &store, 
         return false;
     }
     QJsonObject root;
-    root.insert("formatVersion", 1);
+    root.insert("formatVersion", 2);
     root.insert("strokePx", store.strokePx());
     root.insert("captureGapUm", store.captureGapUm());
     root.insert("zoom", store.zoom());
@@ -50,6 +52,9 @@ bool ProjectService::saveProject(const QString &path, const EditorStore &store, 
         b.insert("assigned", box.assigned);
         b.insert("assignedAscii", box.assignedAscii);
         b.insert("fileStem", box.fileStem);
+        b.insert("joinMode", joinModeToString(box.joinMode));
+        b.insert("anchorX", box.anchorX);
+        b.insert("anchorY", box.anchorY);
         boxes.push_back(b);
     }
     root.insert("selectionBoxes", boxes);
@@ -88,7 +93,8 @@ bool ProjectService::loadProject(const QString &path, EditorStore *store, QStrin
         return false;
     }
     const QJsonObject root = doc.object();
-    if (root.value("formatVersion").toInt(0) != 1) {
+    const int fmt = root.value("formatVersion").toInt(0);
+    if (fmt != 1 && fmt != 2) {
         if (errorMessage) *errorMessage = QStringLiteral("Unsupported project version.");
         return false;
     }
@@ -137,6 +143,9 @@ bool ProjectService::loadProject(const QString &path, EditorStore *store, QStrin
         box.assigned = b.value("assigned").toBool(false);
         box.assignedAscii = b.value("assignedAscii").toInt(-1);
         box.fileStem = b.value("fileStem").toString();
+        box.joinMode = joinModeFromString(b.value("joinMode").toString());
+        box.anchorX = b.value("anchorX").toDouble(0.0);
+        box.anchorY = b.value("anchorY").toDouble(0.0);
         loadedBoxes.push_back(box);
     }
     store->setSelectionBoxes(loadedBoxes, root.value("selectedSelectionId").toString());

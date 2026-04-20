@@ -1,7 +1,9 @@
 #include "ExportService.h"
 
 #include <QGuiApplication>
+#include <QPointF>
 #include <QScreen>
+#include <cmath>
 
 namespace {
 constexpr double kMicrometersPerInch = 25400.0;
@@ -80,9 +82,31 @@ QVector<SelectionExportFile> ExportService::buildSelectionExports(
         f.selectionId = box.id;
         f.fileName = QString("%1.txt").arg(box.fileStem);
         f.lines = serializeExportLines(sampled);
+        const SampledPointUm anchorUm = anchorBoardToExportUm(
+            QPointF(box.anchorX, box.anchorY),
+            box.rect,
+            dpi
+        );
+        f.lines.prepend(
+            QString::number(anchorUm.xUm) + QLatin1Char(' ') + QString::number(anchorUm.yUm) + QLatin1Char(';')
+        );
         files.push_back(f);
     }
     return files;
+}
+
+SampledPointUm ExportService::anchorBoardToExportUm(
+    const QPointF &anchorBoard,
+    const SelectionRect &selectionRect,
+    double dpi
+) {
+    const qreal selectionBottomY = selectionRect.y + selectionRect.height;
+    const double localXPx = anchorBoard.x() - selectionRect.x;
+    const double localYPx = selectionBottomY - anchorBoard.y();
+    return SampledPointUm{
+        static_cast<qint64>(std::llround(pxToUm(localXPx, dpi))),
+        static_cast<qint64>(std::llround(pxToUm(localYPx, dpi)))
+    };
 }
 
 QStringList ExportService::serializeExportLines(const QVector<SampledStrokeUm> &strokes) {

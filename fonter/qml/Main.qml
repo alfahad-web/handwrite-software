@@ -16,6 +16,8 @@ ApplicationWindow {
     property bool boardPanMode: false
     property real panLastX: 0
     property real panLastY: 0
+    readonly property bool eraseBrushAppCursor: editorStoreModel.toolMode === "erase"
+        || (editorStoreModel.toolMode === "draw" && editorStoreModel.drawStrokeEraseActive)
     Component.onCompleted: {
         console.log("[qml] Main loaded. toolMode=", editorStoreModel.toolMode,
                     "zoom=", editorStoreModel.zoom, "strokePx=", editorStoreModel.strokePx)
@@ -24,25 +26,33 @@ ApplicationWindow {
         target: editorStoreModel
         function onToolModeChanged() {
             if (editorStoreModel.toolMode !== "draw") appController.setBoardCursorActive(false)
-            if (editorStoreModel.toolMode === "erase") {
+            if (root.eraseBrushAppCursor) {
+                appController.setEraseCursorActive(true, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+            } else {
+                appController.setEraseCursorActive(false, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+            }
+        }
+        function onDrawStrokeEraseActiveChanged() {
+            if (root.eraseBrushAppCursor) {
                 appController.setEraseCursorActive(true, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
             } else {
                 appController.setEraseCursorActive(false, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
             }
         }
         function onEraseRadiusPxChanged() {
-            if (editorStoreModel.toolMode === "erase") {
+            if (root.eraseBrushAppCursor) {
                 appController.setEraseCursorActive(true, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
             }
         }
         function onZoomChanged() {
-            if (editorStoreModel.toolMode === "erase") {
+            if (root.eraseBrushAppCursor) {
                 appController.setEraseCursorActive(true, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
             }
         }
     }
     onClosing: appController.setBoardCursorActive(false)
     property string pendingSelectionAssignId: ""
+    property string pendingAssignJoin: "N"
 
     header: Frame {
         background: Rectangle { color: "#fafafa"; border.color: "#d4d4d8" }
@@ -113,9 +123,16 @@ ApplicationWindow {
                 onClicked: editorStoreModel.setToolMode("draw")
             }
             Button {
-                text: editorStoreModel.toolMode === "erase" ? "Erase On" : "Erase"
-                highlighted: editorStoreModel.toolMode === "erase"
-                onClicked: editorStoreModel.setToolMode("erase")
+                text: root.eraseBrushAppCursor ? "Erase On" : "Erase"
+                highlighted: root.eraseBrushAppCursor
+                onClicked: {
+                    if (editorStoreModel.toolMode === "draw") {
+                        // WRITE accessor must be Q_INVOKABLE for call form; assignment always works.
+                        editorStoreModel.drawStrokeEraseActive = !editorStoreModel.drawStrokeEraseActive
+                    } else {
+                        editorStoreModel.setToolMode("erase")
+                    }
+                }
             }
             Label { text: "Erase r(px)" }
             SpinBox {
@@ -178,8 +195,8 @@ ApplicationWindow {
                     onEntered: {
                         console.log("[qml] MouseArea entered; toolMode=", editorStoreModel.toolMode)
                         if (editorStoreModel.toolMode === "draw") {
-                            appController.setEraseCursorActive(false, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
-                            appController.setBoardCursorActive(true)
+                            appController.setEraseCursorActive(editorStoreModel.drawStrokeEraseActive, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+                            appController.setBoardCursorActive(!editorStoreModel.drawStrokeEraseActive)
                         } else if (editorStoreModel.toolMode === "erase") {
                             appController.setBoardCursorActive(false)
                             appController.setEraseCursorActive(true, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
@@ -219,8 +236,8 @@ ApplicationWindow {
                         }
                         boardCanvas.pointerMove(mouse.x, mouse.y)
                         if (containsMouse && editorStoreModel.toolMode === "draw") {
-                            appController.setEraseCursorActive(false, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
-                            appController.setBoardCursorActive(true)
+                            appController.setEraseCursorActive(editorStoreModel.drawStrokeEraseActive, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+                            appController.setBoardCursorActive(!editorStoreModel.drawStrokeEraseActive)
                         } else if (containsMouse && editorStoreModel.toolMode === "erase") {
                             appController.setBoardCursorActive(false)
                             appController.setEraseCursorActive(true, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
@@ -230,12 +247,21 @@ ApplicationWindow {
                         console.log("[qml] release", mouse.x, mouse.y, "button=", mouse.button)
                         if (boardPanMode) {
                             boardPanMode = false
-                            appController.setEraseCursorActive(editorStoreModel.toolMode === "erase", editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+                            appController.setEraseCursorActive(root.eraseBrushAppCursor, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
                             return
                         }
                         boardCanvas.pointerUp(mouse.x, mouse.y, mouse.button)
-                        if (!containsMouse || editorStoreModel.toolMode !== "draw") appController.setBoardCursorActive(false)
-                        if (!containsMouse || editorStoreModel.toolMode !== "erase") {
+                        if (!containsMouse) {
+                            appController.setBoardCursorActive(false)
+                            appController.setEraseCursorActive(false, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+                        } else if (editorStoreModel.toolMode === "draw") {
+                            appController.setEraseCursorActive(editorStoreModel.drawStrokeEraseActive, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+                            appController.setBoardCursorActive(!editorStoreModel.drawStrokeEraseActive)
+                        } else if (editorStoreModel.toolMode === "erase") {
+                            appController.setBoardCursorActive(false)
+                            appController.setEraseCursorActive(true, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+                        } else {
+                            appController.setBoardCursorActive(false)
                             appController.setEraseCursorActive(false, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
                         }
                     }
@@ -272,7 +298,7 @@ ApplicationWindow {
         title: "Assign Character"
         modal: true
         standardButtons: Dialog.Ok | Dialog.Cancel
-        width: 360
+        width: 400
         contentItem: ColumnLayout {
             spacing: 8
             Label { text: "Enter exactly one ASCII character:" }
@@ -281,10 +307,49 @@ ApplicationWindow {
                 placeholderText: "Example: A or #"
                 selectByMouse: true
             }
+            Label { text: "Join mode (export filename token):" }
+            RowLayout {
+                spacing: 12
+                RadioButton {
+                    text: "L"
+                    checked: root.pendingAssignJoin === "L"
+                    onCheckedChanged: if (checked) root.pendingAssignJoin = "L"
+                }
+                RadioButton {
+                    text: "R"
+                    checked: root.pendingAssignJoin === "R"
+                    onCheckedChanged: if (checked) root.pendingAssignJoin = "R"
+                }
+                RadioButton {
+                    text: "LR"
+                    checked: root.pendingAssignJoin === "LR"
+                    onCheckedChanged: if (checked) root.pendingAssignJoin = "LR"
+                }
+                RadioButton {
+                    text: "N"
+                    checked: root.pendingAssignJoin === "N"
+                    onCheckedChanged: if (checked) root.pendingAssignJoin = "N"
+                }
+            }
         }
-        onOpened: assignInput.text = ""
+        onOpened: {
+            assignInput.text = ""
+            root.pendingAssignJoin = "N"
+            const rows = editorStoreModel.selectionBoxesModel()
+            for (let i = 0; i < rows.length; ++i) {
+                const r = rows[i]
+                if (r.id === root.pendingSelectionAssignId) {
+                    const j = r.joinMode
+                    if (j === "L" || j === "R" || j === "LR" || j === "N")
+                        root.pendingAssignJoin = j
+                    if (r.assigned && r.assignedAscii >= 0)
+                        assignInput.text = String.fromCharCode(r.assignedAscii)
+                    break
+                }
+            }
+        }
         onAccepted: {
-            appController.assignSelectionCharacter(pendingSelectionAssignId, assignInput.text)
+            appController.assignSelectionCharacter(root.pendingSelectionAssignId, assignInput.text, root.pendingAssignJoin)
         }
     }
 }

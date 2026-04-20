@@ -49,6 +49,7 @@ private:
     bool m_isSelecting = false;
     bool m_isResizing = false;
     bool m_isErasing = false;
+    bool m_isStrokeHardErasing = false;
     QPointF m_selectStart;
     QVector<QPointF> m_livePoints;
     QString m_activeSelectionId;

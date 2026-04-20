@@ -40,6 +40,11 @@ public:
         double dpi
     );
     static QStringList serializeExportLines(const QVector<SampledStrokeUm> &strokes);
+    static SampledPointUm anchorBoardToExportUm(
+        const QPointF &anchorBoard,
+        const SelectionRect &selectionRect,
+        double dpi
+    );
     static double resolveScreenDpi();
     static double pxToUm(double px, double dpi);
 };

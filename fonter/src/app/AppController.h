@@ -20,7 +20,7 @@ public:
     Q_INVOKABLE void saveProject();
     Q_INVOKABLE void generateFonts();
     Q_INVOKABLE void deleteSelectedSelection();
-    Q_INVOKABLE void assignSelectionCharacter(const QString &selectionId, const QString &text);
+    Q_INVOKABLE void assignSelectionCharacter(const QString &selectionId, const QString &text, const QString &joinMode);
     Q_INVOKABLE void setBoardCursorActive(bool active);
     Q_INVOKABLE void setEraseCursorActive(bool active, int radiusPx, int zoomPercent);
 
