@@ -19,6 +19,10 @@ bool rectsIntersect(const SelectionRect &a, const SelectionRect &b) {
     return ra.normalized().intersects(rb.normalized());
 }
 
+bool pointInsideRect(const QPointF &p, const SelectionRect &r) {
+    return p.x() >= r.x && p.x() <= (r.x + r.width) && p.y() >= r.y && p.y() <= (r.y + r.height);
+}
+
 QPointF anchorBoardForBox(const SelectionBox &self, const QVector<SelectionBox> &allCommitted) {
     const SelectionBox *bestPred = nullptr;
     int bestOrder = -1;
@@ -31,9 +35,12 @@ QPointF anchorBoardForBox(const SelectionBox &self, const QVector<SelectionBox> 
             bestPred = &b;
         }
     }
-    if (!bestPred)
-        return QPointF(self.rect.x, self.rect.y + self.rect.height);
-    return QPointF(bestPred->rect.x + bestPred->rect.width, bestPred->rect.y + bestPred->rect.height);
+    const QPointF fallback(self.rect.x, self.rect.y + self.rect.height);
+    if (!bestPred) return fallback;
+
+    const QPointF predBottomRight(bestPred->rect.x + bestPred->rect.width, bestPred->rect.y + bestPred->rect.height);
+    if (!pointInsideRect(predBottomRight, self.rect)) return fallback;
+    return predBottomRight;
 }
 }
 
