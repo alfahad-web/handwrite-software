@@ -25,6 +25,7 @@ ExportService::ExportService(QObject *parent) : QObject(parent) {}
 QVector<SampledStrokeUm> ExportService::buildExportStrokes(
     const QVector<Stroke> &strokes,
     const SelectionRect *selectionRect,
+    const QPointF &anchorBoard,
     int captureGapUm,
     double dpi
 ) {
@@ -54,10 +55,9 @@ QVector<SampledStrokeUm> ExportService::buildExportStrokes(
         SampledStrokeUm out;
         out.strokeId = stroke.id;
         out.points.reserve(sampled.size());
-        const qreal selectionBottomY = selectionRect->y + selectionRect->height;
         for (const QPointF &p : sampled) {
-            const double localXPx = p.x() - selectionRect->x;
-            const double localYPx = selectionBottomY - p.y();
+            const double localXPx = p.x() - anchorBoard.x();
+            const double localYPx = anchorBoard.y() - p.y();
             out.points.push_back(SampledPointUm{
                 static_cast<qint64>(std::llround(pxToUm(localXPx, dpi))),
                 static_cast<qint64>(std::llround(pxToUm(localYPx, dpi)))
@@ -77,36 +77,14 @@ QVector<SelectionExportFile> ExportService::buildSelectionExports(
     QVector<SelectionExportFile> files;
     for (const SelectionBox &box : selectionBoxes) {
         if (!box.assigned || box.fileStem.isEmpty()) continue;
-        const auto sampled = buildExportStrokes(strokes, &box.rect, captureGapUm, dpi);
+        const auto sampled = buildExportStrokes(strokes, &box.rect, QPointF(box.anchorX, box.anchorY), captureGapUm, dpi);
         SelectionExportFile f;
         f.selectionId = box.id;
         f.fileName = QString("%1.txt").arg(box.fileStem);
         f.lines = serializeExportLines(sampled);
-        const SampledPointUm anchorUm = anchorBoardToExportUm(
-            QPointF(box.anchorX, box.anchorY),
-            box.rect,
-            dpi
-        );
-        f.lines.prepend(
-            QString::number(anchorUm.xUm) + QLatin1Char(' ') + QString::number(anchorUm.yUm) + QLatin1Char(';')
-        );
         files.push_back(f);
     }
     return files;
-}
-
-SampledPointUm ExportService::anchorBoardToExportUm(
-    const QPointF &anchorBoard,
-    const SelectionRect &selectionRect,
-    double dpi
-) {
-    const qreal selectionBottomY = selectionRect.y + selectionRect.height;
-    const double localXPx = anchorBoard.x() - selectionRect.x;
-    const double localYPx = selectionBottomY - anchorBoard.y();
-    return SampledPointUm{
-        static_cast<qint64>(std::llround(pxToUm(localXPx, dpi))),
-        static_cast<qint64>(std::llround(pxToUm(localYPx, dpi)))
-    };
 }
 
 QStringList ExportService::serializeExportLines(const QVector<SampledStrokeUm> &strokes) {

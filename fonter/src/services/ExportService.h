@@ -30,6 +30,7 @@ public:
     static QVector<SampledStrokeUm> buildExportStrokes(
         const QVector<Stroke> &strokes,
         const SelectionRect *selectionRect,
+        const QPointF &anchorBoard,
         int captureGapUm,
         double dpi
     );
@@ -40,11 +41,6 @@ public:
         double dpi
     );
     static QStringList serializeExportLines(const QVector<SampledStrokeUm> &strokes);
-    static SampledPointUm anchorBoardToExportUm(
-        const QPointF &anchorBoard,
-        const SelectionRect &selectionRect,
-        double dpi
-    );
     static double resolveScreenDpi();
     static double pxToUm(double px, double dpi);
 };
