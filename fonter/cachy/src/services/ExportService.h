@@ -40,7 +40,12 @@ public:
         int captureGapUm,
         double dpi
     );
-    static QStringList serializeExportLines(const QVector<SampledStrokeUm> &strokes);
+    static QStringList serializeExportLines(
+        const QVector<SampledStrokeUm> &strokes,
+        const SelectionRect &selectionRect,
+        const QPointF &anchorBoard,
+        double dpi
+    );
     static double resolveScreenDpi();
     static double pxToUm(double px, double dpi);
 };

@@ -94,6 +94,14 @@ void AppSettings::setFontUnitToCm(double v) {
     emit anyChanged();
 }
 
+void AppSettings::setJoinDistMm(double v) {
+    if (!std::isfinite(v) || v < 0) v = 0;
+    if (qFuzzyCompare(m_joinDistMm, v)) return;
+    m_joinDistMm = v;
+    emit joinDistMmChanged();
+    emit anyChanged();
+}
+
 void AppSettings::load() {
     QSettings s;
     s.beginGroup(kG);
@@ -107,6 +115,7 @@ void AppSettings::load() {
     setHyCm(s.value("hyCm", m_hyCm).toDouble());
     setLineHeightCm(s.value("lineHeightCm", m_lineHeightCm).toDouble());
     setFontUnitToCm(s.value("fontUnitToCm", m_fontUnitToCm).toDouble());
+    setJoinDistMm(s.value("joinDistMm", m_joinDistMm).toDouble());
     s.endGroup();
 }
 
@@ -123,5 +132,6 @@ void AppSettings::save() {
     s.setValue("hyCm", m_hyCm);
     s.setValue("lineHeightCm", m_lineHeightCm);
     s.setValue("fontUnitToCm", m_fontUnitToCm);
+    s.setValue("joinDistMm", m_joinDistMm);
     s.endGroup();
 }

@@ -40,11 +40,13 @@ void WriterController::reloadFonts() {
 
 void WriterController::loadFontsFromPath(const QString &path) {
     QString err;
-    m_fontMap = FontLoader::loadDirectory(path, &err);
-    if (m_fontMap.isEmpty())
+    m_fontCatalog = FontLoader::loadDirectory(path, &err);
+    if (m_fontCatalog.isEmpty())
         m_fontStatus = err.isEmpty() ? QStringLiteral("No glyphs loaded.") : err;
     else
-        m_fontStatus = QStringLiteral("Loaded %1 glyphs.").arg(m_fontMap.size());
+        m_fontStatus = QStringLiteral("Loaded %1 glyphs (%2 variants).")
+                           .arg(m_fontCatalog.size())
+                           .arg(m_fontCatalog.totalVariants());
     emit fontStatusChanged();
     emit layoutInvalidated();
 }

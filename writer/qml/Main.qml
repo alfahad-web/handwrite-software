@@ -71,6 +71,20 @@ ApplicationWindow {
                 text: writerController.runActive ? "Stop" : "Run"
                 onClicked: writerController.runActive ? writerController.stopRun() : writerController.startRun()
             }
+            Label {
+                text: "Join (mm)"
+                color: "#3f3f46"
+            }
+            SpinBox {
+                from: 0
+                to: 200
+                stepSize: 1
+                editable: true
+                wheelEnabled: true
+                value: Math.round(writerController.settings.joinDistMm * 10)
+                onValueModified: writerController.settings.joinDistMm = value / 10.0
+                Layout.preferredWidth: 84
+            }
             Item { Layout.fillWidth: true }
             Label {
                 text: writerController.fontStatus
@@ -320,6 +334,17 @@ ApplicationWindow {
                     wheelEnabled: true
                     value: Math.round(writerController.settings.lineHeightCm * 10)
                     onValueModified: writerController.settings.lineHeightCm = value / 10.0
+                }
+
+                Label { text: "Join distance (mm)"; font.bold: true; color: root.settingsTitleColor }
+                SpinBox {
+                    from: 0
+                    to: 200
+                    stepSize: 1
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.joinDistMm * 10)
+                    onValueModified: writerController.settings.joinDistMm = value / 10.0
                 }
 
                 Label { text: "Font unit → mm scale"; font.bold: true; color: root.settingsTitleColor }

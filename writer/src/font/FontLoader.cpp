@@ -6,6 +6,7 @@
 #include <QFileInfo>
 #include <QRegularExpression>
 #include <QTextStream>
+#include <algorithm>
 
 namespace {
 QChar stemToChar(const QString &stem) {
@@ -22,20 +23,37 @@ int joinRank(const QString &join) {
     return 3;
 }
 
-QString sortKeyJoin(const QString &join, int index) {
-    return QLatin1String("j") + QString::number(index).rightJustified(8, QLatin1Char('0'))
-        + QString::number(joinRank(join));
-}
-
-QString sortKeyLegacyVariant(const QString &variant) {
-    if (variant == QStringLiteral("_fallback")) return QLatin1String("y_fallback");
+int legacyVariantIndex(const QString &variant) {
+    if (variant == QStringLiteral("_fallback")) return 1000000000;
     bool ok = false;
     const int n = variant.toInt(&ok);
-    if (ok) return QLatin1String("l") + QString::number(n).rightJustified(8, QLatin1Char('0'));
-    return QLatin1String("z") + variant;
+    if (ok) return qMax(0, n);
+    return 1000000000;
 }
 
-QString sortKeySimpleStem() { return QLatin1String("s00000000"); }
+QPointF parsePoint(const QStringList &nums, int xIdx, int yIdx, bool *ok) {
+    bool okx = false;
+    bool oky = false;
+    const double x = nums[xIdx].toDouble(&okx);
+    const double y = nums[yIdx].toDouble(&oky);
+    *ok = okx && oky;
+    return QPointF(x, y);
+}
+
+struct GlyphCandidate {
+    QChar ch;
+    QString path;
+    QString joinMode;
+    int variantIndex = 0;
+    int sourcePriority = 0; // 0=join, 1=legacy, 2=simple
+};
+}
+
+int FontCatalog::totalVariants() const {
+    int total = 0;
+    for (auto it = variantsByChar.constBegin(); it != variantsByChar.constEnd(); ++it)
+        total += it.value().size();
+    return total;
 }
 
 bool FontLoader::parseFile(const QString &path, GlyphData *out, QString *errorMessage) {
@@ -50,6 +68,7 @@ bool FontLoader::parseFile(const QString &path, GlyphData *out, QString *errorMe
     bool any = false;
     bool consumedFirstLine = false;
     out->hasGlyphAnchor = false;
+    out->hasSelectionBox = false;
 
     while (!ts.atEnd()) {
         const QString line = ts.readLine().trimmed();
@@ -60,7 +79,17 @@ bool FontLoader::parseFile(const QString &path, GlyphData *out, QString *errorMe
             if (!segments.isEmpty()) {
                 const QString firstSeg = segments.first().trimmed();
                 const QStringList nums = firstSeg.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
-                if (nums.size() == 2) {
+                if (nums.size() == 8) {
+                    bool ok = true;
+                    out->selectionBottomLeftFontUnits = parsePoint(nums, 0, 1, &ok);
+                    if (ok) out->selectionTopLeftFontUnits = parsePoint(nums, 2, 3, &ok);
+                    if (ok) out->selectionTopRightFontUnits = parsePoint(nums, 4, 5, &ok);
+                    if (ok) out->selectionBottomRightFontUnits = parsePoint(nums, 6, 7, &ok);
+                    if (ok) {
+                        out->hasSelectionBox = true;
+                        segments.removeFirst();
+                    }
+                } else if (nums.size() == 2) {
                     bool okx = false, oky = false;
                     const double ax = nums[0].toDouble(&okx);
                     const double ay = nums[1].toDouble(&oky);
@@ -101,9 +130,22 @@ bool FontLoader::parseFile(const QString &path, GlyphData *out, QString *errorMe
         }
     }
     if (all.isEmpty()) {
-        if (out->hasGlyphAnchor) {
+        if (out->hasGlyphAnchor || out->hasSelectionBox) {
             out->polylinesFontUnits.clear();
-            out->bboxFontUnits = QRectF(out->glyphAnchorFontUnits, QSizeF(0, 0));
+            if (out->hasSelectionBox) {
+                QRectF rb(out->selectionBottomLeftFontUnits, QSizeF(0, 0));
+                rb.setLeft(qMin(qMin(out->selectionBottomLeftFontUnits.x(), out->selectionTopLeftFontUnits.x()),
+                                qMin(out->selectionTopRightFontUnits.x(), out->selectionBottomRightFontUnits.x())));
+                rb.setRight(qMax(qMax(out->selectionBottomLeftFontUnits.x(), out->selectionTopLeftFontUnits.x()),
+                                 qMax(out->selectionTopRightFontUnits.x(), out->selectionBottomRightFontUnits.x())));
+                rb.setTop(qMin(qMin(out->selectionBottomLeftFontUnits.y(), out->selectionTopLeftFontUnits.y()),
+                               qMin(out->selectionTopRightFontUnits.y(), out->selectionBottomRightFontUnits.y())));
+                rb.setBottom(qMax(qMax(out->selectionBottomLeftFontUnits.y(), out->selectionTopLeftFontUnits.y()),
+                                  qMax(out->selectionTopRightFontUnits.y(), out->selectionBottomRightFontUnits.y())));
+                out->bboxFontUnits = rb;
+            } else {
+                out->bboxFontUnits = QRectF(out->glyphAnchorFontUnits, QSizeF(0, 0));
+            }
             return true;
         }
         if (errorMessage) *errorMessage = QStringLiteral("No polylines in file.");
@@ -114,25 +156,19 @@ bool FontLoader::parseFile(const QString &path, GlyphData *out, QString *errorMe
     return true;
 }
 
-QHash<QChar, GlyphData> FontLoader::loadDirectory(const QString &dirPath, QString *errorMessage) {
-    QHash<QChar, GlyphData> map;
+FontCatalog FontLoader::loadDirectory(const QString &dirPath, QString *errorMessage) {
+    FontCatalog catalog;
     QDir dir(dirPath);
     if (!dir.exists()) {
         if (errorMessage) *errorMessage = QStringLiteral("Directory does not exist.");
-        return map;
+        return catalog;
     }
     static const QRegularExpression kJoinStemRe(QStringLiteral(R"(^([^.]+)\.(L|R|LR|N)\.(\d+)\.txt$)"));
     static const QRegularExpression kLegacyRe(QStringLiteral(R"(^([^.]+)\.([^./]+)\.txt$)"));
     static const QRegularExpression kSimpleRe(QStringLiteral(R"(^([^./]+)\.txt$)"));
 
     const QFileInfoList files = dir.entryInfoList(QStringList() << QStringLiteral("*.txt"), QDir::Files);
-    QHash<QChar, QPair<QString, QString>> bestPathSortKey;
-
-    auto consider = [&](QChar ch, const QString &absPath, const QString &sortKey) {
-        if (ch.isNull()) return;
-        if (!bestPathSortKey.contains(ch) || sortKey < bestPathSortKey[ch].second)
-            bestPathSortKey.insert(ch, qMakePair(absPath, sortKey));
-    };
+    QVector<GlyphCandidate> candidates;
 
     for (const QFileInfo &fi : files) {
         const QString name = fi.fileName();
@@ -142,7 +178,14 @@ QHash<QChar, GlyphData> FontLoader::loadDirectory(const QString &dirPath, QStrin
         const QString join = mj.captured(2);
         const int idx = mj.captured(3).toInt();
         const QChar ch = stemToChar(stem);
-        consider(ch, fi.absoluteFilePath(), sortKeyJoin(join, idx));
+        if (ch.isNull()) continue;
+        GlyphCandidate c;
+        c.ch = ch;
+        c.path = fi.absoluteFilePath();
+        c.joinMode = join;
+        c.variantIndex = qMax(0, idx);
+        c.sourcePriority = 0;
+        candidates.push_back(c);
     }
 
     for (const QFileInfo &fi : files) {
@@ -153,7 +196,14 @@ QHash<QChar, GlyphData> FontLoader::loadDirectory(const QString &dirPath, QStrin
         const QString stem = m.captured(1);
         const QString variant = m.captured(2);
         const QChar ch = stemToChar(stem);
-        consider(ch, fi.absoluteFilePath(), sortKeyLegacyVariant(variant));
+        if (ch.isNull()) continue;
+        GlyphCandidate c;
+        c.ch = ch;
+        c.path = fi.absoluteFilePath();
+        c.joinMode = QStringLiteral("N");
+        c.variantIndex = legacyVariantIndex(variant);
+        c.sourcePriority = 1;
+        candidates.push_back(c);
     }
 
     for (const QFileInfo &fi : files) {
@@ -164,18 +214,36 @@ QHash<QChar, GlyphData> FontLoader::loadDirectory(const QString &dirPath, QStrin
         if (!sm.hasMatch()) continue;
         const QString stem = sm.captured(1);
         const QChar ch = stemToChar(stem);
-        consider(ch, fi.absoluteFilePath(), sortKeySimpleStem());
+        if (ch.isNull()) continue;
+        GlyphCandidate c;
+        c.ch = ch;
+        c.path = fi.absoluteFilePath();
+        c.joinMode = QStringLiteral("N");
+        c.variantIndex = 0;
+        c.sourcePriority = 2;
+        candidates.push_back(c);
     }
 
-    for (auto it = bestPathSortKey.constBegin(); it != bestPathSortKey.constEnd(); ++it) {
+    std::sort(candidates.begin(), candidates.end(), [](const GlyphCandidate &a, const GlyphCandidate &b) {
+        if (a.ch != b.ch) return a.ch.unicode() < b.ch.unicode();
+        if (a.sourcePriority != b.sourcePriority) return a.sourcePriority < b.sourcePriority;
+        if (a.joinMode != b.joinMode) return joinRank(a.joinMode) < joinRank(b.joinMode);
+        if (a.variantIndex != b.variantIndex) return a.variantIndex < b.variantIndex;
+        return a.path < b.path;
+    });
+
+    for (const GlyphCandidate &c : candidates) {
         GlyphData g;
-        g.sourceFile = it.value().first;
+        g.sourceFile = c.path;
+        g.joinMode = c.joinMode;
+        g.variantIndex = c.variantIndex;
+        g.sourcePriority = c.sourcePriority;
         QString err;
-        if (!parseFile(it.value().first, &g, &err)) {
-            qWarning() << "[font] skip" << it.value().first << err;
+        if (!parseFile(c.path, &g, &err)) {
+            qWarning() << "[font] skip" << c.path << err;
             continue;
         }
-        map.insert(it.key(), g);
+        catalog.variantsByChar[c.ch].push_back(g);
     }
-    return map;
+    return catalog;
 }

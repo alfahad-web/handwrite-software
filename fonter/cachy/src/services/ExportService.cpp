@@ -18,6 +18,15 @@ double distance(const QPointF &a, const QPointF &b) {
     const double dy = a.y() - b.y();
     return std::hypot(dx, dy);
 }
+
+SampledPointUm toRelativeUm(const QPointF &pBoard, const QPointF &anchorBoard, double dpi) {
+    const double localXPx = pBoard.x() - anchorBoard.x();
+    const double localYPx = anchorBoard.y() - pBoard.y();
+    return SampledPointUm{
+        static_cast<qint64>(std::llround(ExportService::pxToUm(localXPx, dpi))),
+        static_cast<qint64>(std::llround(ExportService::pxToUm(localYPx, dpi)))
+    };
+}
 }
 
 ExportService::ExportService(QObject *parent) : QObject(parent) {}
@@ -56,12 +65,7 @@ QVector<SampledStrokeUm> ExportService::buildExportStrokes(
         out.strokeId = stroke.id;
         out.points.reserve(sampled.size());
         for (const QPointF &p : sampled) {
-            const double localXPx = p.x() - anchorBoard.x();
-            const double localYPx = anchorBoard.y() - p.y();
-            out.points.push_back(SampledPointUm{
-                static_cast<qint64>(std::llround(pxToUm(localXPx, dpi))),
-                static_cast<qint64>(std::llround(pxToUm(localYPx, dpi)))
-            });
+            out.points.push_back(toRelativeUm(p, anchorBoard, dpi));
         }
         output.push_back(out);
     }
@@ -81,14 +85,33 @@ QVector<SelectionExportFile> ExportService::buildSelectionExports(
         SelectionExportFile f;
         f.selectionId = box.id;
         f.fileName = QString("%1.txt").arg(box.fileStem);
-        f.lines = serializeExportLines(sampled);
+        f.lines = serializeExportLines(sampled, box.rect, QPointF(box.anchorX, box.anchorY), dpi);
         files.push_back(f);
     }
     return files;
 }
 
-QStringList ExportService::serializeExportLines(const QVector<SampledStrokeUm> &strokes) {
+QStringList ExportService::serializeExportLines(
+    const QVector<SampledStrokeUm> &strokes,
+    const SelectionRect &selectionRect,
+    const QPointF &anchorBoard,
+    double dpi
+) {
     QStringList lines;
+    const QPointF bl(selectionRect.x, selectionRect.y + selectionRect.height);
+    const QPointF tl(selectionRect.x, selectionRect.y);
+    const QPointF tr(selectionRect.x + selectionRect.width, selectionRect.y);
+    const QPointF br(selectionRect.x + selectionRect.width, selectionRect.y + selectionRect.height);
+    const SampledPointUm blUm = toRelativeUm(bl, anchorBoard, dpi);
+    const SampledPointUm tlUm = toRelativeUm(tl, anchorBoard, dpi);
+    const SampledPointUm trUm = toRelativeUm(tr, anchorBoard, dpi);
+    const SampledPointUm brUm = toRelativeUm(br, anchorBoard, dpi);
+    QStringList headerParts;
+    headerParts << QString::number(blUm.xUm) << QString::number(blUm.yUm) << QString::number(tlUm.xUm)
+                << QString::number(tlUm.yUm) << QString::number(trUm.xUm) << QString::number(trUm.yUm)
+                << QString::number(brUm.xUm) << QString::number(brUm.yUm);
+    lines << headerParts.join(QLatin1Char(' ')) + QLatin1Char(';');
+
     for (const SampledStrokeUm &stroke : strokes) {
         QStringList parts;
         for (const SampledPointUm &p : stroke.points) {

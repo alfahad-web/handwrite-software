@@ -14,6 +14,7 @@ class AppSettings : public QObject {
     Q_PROPERTY(double hyCm READ hyCm WRITE setHyCm NOTIFY hyCmChanged)
     Q_PROPERTY(double lineHeightCm READ lineHeightCm WRITE setLineHeightCm NOTIFY lineHeightCmChanged)
     Q_PROPERTY(double fontUnitToCm READ fontUnitToCm WRITE setFontUnitToCm NOTIFY fontUnitToCmChanged)
+    Q_PROPERTY(double joinDistMm READ joinDistMm WRITE setJoinDistMm NOTIFY joinDistMmChanged)
 
 public:
     explicit AppSettings(QObject *parent = nullptr);
@@ -48,6 +49,9 @@ public:
     double fontUnitToCm() const { return m_fontUnitToCm; }
     void setFontUnitToCm(double v);
 
+    double joinDistMm() const { return m_joinDistMm; }
+    void setJoinDistMm(double v);
+
     Q_INVOKABLE void load();
     Q_INVOKABLE void save();
 
@@ -62,6 +66,7 @@ signals:
     void hyCmChanged();
     void lineHeightCmChanged();
     void fontUnitToCmChanged();
+    void joinDistMmChanged();
     void anyChanged();
 
 private:
@@ -75,4 +80,5 @@ private:
     double m_hyCm = 0.5;
     double m_lineHeightCm = 0.45;
     double m_fontUnitToCm = 0.0001;
+    double m_joinDistMm = 0.0;
 };

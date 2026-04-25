@@ -36,7 +36,7 @@ public:
 
     bool runActive() const { return m_runActive; }
 
-    const QHash<QChar, GlyphData> &fontMap() const { return m_fontMap; }
+    const FontCatalog &fontCatalog() const { return m_fontCatalog; }
 
     Q_INVOKABLE void pickFontFolder();
     Q_INVOKABLE void reloadFonts();
@@ -66,7 +66,7 @@ private:
     QString m_viewMode = QStringLiteral("typing");
     QString m_fontFolderPath;
     QString m_fontStatus;
-    QHash<QChar, GlyphData> m_fontMap;
+    FontCatalog m_fontCatalog;
     QHash<int, QPointF> m_anchorOverrides;
     bool m_settingsOpen = false;
     bool m_runActive = false;

@@ -85,7 +85,7 @@ QPointF HandwritingCanvasItem::pixelFromCm(const QPointF &cm) const {
 }
 
 QPointF HandwritingCanvasItem::glyphBottomLeft(const LayoutGlyph &g) const {
-    return QPointF(g.bboxCm.left(), g.bboxCm.bottom());
+    return g.placementAnchorCm;
 }
 
 void HandwritingCanvasItem::rebuildLayout() {
@@ -93,7 +93,7 @@ void HandwritingCanvasItem::rebuildLayout() {
     const AppSettings *st = m_ctrl->settings();
     m_layout = LayoutEngine::layout(
         m_ctrl->document()->text(),
-        m_ctrl->fontMap(),
+        m_ctrl->fontCatalog(),
         st->fontUnitToCm(),
         st->pageWidthCm(),
         st->pageHeightCm(),
@@ -103,6 +103,7 @@ void HandwritingCanvasItem::rebuildLayout() {
         st->hxCm(),
         st->hyCm(),
         st->lineHeightCm(),
+        st->joinDistMm(),
         m_ctrl->anchorOverrides()
     );
     m_ctrl->notifyLineHeightCollision(m_layout.anyGlyphExceedsLineHeight);

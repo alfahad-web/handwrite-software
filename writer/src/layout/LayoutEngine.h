@@ -12,8 +12,11 @@
 struct LayoutGlyph {
     int docIndex = -1;
     QChar ch;
+    QString joinMode;
+    int variantIndex = 0;
     QVector<QVector<QPointF>> polylinesCm;
     QRectF bboxCm;
+    QPointF placementAnchorCm;
     int pageIndex = 0;
     int lineIndex = 0;
 };
@@ -28,7 +31,7 @@ class LayoutEngine {
 public:
     static LayoutResult layout(
         const QString &text,
-        const QHash<QChar, GlyphData> &font,
+        const FontCatalog &fontCatalog,
         double fontUnitToCm,
         double pageWidthCm,
         double pageHeightCm,
@@ -38,6 +41,7 @@ public:
         double hxCm,
         double hyCm,
         double lineHeightCm,
+        double joinDistMm,
         const QHash<int, QPointF> &forcedBottomLeftCmByDocIndex
     );
 };
