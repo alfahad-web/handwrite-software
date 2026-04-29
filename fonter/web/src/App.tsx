@@ -28,6 +28,7 @@ export default function App() {
   const store = useEditorStore();
   const [, rerender] = useReducer((n: number) => n + 1, 0);
   const [statusMessage, setStatusMessage] = useState("Ready");
+  const [cachedFontZip, setCachedFontZip] = useState<Blob | null>(null);
   const [fileMenuOpen, setFileMenuOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignChar, setAssignChar] = useState("");
@@ -52,25 +53,30 @@ export default function App() {
     setStatusMessage(msg);
   }, []);
 
+  const downloadBlob = useCallback((blob: Blob, fileName: string) => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }, []);
+
   const handleNew = () => {
     store.clearAll();
     store.clearProjectFilePath();
+    setCachedFontZip(null);
     setFileMenuOpen(false);
     setStatus("New board (unsaved).");
   };
 
-  const handleSaveDownload = () => {
+  const handleDownloadProject = () => {
     const name =
       store.projectFileName().trim() || "project.hw";
     const json = saveProjectToJson(store);
     const blob = new Blob([json], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = name.endsWith(".hw") ? name : `${name}.hw`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    downloadBlob(blob, name.endsWith(".hw") ? name : `${name}.hw`);
     if (!store.projectFilePath()) {
-      store.setProjectFilePath(a.download);
+      store.setProjectFilePath(name.endsWith(".hw") ? name : `${name}.hw`);
     }
     store.markSaved();
     setFileMenuOpen(false);
@@ -87,6 +93,7 @@ export default function App() {
         setStatus(`Open failed: ${r.error}`);
         return;
       }
+      setCachedFontZip(null);
       setStatus("Project loaded.");
     };
     reader.readAsText(file);
@@ -96,12 +103,20 @@ export default function App() {
     const r = await generateFontsZip(store, dpi);
     setStatus(r.message);
     if (r.ok && r.blob) {
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(r.blob);
-      a.download = "font.zip";
-      a.click();
-      URL.revokeObjectURL(a.href);
+      setCachedFontZip(r.blob);
+      setStatus("Fonts generated and cached. Use Save Fonts to download.");
     }
+  };
+
+  const handleSaveFonts = () => {
+    if (!cachedFontZip) {
+      setStatus("Generate fonts first.");
+      setFileMenuOpen(false);
+      return;
+    }
+    downloadBlob(cachedFontZip, "font.zip");
+    setFileMenuOpen(false);
+    setStatus("Font folder downloaded as font.zip.");
   };
 
   const openAssignFor = (selectionId: string) => {
@@ -201,10 +216,10 @@ export default function App() {
                 >
                   Upload
                 </button>
-                <button type="button" onClick={handleSaveDownload}>
-                  Save
+                <button type="button" onClick={handleSaveFonts}>
+                  Save Fonts
                 </button>
-                <button type="button" onClick={handleSaveDownload}>
+                <button type="button" onClick={handleDownloadProject}>
                   Download
                 </button>
               </div>

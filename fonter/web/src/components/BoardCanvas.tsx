@@ -24,6 +24,8 @@ export function BoardCanvas({
   const scrollRef = useRef<HTMLDivElement>(null);
   const pointerRef = useRef(new BoardPointerController(store));
   const [, forcePaint] = useState(0);
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+  const [cursorVisible, setCursorVisible] = useState(false);
   const panArmedRef = useRef(false);
   const panningRef = useRef(false);
   const panLastRef = useRef({ x: 0, y: 0 });
@@ -71,6 +73,8 @@ export function BoardCanvas({
   };
 
   const onPointerMove = (ev: React.PointerEvent<HTMLCanvasElement>) => {
+    const { x, y } = clientToCanvas(ev);
+    setCursorPos({ x, y });
     if (panningRef.current && scrollRef.current) {
       const dx = ev.clientX - panLastRef.current.x;
       const dy = ev.clientY - panLastRef.current.y;
@@ -79,7 +83,6 @@ export function BoardCanvas({
       scrollRef.current.scrollTop -= dy;
       return;
     }
-    const { x, y } = clientToCanvas(ev);
     pointerRef.current.pointerMove(x, y);
     repaint();
   };
@@ -137,6 +140,7 @@ export function BoardCanvas({
         minHeight: 0,
         overflow: "auto",
         background: "#f4f4f5",
+        position: "relative",
       }}
     >
       <canvas
@@ -155,9 +159,11 @@ export function BoardCanvas({
                 : "default",
         }}
         onPointerDown={onPointerDown}
+        onPointerEnter={() => setCursorVisible(true)}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerLeave={(ev) => {
+          setCursorVisible(false);
           if (!panningRef.current) {
             const { x, y } = clientToCanvas(ev);
             pointerRef.current.pointerUp(x, y, ev.button);
@@ -166,6 +172,24 @@ export function BoardCanvas({
         }}
         onDoubleClick={onDoubleClick}
       />
+      {(store.toolModeValue() === ToolMode.Erase ||
+        store.drawStrokeEraseActive()) &&
+        cursorVisible && (
+          <div
+            style={{
+              position: "absolute",
+              left: cursorPos.x,
+              top: cursorPos.y,
+              width: `${Math.max(2, store.eraseRadiusPx() * (store.zoom() / 100)) * 2}px`,
+              height: `${Math.max(2, store.eraseRadiusPx() * (store.zoom() / 100)) * 2}px`,
+              transform: "translate(-50%, -50%)",
+              borderRadius: "50%",
+              border: "1.5px solid rgba(161, 98, 7, 0.85)",
+              background: "rgba(250, 204, 21, 0.25)",
+              pointerEvents: "none",
+            }}
+          />
+        )}
     </div>
   );
 }
