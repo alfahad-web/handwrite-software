@@ -102,21 +102,52 @@ void CanvasItem::paint(QPainter *painter) {
         painter->drawRect(QRectF(box.rect.x, box.rect.y, box.rect.width, box.rect.height));
     }
 
-    // Visual sampled points (yellow) for capture tuning.
+    // Visual sampled points:
+    // - inside any selection: light violet
+    // - inside selected selection: dark violet
+    // - outside selections: yellow
     const qreal dotRadius = 2.2;
+    const QColor colorDefault("#eab308");
+    const QColor colorInsideAny(167, 139, 250);
+    const QColor colorInsideSelected(109, 40, 217);
     painter->setPen(Qt::NoPen);
-    painter->setBrush(QColor("#eab308"));
     const double dpi = ExportService::resolveScreenDpi();
     const qreal gapPx = ExportService::pxToUm(1.0, dpi) > 0.0
                             ? static_cast<qreal>(m_store->captureGapUm() / ExportService::pxToUm(1.0, dpi))
                             : 1.0;
+    const auto &boxes = m_store->selectionBoxes();
+    const QString selectedSelectionId = m_store->selectedSelectionId();
     for (const Stroke &stroke : m_store->strokes()) {
         if (stroke.points.isEmpty()) continue;
         QPointF last;
         bool hasLast = false;
-        for (const Stroke::StrokePoint &pt : stroke.points) {
+        for (int pointIndex = 0; pointIndex < stroke.points.size(); ++pointIndex) {
+            const Stroke::StrokePoint &pt = stroke.points[pointIndex];
             if (pt.erased) continue;
             if (!hasLast || QLineF(last, pt.pos).length() >= gapPx) {
+                bool inAnySelection = false;
+                bool inSelectedSelection = false;
+                for (const SelectionBox &box : boxes) {
+                    const bool inside =
+                        pt.pos.x() >= box.rect.x
+                        && pt.pos.x() <= (box.rect.x + box.rect.width)
+                        && pt.pos.y() >= box.rect.y
+                        && pt.pos.y() <= (box.rect.y + box.rect.height);
+                    if (!inside) continue;
+                    if (m_store->isPointErasedInSelection(box.id, stroke.id, pointIndex)) continue;
+                    inAnySelection = true;
+                    if (box.id == selectedSelectionId) {
+                        inSelectedSelection = true;
+                        break;
+                    }
+                }
+                if (inSelectedSelection) {
+                    painter->setBrush(colorInsideSelected);
+                } else if (inAnySelection) {
+                    painter->setBrush(colorInsideAny);
+                } else {
+                    painter->setBrush(colorDefault);
+                }
                 painter->drawEllipse(pt.pos, dotRadius, dotRadius);
                 last = pt.pos;
                 hasLast = true;

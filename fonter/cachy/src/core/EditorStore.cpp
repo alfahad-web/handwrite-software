@@ -164,8 +164,22 @@ bool EditorStore::deleteSelectedSelection() {
     if (m_selectedSelectionId.isEmpty()) return false;
     const int idx = findSelectionIndexById(m_selectedSelectionId);
     if (idx < 0) return false;
+    const int deletedOrderIndex = m_selectionBoxes[idx].orderIndex;
+    m_selectionErasedPointKeys.remove(m_selectedSelectionId);
     m_selectionBoxes.removeAt(idx);
     m_selectedSelectionId.clear();
+    int bestPrevIdx = -1;
+    int bestPrevOrder = -1;
+    for (int i = 0; i < m_selectionBoxes.size(); ++i) {
+        const int order = m_selectionBoxes[i].orderIndex;
+        if (order < deletedOrderIndex && order > bestPrevOrder) {
+            bestPrevOrder = order;
+            bestPrevIdx = i;
+        }
+    }
+    if (bestPrevIdx >= 0) {
+        m_selectedSelectionId = m_selectionBoxes[bestPrevIdx].id;
+    }
     m_hasResizeState = false;
     recomputeSelectionAnchors();
     markDirty();
@@ -261,21 +275,26 @@ void EditorStore::setSelectionResizeState(const ResizeDragState *state) {
 bool EditorStore::erasePointsInSelectedSelection(const QPointF &center, qreal radiusPx) {
     const SelectionBox *box = selectedSelection();
     if (!box) return false;
+    QSet<QString> &selectionMask = m_selectionErasedPointKeys[box->id];
     const qreal rsq = radiusPx * radiusPx;
     const qreal minX = box->rect.x;
     const qreal minY = box->rect.y;
     const qreal maxX = box->rect.x + box->rect.width;
     const qreal maxY = box->rect.y + box->rect.height;
     bool changed = false;
-    for (Stroke &stroke : m_strokes) {
-        for (Stroke::StrokePoint &pt : stroke.points) {
+    for (const Stroke &stroke : m_strokes) {
+        for (int pointIndex = 0; pointIndex < stroke.points.size(); ++pointIndex) {
+            const Stroke::StrokePoint &pt = stroke.points[pointIndex];
             if (pt.erased) continue;
             if (pt.pos.x() < minX || pt.pos.x() > maxX || pt.pos.y() < minY || pt.pos.y() > maxY) continue;
             const qreal dx = pt.pos.x() - center.x();
             const qreal dy = pt.pos.y() - center.y();
             if ((dx * dx + dy * dy) <= rsq) {
-                pt.erased = true;
-                changed = true;
+                const QString pointKey = makePointKey(stroke.id, pointIndex);
+                if (!selectionMask.contains(pointKey)) {
+                    selectionMask.insert(pointKey);
+                    changed = true;
+                }
             }
         }
     }
@@ -337,6 +356,7 @@ bool EditorStore::removeStrokePointsNear(const QPointF &center, qreal radiusPx) 
     if (!changed) return false;
 
     m_strokes = std::move(next);
+    m_selectionErasedPointKeys.clear();
     if (!priorCurrentId.isEmpty() && findStrokeIndexById(priorCurrentId) < 0)
         m_currentStrokeId.clear();
     markDirty();
@@ -368,6 +388,7 @@ void EditorStore::clearAll() {
     m_hasResizeState = false;
     m_nextSelectionOrder = 1;
     m_specialCharStemMap.clear();
+    m_selectionErasedPointKeys.clear();
     m_isDirty = false;
     if (m_drawStrokeEraseActive) {
         m_drawStrokeEraseActive = false;
@@ -415,12 +436,15 @@ QVariantList EditorStore::selectionBoxesModel() const {
 }
 
 const QHash<int, QString> &EditorStore::specialCharStemMap() const { return m_specialCharStemMap; }
+const QHash<QString, QSet<QString>> &EditorStore::selectionErasedPointKeys() const { return m_selectionErasedPointKeys; }
 
 void EditorStore::setSpecialCharStemMap(const QHash<int, QString> &map) { m_specialCharStemMap = map; }
+void EditorStore::setSelectionErasedPointKeys(const QHash<QString, QSet<QString>> &map) { m_selectionErasedPointKeys = map; }
 
 void EditorStore::setStrokes(const QVector<Stroke> &strokes) {
     m_strokes = strokes;
     m_currentStrokeId.clear();
+    m_selectionErasedPointKeys.clear();
     emit strokesChanged();
 }
 
@@ -435,7 +459,22 @@ void EditorStore::setSelectionBoxes(const QVector<SelectionBox> &boxes, const QS
     if (!m_selectedSelectionId.isEmpty() && findSelectionIndexById(m_selectedSelectionId) < 0) {
         m_selectedSelectionId.clear();
     }
+    QHash<QString, QSet<QString>> filteredMasks;
+    for (const SelectionBox &box : m_selectionBoxes) {
+        const auto it = m_selectionErasedPointKeys.constFind(box.id);
+        if (it != m_selectionErasedPointKeys.constEnd()) {
+            filteredMasks.insert(box.id, it.value());
+        }
+    }
+    m_selectionErasedPointKeys = filteredMasks;
     recomputeSelectionAnchors();
+}
+
+bool EditorStore::isPointErasedInSelection(const QString &selectionId, const QString &strokeId, int pointIndex) const {
+    if (selectionId.isEmpty() || strokeId.isEmpty() || pointIndex < 0) return false;
+    const auto it = m_selectionErasedPointKeys.constFind(selectionId);
+    if (it == m_selectionErasedPointKeys.constEnd()) return false;
+    return it->contains(makePointKey(strokeId, pointIndex));
 }
 
 void EditorStore::recomputeSelectionAnchors() {
@@ -501,6 +540,10 @@ QString EditorStore::makeSpecialStem() {
         out.push_back(QChar(kStemAlphabet[idx]));
     }
     return out;
+}
+
+QString EditorStore::makePointKey(const QString &strokeId, int pointIndex) {
+    return QStringLiteral("%1#%2").arg(strokeId).arg(pointIndex);
 }
 
 int EditorStore::findStrokeIndexById(const QString &id) const {

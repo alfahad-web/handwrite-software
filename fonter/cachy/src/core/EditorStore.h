@@ -72,6 +72,7 @@ public:
     void setSelectionResizeState(const ResizeDragState *state);
     bool erasePointsInSelectedSelection(const QPointF &center, qreal radiusPx);
     bool removeStrokePointsNear(const QPointF &center, qreal radiusPx);
+    bool isPointErasedInSelection(const QString &selectionId, const QString &strokeId, int pointIndex) const;
 
     void setProjectFilePath(const QString &path);
     void clearProjectFilePath();
@@ -80,7 +81,9 @@ public:
     Q_INVOKABLE QVariantList selectionBoxesModel() const;
 
     const QHash<int, QString> &specialCharStemMap() const;
+    const QHash<QString, QSet<QString>> &selectionErasedPointKeys() const;
     void setSpecialCharStemMap(const QHash<int, QString> &map);
+    void setSelectionErasedPointKeys(const QHash<QString, QSet<QString>> &map);
     void setStrokes(const QVector<Stroke> &strokes);
     void setSelectionBoxes(const QVector<SelectionBox> &boxes, const QString &selectedId);
     void markSaved();
@@ -108,6 +111,7 @@ private:
     static QString makeStrokeId();
     static QString makeSelectionId();
     static QString makeSpecialStem();
+    static QString makePointKey(const QString &strokeId, int pointIndex);
     int findStrokeIndexById(const QString &id) const;
     int findSelectionIndexById(const QString &id) const;
 
@@ -129,5 +133,6 @@ private:
     QString m_projectFilePath;
     QString m_projectFileName;
     QHash<int, QString> m_specialCharStemMap;
+    QHash<QString, QSet<QString>> m_selectionErasedPointKeys;
     bool m_isDirty;
 };

@@ -133,8 +133,16 @@ void AppController::generateFonts() {
                                  .arg(box.fileStem)
                                  .arg(joinModeToString(box.joinMode))
                                  .arg(seq);
+        QVector<Stroke> maskedStrokes = m_store->strokes();
+        for (Stroke &stroke : maskedStrokes) {
+            for (int pointIndex = 0; pointIndex < stroke.points.size(); ++pointIndex) {
+                if (m_store->isPointErasedInSelection(box.id, stroke.id, pointIndex)) {
+                    stroke.points[pointIndex].erased = true;
+                }
+            }
+        }
         const auto files = ExportService::buildSelectionExports(
-            m_store->strokes(),
+            maskedStrokes,
             QVector<SelectionBox>{exportBox},
             m_store->captureGapUm(),
             dpi

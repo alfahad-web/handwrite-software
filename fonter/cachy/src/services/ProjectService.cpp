@@ -59,6 +59,13 @@ bool ProjectService::saveProject(const QString &path, const EditorStore &store, 
     }
     root.insert("selectionBoxes", boxes);
     root.insert("selectedSelectionId", store.selectedSelectionId());
+    QJsonObject selectionErasedPoints;
+    for (auto it = store.selectionErasedPointKeys().cbegin(); it != store.selectionErasedPointKeys().cend(); ++it) {
+        QJsonArray keys;
+        for (const QString &key : it.value()) keys.push_back(key);
+        selectionErasedPoints.insert(it.key(), keys);
+    }
+    root.insert("selectionErasedPoints", selectionErasedPoints);
 
     QJsonObject stems;
     for (auto it = store.specialCharStemMap().cbegin(); it != store.specialCharStemMap().cend(); ++it) {
@@ -149,6 +156,18 @@ bool ProjectService::loadProject(const QString &path, EditorStore *store, QStrin
         loadedBoxes.push_back(box);
     }
     store->setSelectionBoxes(loadedBoxes, root.value("selectedSelectionId").toString());
+    QHash<QString, QSet<QString>> selectionErasedPoints;
+    const QJsonObject selectionErasedObj = root.value("selectionErasedPoints").toObject();
+    for (auto it = selectionErasedObj.begin(); it != selectionErasedObj.end(); ++it) {
+        const QJsonArray keys = it.value().toArray();
+        QSet<QString> keySet;
+        for (const QJsonValue &kv : keys) {
+            const QString key = kv.toString();
+            if (!key.isEmpty()) keySet.insert(key);
+        }
+        if (!keySet.isEmpty()) selectionErasedPoints.insert(it.key(), keySet);
+    }
+    store->setSelectionErasedPointKeys(selectionErasedPoints);
 
     QHash<int, QString> stemMap;
     const QJsonObject stemObj = root.value("specialCharStemMap").toObject();
