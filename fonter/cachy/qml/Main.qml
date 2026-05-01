@@ -14,8 +14,11 @@ ApplicationWindow {
     color: "#f4f4f5"
     property int debugMoveCount: 0
     property bool boardPanMode: false
+    property bool boardPointerPressed: false
     property real panLastX: 0
     property real panLastY: 0
+    readonly property real boardBaseWidth: Math.max(3000, width * 3)
+    readonly property real boardBaseHeight: Math.max(2000, height * 3)
     readonly property bool eraseBrushAppCursor: editorStoreModel.toolMode === "erase"
         || (editorStoreModel.toolMode === "draw" && editorStoreModel.drawStrokeEraseActive)
     Component.onCompleted: {
@@ -164,6 +167,7 @@ ApplicationWindow {
         spacing: 0
 
         Rectangle {
+            id: boardViewport
             Layout.fillWidth: true
             Layout.fillHeight: true
             color: "#f4f4f5"
@@ -172,15 +176,29 @@ ApplicationWindow {
             Flickable {
                 id: boardFlick
                 anchors.fill: parent
-                contentWidth: 3000 * editorStoreModel.zoom / 100
-                contentHeight: 2000 * editorStoreModel.zoom / 100
+                contentWidth: root.boardBaseWidth * editorStoreModel.zoom / 100
+                contentHeight: root.boardBaseHeight * editorStoreModel.zoom / 100
                 boundsBehavior: Flickable.StopAtBounds
+                flickableDirection: Flickable.HorizontalAndVerticalFlick
+                // Keep panning controlled by explicit UI (scrollbars / custom pan mode)
+                // so draw gestures are never interpreted as viewport drags.
                 interactive: false
+                clip: true
+                ScrollBar.vertical: ScrollBar {
+                    policy: ScrollBar.AlwaysOn
+                    visible: true
+                    interactive: true
+                }
+                ScrollBar.horizontal: ScrollBar {
+                    policy: ScrollBar.AlwaysOn
+                    visible: true
+                    interactive: true
+                }
 
                 CanvasItem {
                     id: boardCanvas
-                    width: 3000 * editorStoreModel.zoom / 100
-                    height: 2000 * editorStoreModel.zoom / 100
+                    width: root.boardBaseWidth * editorStoreModel.zoom / 100
+                    height: root.boardBaseHeight * editorStoreModel.zoom / 100
                     editorStore: editorStoreModel
                     onSelectionDoubleClicked: (selectionId) => {
                         pendingSelectionAssignId = selectionId
@@ -209,10 +227,12 @@ ApplicationWindow {
                         console.log("[qml] MouseArea exited")
                         appController.setBoardCursorActive(false)
                         appController.setEraseCursorActive(false, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
+                        boardPointerPressed = false
                         boardPanMode = false
                     }
                     onPressed: (mouse) => {
                         console.log("[qml] press", mouse.x, mouse.y, "button=", mouse.button)
+                        boardPointerPressed = true
                         if (boardPanMode) {
                             panLastX = mouse.x
                             panLastY = mouse.y
@@ -234,7 +254,9 @@ ApplicationWindow {
                             panLastY = mouse.y
                             return
                         }
-                        boardCanvas.pointerMove(mouse.x, mouse.y)
+                        if (boardPointerPressed || editorStoreModel.toolMode !== "draw") {
+                            boardCanvas.pointerMove(mouse.x, mouse.y)
+                        }
                         if (containsMouse && editorStoreModel.toolMode === "draw") {
                             appController.setEraseCursorActive(editorStoreModel.drawStrokeEraseActive, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
                             appController.setBoardCursorActive(!editorStoreModel.drawStrokeEraseActive)
@@ -245,6 +267,7 @@ ApplicationWindow {
                     }
                     onReleased: (mouse) => {
                         console.log("[qml] release", mouse.x, mouse.y, "button=", mouse.button)
+                        boardPointerPressed = false
                         if (boardPanMode) {
                             boardPanMode = false
                             appController.setEraseCursorActive(root.eraseBrushAppCursor, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
@@ -271,9 +294,16 @@ ApplicationWindow {
                             boardPanMode = true
                             panLastX = mouse.x
                             panLastY = mouse.y
+                            boardPointerPressed = false
                             appController.setBoardCursorActive(false)
                             appController.setEraseCursorActive(false, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
                         }
+                    }
+                    onCanceled: {
+                        boardPointerPressed = false
+                        boardPanMode = false
+                        appController.setBoardCursorActive(false)
+                        appController.setEraseCursorActive(false, editorStoreModel.eraseRadiusPx, editorStoreModel.zoom)
                     }
                 }
             }

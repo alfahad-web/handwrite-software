@@ -36,6 +36,8 @@ protected:
     void hoverLeaveEvent(QHoverEvent *event) override;
 
 private:
+    qreal boardWidthUnits() const;
+    qreal boardHeightUnits() const;
     QPointF toBoard(const QPointF &itemPos, bool clamp = false) const;
     ResizeHandle hitHandle(const QPointF &point, const SelectionRect &rect) const;
     QString hitSelectionId(const QPointF &point) const;
@@ -54,7 +56,7 @@ private:
     QVector<QPointF> m_livePoints;
     QString m_activeSelectionId;
 
-    static constexpr qreal kBoardWidth = 3000.0;
-    static constexpr qreal kBoardHeight = 2000.0;
+    static constexpr qreal kBaseBoardWidth = 3000.0;
+    static constexpr qreal kBaseBoardHeight = 2000.0;
     static constexpr qreal kMinStrokeSamplePx = 0.45;
 };

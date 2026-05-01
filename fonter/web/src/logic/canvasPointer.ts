@@ -11,8 +11,29 @@ import {
   ToolMode,
 } from "./editorTypes";
 
-export const K_BOARD_WIDTH = 3000;
-export const K_BOARD_HEIGHT = 2000;
+const K_BASE_BOARD_WIDTH = 3000;
+const K_BASE_BOARD_HEIGHT = 2000;
+const K_VIEWPORT_MULTIPLIER = 3;
+const K_FALLBACK_VIEWPORT_WIDTH = 1280;
+const K_FALLBACK_VIEWPORT_HEIGHT = 720;
+
+const viewportWidth =
+  typeof window !== "undefined"
+    ? window.innerWidth
+    : K_FALLBACK_VIEWPORT_WIDTH;
+const viewportHeight =
+  typeof window !== "undefined"
+    ? window.innerHeight
+    : K_FALLBACK_VIEWPORT_HEIGHT;
+
+export const K_BOARD_WIDTH = Math.max(
+  K_BASE_BOARD_WIDTH,
+  Math.ceil(viewportWidth * K_VIEWPORT_MULTIPLIER),
+);
+export const K_BOARD_HEIGHT = Math.max(
+  K_BASE_BOARD_HEIGHT,
+  Math.ceil(viewportHeight * K_VIEWPORT_MULTIPLIER),
+);
 export const K_MIN_STROKE_SAMPLE_PX = 0.45;
 
 export function toBoard(

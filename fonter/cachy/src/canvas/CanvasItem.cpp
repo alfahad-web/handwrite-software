@@ -58,7 +58,7 @@ void CanvasItem::paint(QPainter *painter) {
     if (!m_store) return;
 
     const qreal scale = m_store->zoom() / 100.0;
-    const QRectF boardRect(0, 0, kBoardWidth * scale, kBoardHeight * scale);
+    const QRectF boardRect(0, 0, boardWidthUnits() * scale, boardHeightUnits() * scale);
     painter->fillRect(boardRect, Qt::white);
     painter->setPen(QPen(QColor("#e4e4e7"), 1));
     painter->drawRect(boardRect);
@@ -295,9 +295,25 @@ QPointF CanvasItem::toBoard(const QPointF &itemPos, bool clamp) const {
     const qreal scale = m_store->zoom() / 100.0;
     const qreal x = itemPos.x() / scale;
     const qreal y = itemPos.y() / scale;
-    const bool inside = x >= 0 && x <= kBoardWidth && y >= 0 && y <= kBoardHeight;
+    const qreal boardWidth = boardWidthUnits();
+    const qreal boardHeight = boardHeightUnits();
+    const bool inside = x >= 0 && x <= boardWidth && y >= 0 && y <= boardHeight;
     if (!inside && !clamp) return QPointF(-1, -1);
-    return QPointF(qBound(0.0, x, kBoardWidth), qBound(0.0, y, kBoardHeight));
+    return QPointF(qBound(0.0, x, boardWidth), qBound(0.0, y, boardHeight));
+}
+
+qreal CanvasItem::boardWidthUnits() const {
+    if (!m_store) return kBaseBoardWidth;
+    const qreal scale = m_store->zoom() / 100.0;
+    if (scale <= 0.0) return kBaseBoardWidth;
+    return qMax(kBaseBoardWidth, width() / scale);
+}
+
+qreal CanvasItem::boardHeightUnits() const {
+    if (!m_store) return kBaseBoardHeight;
+    const qreal scale = m_store->zoom() / 100.0;
+    if (scale <= 0.0) return kBaseBoardHeight;
+    return qMax(kBaseBoardHeight, height() / scale);
 }
 
 ResizeHandle CanvasItem::hitHandle(const QPointF &point, const SelectionRect &rect) const {
