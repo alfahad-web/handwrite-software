@@ -53,6 +53,9 @@ bool ProjectService::saveProject(const QString &path, const EditorStore &store, 
         b.insert("assignedAscii", box.assignedAscii);
         b.insert("fileStem", box.fileStem);
         b.insert("joinMode", joinModeToString(box.joinMode));
+        b.insert("hasManualAnchor", box.hasManualAnchor);
+        b.insert("manualAnchorRx", box.manualAnchorRx);
+        b.insert("manualAnchorRy", box.manualAnchorRy);
         b.insert("anchorX", box.anchorX);
         b.insert("anchorY", box.anchorY);
         boxes.push_back(b);
@@ -151,6 +154,9 @@ bool ProjectService::loadProject(const QString &path, EditorStore *store, QStrin
         box.assignedAscii = b.value("assignedAscii").toInt(-1);
         box.fileStem = b.value("fileStem").toString();
         box.joinMode = joinModeFromString(b.value("joinMode").toString());
+        box.hasManualAnchor = b.value("hasManualAnchor").toBool(false);
+        box.manualAnchorRx = b.value("manualAnchorRx").toDouble(0.0);
+        box.manualAnchorRy = b.value("manualAnchorRy").toDouble(0.0);
         box.anchorX = b.value("anchorX").toDouble(0.0);
         box.anchorY = b.value("anchorY").toDouble(0.0);
         loadedBoxes.push_back(box);

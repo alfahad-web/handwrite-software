@@ -80,6 +80,9 @@ struct SelectionBox {
     int assignedAscii = -1;
     QString fileStem;
     JoinMode joinMode = JoinMode::N;
+    bool hasManualAnchor = false;
+    double manualAnchorRx = 0.0;
+    double manualAnchorRy = 0.0;
     double anchorX = 0;
     double anchorY = 0;
 };

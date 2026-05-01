@@ -8,6 +8,7 @@
 #include <QPainter>
 #include <QPainterPath>
 #include <QPixmap>
+#include <limits>
 
 CanvasItem::CanvasItem(QQuickItem *parent) : QQuickPaintedItem(parent) {
     setAcceptedMouseButtons(Qt::LeftButton);
@@ -156,14 +157,16 @@ void CanvasItem::paint(QPainter *painter) {
     }
 
     painter->setPen(Qt::NoPen);
-    painter->setBrush(QColor(34, 197, 94));
-    const qreal anchorRadiusBoard = 3.0;
     for (const SelectionBox &box : m_store->selectionBoxes()) {
+        const bool highlighted = (box.id == m_hoverAnchorSelectionId) || (box.id == m_anchorDragSelectionId && m_isAnchorDragging);
+        const qreal anchorRadiusBoard = highlighted ? kAnchorRadiusBoard * 1.8 : kAnchorRadiusBoard;
+        painter->setBrush(highlighted ? QColor(22, 163, 74) : QColor(34, 197, 94));
         painter->drawEllipse(QPointF(box.anchorX, box.anchorY), anchorRadiusBoard, anchorRadiusBoard);
     }
     if (draft && draft->width > 0 && draft->height > 0) {
         const QPointF da = m_store->draftAnchorBoard();
-        painter->drawEllipse(da, anchorRadiusBoard, anchorRadiusBoard);
+        painter->setBrush(QColor(34, 197, 94));
+        painter->drawEllipse(da, kAnchorRadiusBoard, kAnchorRadiusBoard);
     }
 
     painter->restore();
@@ -191,6 +194,16 @@ void CanvasItem::pointerDown(qreal x, qreal y, int button) {
         m_store->startStroke(p);
         update();
     } else if (m_store->toolModeValue() == ToolMode::Select) {
+        const QString anchorSelectionId = hitAnchorSelectionId(p);
+        if (!anchorSelectionId.isEmpty()) {
+            m_store->setSelectedSelectionId(anchorSelectionId);
+            m_isAnchorDragging = true;
+            m_anchorDragSelectionId = anchorSelectionId;
+            m_hoverAnchorSelectionId = anchorSelectionId;
+            (void)m_store->setSelectionAnchorPoint(anchorSelectionId, p);
+            update();
+            return;
+        }
         const QString hitId = hitSelectionId(p);
         if (!hitId.isEmpty()) m_store->setSelectedSelectionId(hitId);
         const SelectionBox *sel = m_store->selectedSelection();
@@ -231,7 +244,10 @@ void CanvasItem::pointerMove(qreal x, qreal y) {
                 << "drawing=" << m_isDrawing << "selecting=" << m_isSelecting << "resizing=" << m_isResizing;
     }
     updateToolCursor();
-    const QPointF p = toBoard(QPointF(x, y), m_isDrawing || m_isSelecting || m_isResizing || m_isStrokeHardErasing);
+    const QPointF p = toBoard(
+        QPointF(x, y),
+        m_isDrawing || m_isSelecting || m_isResizing || m_isStrokeHardErasing || m_isAnchorDragging
+    );
     if (p.x() < 0 || p.y() < 0) return;
 
     if (m_isDrawing) {
@@ -252,6 +268,15 @@ void CanvasItem::pointerMove(qreal x, qreal y) {
         applyResize(p);
         return;
     }
+    if (m_isAnchorDragging) {
+        if (!m_anchorDragSelectionId.isEmpty()) {
+            (void)m_store->setSelectionAnchorPoint(m_anchorDragSelectionId, p);
+        }
+        m_hoverAnchorSelectionId = m_anchorDragSelectionId;
+        updateCursorForSelection(p);
+        update();
+        return;
+    }
     if (m_isErasing) {
         (void)m_store->erasePointsInSelectedSelection(p, m_store->eraseRadiusPx());
         update();
@@ -263,6 +288,11 @@ void CanvasItem::pointerMove(qreal x, qreal y) {
         return;
     }
     if (m_store->toolModeValue() == ToolMode::Select) {
+        const QString hoverAnchorId = hitAnchorSelectionId(p);
+        if (hoverAnchorId != m_hoverAnchorSelectionId) {
+            m_hoverAnchorSelectionId = hoverAnchorId;
+            update();
+        }
         updateCursorForSelection(p);
     }
 }
@@ -306,18 +336,27 @@ void CanvasItem::hoverMoveEvent(QHoverEvent *event) {
     if (!m_store) return;
     if (m_store->toolModeValue() != ToolMode::Select && m_store->toolModeValue() != ToolMode::Erase
         && !(m_store->toolModeValue() == ToolMode::Draw && m_store->drawStrokeEraseActive())) return;
-    if (m_isDrawing || m_isSelecting || m_isResizing || m_isStrokeHardErasing) return;
+    if (m_isDrawing || m_isSelecting || m_isResizing || m_isStrokeHardErasing || m_isAnchorDragging) return;
     const QPointF p = toBoard(event->position(), false);
     if (p.x() < 0 || p.y() < 0) return;
     if (m_store->toolModeValue() == ToolMode::Draw && m_store->drawStrokeEraseActive()) {
         updateToolCursor();
         return;
     }
+    const QString hoverAnchorId = hitAnchorSelectionId(p);
+    if (hoverAnchorId != m_hoverAnchorSelectionId) {
+        m_hoverAnchorSelectionId = hoverAnchorId;
+        update();
+    }
     updateCursorForSelection(p);
 }
 
 void CanvasItem::hoverLeaveEvent(QHoverEvent *event) {
     Q_UNUSED(event);
+    if (!m_hoverAnchorSelectionId.isEmpty()) {
+        m_hoverAnchorSelectionId.clear();
+        update();
+    }
     unsetCursor();
 }
 
@@ -402,6 +441,14 @@ void CanvasItem::applyResize(const QPointF &current) {
 }
 
 void CanvasItem::updateCursorForSelection(const QPointF &point) {
+    if (m_isAnchorDragging) {
+        setCursor(Qt::ClosedHandCursor);
+        return;
+    }
+    if (!hitAnchorSelectionId(point).isEmpty()) {
+        setCursor(Qt::OpenHandCursor);
+        return;
+    }
     const SelectionBox *sel = m_store->selectedSelection();
     if (!sel) {
         unsetCursor();
@@ -442,8 +489,19 @@ void CanvasItem::finalizeInteraction(const QPointF &point) {
         m_store->setSelectionResizeState(nullptr);
         m_isResizing = false;
     }
+    if (m_isAnchorDragging) {
+        if (!m_anchorDragSelectionId.isEmpty()) {
+            (void)m_store->setSelectionAnchorPoint(m_anchorDragSelectionId, point);
+        }
+        m_isAnchorDragging = false;
+        m_anchorDragSelectionId.clear();
+    }
     if (m_isErasing) m_isErasing = false;
     if (m_isStrokeHardErasing) m_isStrokeHardErasing = false;
+    const QString hoverAnchorId = hitAnchorSelectionId(point);
+    if (hoverAnchorId != m_hoverAnchorSelectionId) {
+        m_hoverAnchorSelectionId = hoverAnchorId;
+    }
     update();
 }
 
@@ -457,6 +515,27 @@ QString CanvasItem::hitSelectionId(const QPointF &point) const {
         }
     }
     return QString();
+}
+
+QString CanvasItem::hitAnchorSelectionId(const QPointF &point) const {
+    if (!m_store) return QString();
+    const qreal scale = m_store->zoom() / 100.0;
+    if (scale <= 0.0) return QString();
+    const qreal hitRadiusBoard = (kAnchorRadiusBoard * 2.4) / scale;
+    const qreal hitRadiusSq = hitRadiusBoard * hitRadiusBoard;
+    QString bestId;
+    qreal bestDistSq = std::numeric_limits<qreal>::max();
+    for (const SelectionBox &box : m_store->selectionBoxes()) {
+        const qreal dx = point.x() - box.anchorX;
+        const qreal dy = point.y() - box.anchorY;
+        const qreal distSq = dx * dx + dy * dy;
+        if (distSq > hitRadiusSq) continue;
+        if (distSq < bestDistSq) {
+            bestDistSq = distSq;
+            bestId = box.id;
+        }
+    }
+    return bestId;
 }
 
 bool CanvasItem::hasSelectionAt(qreal x, qreal y) const {

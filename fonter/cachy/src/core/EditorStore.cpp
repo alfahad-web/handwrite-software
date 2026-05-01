@@ -267,6 +267,31 @@ void EditorStore::setSelectedSelectionId(const QString &selectionId) {
     emit selectionChanged();
 }
 
+bool EditorStore::setSelectionAnchorPoint(const QString &selectionId, const QPointF &point) {
+    SelectionBox *box = selectionByIdMutable(selectionId);
+    if (!box) return false;
+    if (box->rect.width <= 0.0 || box->rect.height <= 0.0) return false;
+    const qreal minX = box->rect.x;
+    const qreal minY = box->rect.y;
+    const qreal maxX = box->rect.x + box->rect.width;
+    const qreal maxY = box->rect.y + box->rect.height;
+    const qreal clampedX = qBound(minX, point.x(), maxX);
+    const qreal clampedY = qBound(minY, point.y(), maxY);
+    const qreal rx = (clampedX - minX) / box->rect.width;
+    const qreal ry = (clampedY - minY) / box->rect.height;
+    const bool changed =
+        !box->hasManualAnchor
+        || qAbs(box->manualAnchorRx - rx) > 0.0001
+        || qAbs(box->manualAnchorRy - ry) > 0.0001;
+    if (!changed) return false;
+    box->hasManualAnchor = true;
+    box->manualAnchorRx = rx;
+    box->manualAnchorRy = ry;
+    recomputeSelectionAnchors();
+    markDirty();
+    return true;
+}
+
 void EditorStore::setSelectionResizeState(const ResizeDragState *state) {
     m_hasResizeState = state != nullptr;
     if (state) m_resizeState = *state;
@@ -479,7 +504,17 @@ bool EditorStore::isPointErasedInSelection(const QString &selectionId, const QSt
 
 void EditorStore::recomputeSelectionAnchors() {
     for (SelectionBox &box : m_selectionBoxes) {
-        const QPointF a = anchorBoardForBox(box, m_selectionBoxes);
+        QPointF a;
+        if (box.hasManualAnchor && box.rect.width > 0.0 && box.rect.height > 0.0) {
+            const qreal rx = qBound(0.0, box.manualAnchorRx, 1.0);
+            const qreal ry = qBound(0.0, box.manualAnchorRy, 1.0);
+            a = QPointF(
+                box.rect.x + box.rect.width * rx,
+                box.rect.y + box.rect.height * ry
+            );
+        } else {
+            a = anchorBoardForBox(box, m_selectionBoxes);
+        }
         box.anchorX = a.x();
         box.anchorY = a.y();
     }

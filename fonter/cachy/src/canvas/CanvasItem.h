@@ -41,6 +41,7 @@ private:
     QPointF toBoard(const QPointF &itemPos, bool clamp = false) const;
     ResizeHandle hitHandle(const QPointF &point, const SelectionRect &rect) const;
     QString hitSelectionId(const QPointF &point) const;
+    QString hitAnchorSelectionId(const QPointF &point) const;
     void applyResize(const QPointF &current);
     void updateCursorForSelection(const QPointF &point);
     void finalizeInteraction(const QPointF &point);
@@ -52,11 +53,15 @@ private:
     bool m_isResizing = false;
     bool m_isErasing = false;
     bool m_isStrokeHardErasing = false;
+    bool m_isAnchorDragging = false;
     QPointF m_selectStart;
     QVector<QPointF> m_livePoints;
     QString m_activeSelectionId;
+    QString m_anchorDragSelectionId;
+    QString m_hoverAnchorSelectionId;
 
     static constexpr qreal kBaseBoardWidth = 3000.0;
     static constexpr qreal kBaseBoardHeight = 2000.0;
     static constexpr qreal kMinStrokeSamplePx = 0.45;
+    static constexpr qreal kAnchorRadiusBoard = 3.0;
 };

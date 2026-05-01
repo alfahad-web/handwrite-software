@@ -69,6 +69,7 @@ public:
     void clearSelectionDraft();
     void setSelectionRect(const QString &selectionId, const SelectionRect *rect);
     void setSelectedSelectionId(const QString &selectionId);
+    bool setSelectionAnchorPoint(const QString &selectionId, const QPointF &point);
     void setSelectionResizeState(const ResizeDragState *state);
     bool erasePointsInSelectedSelection(const QPointF &center, qreal radiusPx);
     bool removeStrokePointsNear(const QPointF &center, qreal radiusPx);
