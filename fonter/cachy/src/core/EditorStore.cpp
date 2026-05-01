@@ -464,7 +464,37 @@ const QHash<int, QString> &EditorStore::specialCharStemMap() const { return m_sp
 const QHash<QString, QSet<QString>> &EditorStore::selectionErasedPointKeys() const { return m_selectionErasedPointKeys; }
 
 void EditorStore::setSpecialCharStemMap(const QHash<int, QString> &map) { m_specialCharStemMap = map; }
-void EditorStore::setSelectionErasedPointKeys(const QHash<QString, QSet<QString>> &map) { m_selectionErasedPointKeys = map; }
+void EditorStore::setSelectionErasedPointKeys(const QHash<QString, QSet<QString>> &map) {
+    QSet<QString> validSelectionIds;
+    validSelectionIds.reserve(m_selectionBoxes.size());
+    for (const SelectionBox &box : m_selectionBoxes) {
+        validSelectionIds.insert(box.id);
+    }
+    QSet<QString> validStrokeIds;
+    validStrokeIds.reserve(m_strokes.size());
+    for (const Stroke &stroke : m_strokes) {
+        validStrokeIds.insert(stroke.id);
+    }
+
+    QHash<QString, QSet<QString>> filtered;
+    for (auto it = map.cbegin(); it != map.cend(); ++it) {
+        if (!validSelectionIds.contains(it.key())) continue;
+        QSet<QString> keys;
+        for (const QString &key : it.value()) {
+            const int sep = key.indexOf(QLatin1Char('#'));
+            if (sep <= 0) continue;
+            const QString strokeId = key.left(sep);
+            if (!validStrokeIds.contains(strokeId)) continue;
+            keys.insert(key);
+        }
+        if (!keys.isEmpty()) {
+            filtered.insert(it.key(), keys);
+        }
+    }
+    m_selectionErasedPointKeys = std::move(filtered);
+    emit selectionChanged();
+    emit strokesChanged();
+}
 
 void EditorStore::setStrokes(const QVector<Stroke> &strokes) {
     m_strokes = strokes;

@@ -336,6 +336,8 @@ ApplicationWindow {
                 id: assignInput
                 placeholderText: "Example: A or #"
                 selectByMouse: true
+                Keys.onReturnPressed: assignDialog.accept()
+                Keys.onEnterPressed: assignDialog.accept()
             }
             Label { text: "Join mode (export filename token):" }
             RowLayout {
@@ -377,6 +379,8 @@ ApplicationWindow {
                     break
                 }
             }
+            Qt.callLater(() => assignInput.forceActiveFocus())
+            Qt.callLater(() => assignInput.selectAll())
         }
         onAccepted: {
             appController.assignSelectionCharacter(root.pendingSelectionAssignId, assignInput.text, root.pendingAssignJoin)
