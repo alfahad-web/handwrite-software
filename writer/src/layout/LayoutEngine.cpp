@@ -104,12 +104,21 @@ int nextNonCR(const QString &text, int i, bool *exists) {
     return j;
 }
 
-QVector<QString> joinPriorityForContext(bool afterLeftBoundary, bool beforeRightBoundary) {
-    if (afterLeftBoundary && !beforeRightBoundary)
-        return {QStringLiteral("R"), QStringLiteral("LR"), QStringLiteral("N"), QStringLiteral("L")};
-    if (!afterLeftBoundary && beforeRightBoundary)
-        return {QStringLiteral("L"), QStringLiteral("LR"), QStringLiteral("N"), QStringLiteral("R")};
-    return {QStringLiteral("LR"), QStringLiteral("L"), QStringLiteral("R"), QStringLiteral("N")};
+QVector<QString> joinPriorityForContext(
+    bool afterLeftBoundary,
+    const QString &prevJoinMode
+) {
+    // After a space/start: R > N > LR > L
+    if (afterLeftBoundary) {
+        return {QStringLiteral("R"), QStringLiteral("N"), QStringLiteral("LR"), QStringLiteral("L")};
+    }
+    // Before a space OR middle:
+    // - if prev N or L: R > N > LR > L
+    // - if prev LR or R: LR > L > N > R
+    if (prevJoinMode == QStringLiteral("LR") || prevJoinMode == QStringLiteral("R")) {
+        return {QStringLiteral("LR"), QStringLiteral("L"), QStringLiteral("N"), QStringLiteral("R")};
+    }
+    return {QStringLiteral("R"), QStringLiteral("N"), QStringLiteral("LR"), QStringLiteral("L")};
 }
 
 const GlyphData *pickByJoin(const QVector<GlyphData> &variants, const QString &joinMode) {
@@ -347,6 +356,7 @@ LayoutResult LayoutEngine::layout(
     QPointF prevAdvanceVectorCm;
     int prevPage = 0;
     int prevLine = 0;
+    QHash<int, QString> chosenJoinModeByDocIndex;
 
     auto recomputeBaseline = [&]() {
         baselineY = pageTopY(pageIndex) + verticalGapCm + hyCm + (lineIndex + 1) * lineHeightCm;
@@ -363,6 +373,35 @@ LayoutResult LayoutEngine::layout(
 
     recomputeBaseline();
     ensurePage();
+
+    auto advanceXForGlyph = [&](const GlyphData &g) -> double {
+        const QPointF anchorFu = g.hasGlyphAnchor ? g.glyphAnchorFontUnits : QPointF(0, 0);
+        const double fallbackAdvanceCm = qMax(0.02, g.bboxFontUnits.width() * fontUnitToCm);
+        if (!g.hasSelectionBox) return fallbackAdvanceCm;
+        const QPointF brVectorFu = g.selectionBottomRightFontUnits - anchorFu;
+        const QPointF brCm = toVectorCm(brVectorFu, fontUnitToCm);
+        if (!std::isfinite(brCm.x())) return fallbackAdvanceCm;
+        return qMax(0.0, brCm.x());
+    };
+
+    auto estimateWordWidthCm = [&](int startIndex, const QString &initialPrevJoinMode) -> double {
+        double widthCm = 0.0;
+        QString simulatedPrevJoin = initialPrevJoinMode;
+        for (int j = startIndex; j < text.size(); ++j) {
+            const QChar cj = text.at(j);
+            if (cj == QChar('\r')) continue;
+            if (cj == QChar('\n') || cj.isSpace()) break;
+            bool hasPrevJ = false;
+            const int prevJ = previousNonCR(text, j, &hasPrevJ);
+            const bool afterLeftBoundary = !hasPrevJ || text.at(prevJ).isSpace();
+            const QVector<QString> priorities = joinPriorityForContext(afterLeftBoundary, simulatedPrevJoin);
+            const GlyphData *gj = resolveGlyph(fontCatalog, cj, priorities);
+            if (!gj) gj = &missing;
+            widthCm += advanceXForGlyph(*gj);
+            simulatedPrevJoin = gj->joinMode;
+        }
+        return widthCm;
+    };
 
     for (int i = 0; i < text.size(); ++i) {
         const QChar ch = text.at(i);
@@ -385,8 +424,13 @@ LayoutResult LayoutEngine::layout(
             const int prevIdx = previousNonCR(text, i, &hasPrev);
             const int nextIdx = nextNonCR(text, i, &hasNext);
             const bool afterLeftBoundary = !hasPrev || text.at(prevIdx).isSpace();
-            const bool beforeRightBoundary = !hasNext || text.at(nextIdx).isSpace();
-            const QVector<QString> priorities = joinPriorityForContext(afterLeftBoundary, beforeRightBoundary);
+            Q_UNUSED(nextIdx);
+            Q_UNUSED(hasNext);
+            const QString prevJoinMode = chosenJoinModeByDocIndex.value(prevIdx, QStringLiteral("N"));
+            const QVector<QString> priorities = joinPriorityForContext(
+                afterLeftBoundary,
+                prevJoinMode
+            );
             gPtr = resolveGlyph(fontCatalog, ch, priorities);
         }
         if (!gPtr)
@@ -399,8 +443,9 @@ LayoutResult LayoutEngine::layout(
         if (g.hasSelectionBox) {
             const QPointF brVectorFu = g.selectionBottomRightFontUnits - anchorFu;
             const QPointF brCm = toVectorCm(brVectorFu, fontUnitToCm);
-            if (std::isfinite(brCm.x()) && std::isfinite(brCm.y()))
-                advanceVectorCm = brCm;
+            // Keep anchors aligned on one baseline: advance only in X.
+            if (std::isfinite(brCm.x()))
+                advanceVectorCm = QPointF(brCm.x(), 0);
         }
         const double gw = qMax(0.0, advanceVectorCm.x());
         const double gh = g.bboxFontUnits.height() * fontUnitToCm;
@@ -415,9 +460,29 @@ LayoutResult LayoutEngine::layout(
             baselineY = placementAnchor.y();
             hasChain = false;
         } else {
+            bool hasPrevVisible = false;
+            const int prevVisibleIdx = previousNonCR(text, i, &hasPrevVisible);
+            const bool startsWord = !ch.isSpace() && (!hasPrevVisible || text.at(prevVisibleIdx).isSpace() || text.at(prevVisibleIdx) == QChar('\n'));
+            if (startsWord) {
+                const QString prevJoinMode = chosenJoinModeByDocIndex.value(prevVisibleIdx, QStringLiteral("N"));
+                const double wordWidthCm = estimateWordWidthCm(i, prevJoinMode);
+                const double lineWidthCm = contentRight - contentLeft;
+                if (cursorX > contentLeft + 1e-9
+                    && wordWidthCm <= lineWidthCm + 1e-9
+                    && cursorX + wordWidthCm > contentRight + 1e-9) {
+                    ++lineIndex;
+                    cursorX = contentLeft;
+                    recomputeBaseline();
+                    ensurePage();
+                    hasChain = false;
+                }
+            }
             bool usedChain = false;
             if (hasChain && !ch.isSpace() && prevPage == pageIndex && prevLine == lineIndex) {
-                const QPointF chainedAnchor = prevAnchorCm + prevAdvanceVectorCm;
+                const QPointF chainedAnchor(
+                    prevAnchorCm.x() + prevAdvanceVectorCm.x(),
+                    baselineY
+                );
                 const double expectedRight = chainedAnchor.x() + qMax(0.02, fallbackAdvanceCm);
                 if (expectedRight <= contentRight + 1e-9) {
                     placementAnchor = chainedAnchor;
@@ -454,6 +519,9 @@ LayoutResult LayoutEngine::layout(
         lg.pageIndex = pageIndex;
         lg.lineIndex = lineIndex;
         res.glyphs.push_back(lg);
+        if (!ch.isSpace()) {
+            chosenJoinModeByDocIndex.insert(i, g.joinMode);
+        }
 
         if (bbox.height() > lineHeightCm + 1e-6)
             res.anyGlyphExceedsLineHeight = true;

@@ -83,8 +83,11 @@ public:
 
     const QHash<int, QString> &specialCharStemMap() const;
     const QHash<QString, QSet<QString>> &selectionErasedPointKeys() const;
+    const QSet<QString> &highlightedSelectionIds() const;
     void setSpecialCharStemMap(const QHash<int, QString> &map);
     void setSelectionErasedPointKeys(const QHash<QString, QSet<QString>> &map);
+    void setHighlightedSelectionIds(const QSet<QString> &ids);
+    void clearHighlightedSelectionIds();
     void setStrokes(const QVector<Stroke> &strokes);
     void setSelectionBoxes(const QVector<SelectionBox> &boxes, const QString &selectedId);
     void markSaved();
@@ -135,5 +138,6 @@ private:
     QString m_projectFileName;
     QHash<int, QString> m_specialCharStemMap;
     QHash<QString, QSet<QString>> m_selectionErasedPointKeys;
+    QSet<QString> m_highlightedSelectionIds;
     bool m_isDirty;
 };

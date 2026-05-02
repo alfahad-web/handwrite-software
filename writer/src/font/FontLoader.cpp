@@ -13,6 +13,11 @@ QChar stemToChar(const QString &stem) {
     if (stem.isEmpty()) return QChar();
     if (stem == QStringLiteral("space")) return QLatin1Char(' ');
     if (stem == QStringLiteral("tab")) return QLatin1Char('\t');
+    bool isAsciiNumeric = false;
+    const int asciiCode = stem.toInt(&isAsciiNumeric);
+    if (isAsciiNumeric && asciiCode >= 0 && asciiCode <= 127) {
+        return QChar(static_cast<char>(asciiCode));
+    }
     return stem.at(0);
 }
 

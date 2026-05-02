@@ -165,6 +165,7 @@ bool EditorStore::deleteSelectedSelection() {
     const int idx = findSelectionIndexById(m_selectedSelectionId);
     if (idx < 0) return false;
     const int deletedOrderIndex = m_selectionBoxes[idx].orderIndex;
+    m_highlightedSelectionIds.remove(m_selectedSelectionId);
     m_selectionErasedPointKeys.remove(m_selectedSelectionId);
     m_selectionBoxes.removeAt(idx);
     m_selectedSelectionId.clear();
@@ -414,6 +415,7 @@ void EditorStore::clearAll() {
     m_nextSelectionOrder = 1;
     m_specialCharStemMap.clear();
     m_selectionErasedPointKeys.clear();
+    m_highlightedSelectionIds.clear();
     m_isDirty = false;
     if (m_drawStrokeEraseActive) {
         m_drawStrokeEraseActive = false;
@@ -427,6 +429,9 @@ void EditorStore::clearAll() {
 QString EditorStore::fileStemForAscii(int asciiCode) {
     if ((asciiCode >= 'a' && asciiCode <= 'z') || (asciiCode >= 'A' && asciiCode <= 'Z')) {
         return QString(QChar(static_cast<char>(asciiCode)));
+    }
+    if (asciiCode >= 0 && asciiCode <= 127) {
+        return QString::number(asciiCode);
     }
     if (m_specialCharStemMap.contains(asciiCode)) return m_specialCharStemMap.value(asciiCode);
     QString stem = makeSpecialStem();
@@ -462,6 +467,7 @@ QVariantList EditorStore::selectionBoxesModel() const {
 
 const QHash<int, QString> &EditorStore::specialCharStemMap() const { return m_specialCharStemMap; }
 const QHash<QString, QSet<QString>> &EditorStore::selectionErasedPointKeys() const { return m_selectionErasedPointKeys; }
+const QSet<QString> &EditorStore::highlightedSelectionIds() const { return m_highlightedSelectionIds; }
 
 void EditorStore::setSpecialCharStemMap(const QHash<int, QString> &map) { m_specialCharStemMap = map; }
 void EditorStore::setSelectionErasedPointKeys(const QHash<QString, QSet<QString>> &map) {
@@ -496,6 +502,23 @@ void EditorStore::setSelectionErasedPointKeys(const QHash<QString, QSet<QString>
     emit strokesChanged();
 }
 
+void EditorStore::setHighlightedSelectionIds(const QSet<QString> &ids) {
+    QSet<QString> validIds;
+    validIds.reserve(ids.size());
+    for (const QString &id : ids) {
+        if (findSelectionIndexById(id) >= 0) validIds.insert(id);
+    }
+    if (m_highlightedSelectionIds == validIds) return;
+    m_highlightedSelectionIds = std::move(validIds);
+    emit selectionChanged();
+}
+
+void EditorStore::clearHighlightedSelectionIds() {
+    if (m_highlightedSelectionIds.isEmpty()) return;
+    m_highlightedSelectionIds.clear();
+    emit selectionChanged();
+}
+
 void EditorStore::setStrokes(const QVector<Stroke> &strokes) {
     m_strokes = strokes;
     m_currentStrokeId.clear();
@@ -522,6 +545,11 @@ void EditorStore::setSelectionBoxes(const QVector<SelectionBox> &boxes, const QS
         }
     }
     m_selectionErasedPointKeys = filteredMasks;
+    QSet<QString> filteredHighlights;
+    for (const QString &id : m_highlightedSelectionIds) {
+        if (findSelectionIndexById(id) >= 0) filteredHighlights.insert(id);
+    }
+    m_highlightedSelectionIds = filteredHighlights;
     recomputeSelectionAnchors();
 }
 

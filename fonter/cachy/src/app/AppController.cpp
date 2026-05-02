@@ -8,6 +8,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QInputDialog>
+#include <QMessageBox>
 #include <QPainter>
 #include <QPen>
 #include <QPixmap>
@@ -79,7 +80,9 @@ void AppController::assignSelectionCharacter(const QString &selectionId, const Q
     if (!box) return;
     box->assigned = true;
     box->assignedAscii = static_cast<int>(code);
-    box->fileStem = m_store->fileStemForAscii(box->assignedAscii);
+    // Persist the user's entered character as-is; export naming is derived
+    // from ASCII code at generation time for deterministic filenames.
+    box->fileStem = QString(ch);
     box->joinMode = joinModeFromString(joinMode);
     m_store->recomputeSelectionAnchors();
     m_store->markDirty();
@@ -117,20 +120,58 @@ void AppController::generateFonts() {
     std::sort(boxes.begin(), boxes.end(), [](const SelectionBox &a, const SelectionBox &b) {
         return a.orderIndex < b.orderIndex;
     });
+    QSet<QString> invalidSelectionIds;
+    QString firstInvalidSelectionId;
+    for (const SelectionBox &box : boxes) {
+        const QString join = joinModeToString(box.joinMode);
+        const bool joinValid = join == QStringLiteral("L")
+            || join == QStringLiteral("R")
+            || join == QStringLiteral("LR")
+            || join == QStringLiteral("N");
+        const bool valid =
+            box.assigned
+            && box.assignedAscii >= 0
+            && box.assignedAscii <= 127
+            && joinValid;
+        if (!valid) {
+            invalidSelectionIds.insert(box.id);
+            if (firstInvalidSelectionId.isEmpty()) {
+                firstInvalidSelectionId = box.id;
+            }
+        }
+    }
+    if (!invalidSelectionIds.isEmpty()) {
+        m_store->setHighlightedSelectionIds(invalidSelectionIds);
+        if (!firstInvalidSelectionId.isEmpty()) {
+            m_store->setSelectedSelectionId(firstInvalidSelectionId);
+        }
+        const int count = invalidSelectionIds.size();
+        m_statusMessage = QStringLiteral("%1 selection boxes have incompatible details.")
+                              .arg(count);
+        emit statusMessageChanged();
+        QMessageBox::warning(
+            nullptr,
+            QStringLiteral("Invalid Selection Details"),
+            m_statusMessage
+        );
+        return;
+    }
+    m_store->clearHighlightedSelectionIds();
     QHash<QString, int> stemCounter;
     int generated = 0;
     int skipped = 0;
     for (const SelectionBox &box : boxes) {
-        if (!box.assigned || box.fileStem.isEmpty()) {
+        if (!box.assigned || box.assignedAscii < 0 || box.assignedAscii > 127) {
             ++skipped;
             continue;
         }
-        const QString stemJoin = QStringLiteral("%1.%2").arg(box.fileStem).arg(joinModeToString(box.joinMode));
+        const QString deterministicStem = m_store->fileStemForAscii(box.assignedAscii);
+        const QString stemJoin = QStringLiteral("%1.%2").arg(deterministicStem).arg(joinModeToString(box.joinMode));
         const int seq = stemCounter.value(stemJoin, 0) + 1;
         stemCounter.insert(stemJoin, seq);
         SelectionBox exportBox = box;
         exportBox.fileStem = QStringLiteral("%1.%2.%3")
-                                 .arg(box.fileStem)
+                                 .arg(deterministicStem)
                                  .arg(joinModeToString(box.joinMode))
                                  .arg(seq);
         QVector<Stroke> maskedStrokes = m_store->strokes();

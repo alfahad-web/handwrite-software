@@ -97,7 +97,8 @@ void CanvasItem::paint(QPainter *painter) {
         painter->drawRect(QRectF(draft->x, draft->y, draft->width, draft->height));
     }
     for (const SelectionBox &box : m_store->selectionBoxes()) {
-        const bool selected = box.id == m_store->selectedSelectionId();
+        const bool selected = box.id == m_store->selectedSelectionId()
+            || m_store->highlightedSelectionIds().contains(box.id);
         painter->setPen(QPen(QColor("#2563eb"), selected ? 2 : 1));
         painter->setBrush(QColor(59, 130, 246, selected ? 110 : 72));
         painter->drawRect(QRectF(box.rect.x, box.rect.y, box.rect.width, box.rect.height));
@@ -118,6 +119,7 @@ void CanvasItem::paint(QPainter *painter) {
                             : 1.0;
     const auto &boxes = m_store->selectionBoxes();
     const QString selectedSelectionId = m_store->selectedSelectionId();
+    const QSet<QString> &highlightedIds = m_store->highlightedSelectionIds();
     for (const Stroke &stroke : m_store->strokes()) {
         if (stroke.points.isEmpty()) continue;
         QPointF last;
@@ -137,7 +139,7 @@ void CanvasItem::paint(QPainter *painter) {
                     if (!inside) continue;
                     if (m_store->isPointErasedInSelection(box.id, stroke.id, pointIndex)) continue;
                     inAnySelection = true;
-                    if (box.id == selectedSelectionId) {
+                    if (box.id == selectedSelectionId || highlightedIds.contains(box.id)) {
                         inSelectedSelection = true;
                         break;
                     }
