@@ -32,6 +32,7 @@ void CanvasItem::setEditorStore(QObject *storeObj) {
         connect(m_store, &EditorStore::selectionChanged, this, [this]() { update(); });
         connect(m_store, &EditorStore::zoomChanged, this, [this]() { update(); });
         connect(m_store, &EditorStore::strokePxChanged, this, [this]() { update(); });
+        connect(m_store, &EditorStore::guideLineGapPxChanged, this, [this]() { update(); });
         connect(m_store, &EditorStore::toolModeChanged, this, [this]() {
             if (!m_store) return;
             updateToolCursor();
@@ -65,6 +66,16 @@ void CanvasItem::paint(QPainter *painter) {
 
     painter->save();
     painter->scale(scale, scale);
+
+    const qreal guideGap = static_cast<qreal>(m_store->guideLineGapPx());
+    if (guideGap > 0.0) {
+        painter->setPen(QPen(Qt::black, 1.0 / scale));
+        const qreal boardWidth = boardWidthUnits();
+        const qreal boardHeight = boardHeightUnits();
+        for (qreal y = guideGap; y < boardHeight; y += guideGap) {
+            painter->drawLine(QPointF(0.0, y), QPointF(boardWidth, y));
+        }
+    }
 
     QPen strokePen(Qt::black, m_store->strokePx(), Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
     painter->setPen(strokePen);

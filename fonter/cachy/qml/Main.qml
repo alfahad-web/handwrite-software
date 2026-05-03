@@ -79,6 +79,14 @@ ApplicationWindow {
                 onValueModified: editorStoreModel.setCaptureGapUm(value)
             }
 
+            Label { text: "Guide gap (px)" }
+            SpinBox {
+                from: 10; to: 1000
+                value: editorStoreModel.guideLineGapPx
+                editable: true
+                onValueModified: editorStoreModel.setGuideLineGapPx(value)
+            }
+
             Button {
                 id: fileButton
                 text: editorStoreModel.projectFileName.length > 0 ? editorStoreModel.projectFileName : "File"

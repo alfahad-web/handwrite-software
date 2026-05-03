@@ -14,6 +14,7 @@ class EditorStore : public QObject {
     Q_OBJECT
     Q_PROPERTY(int strokePx READ strokePx WRITE setStrokePx NOTIFY strokePxChanged)
     Q_PROPERTY(int captureGapUm READ captureGapUm WRITE setCaptureGapUm NOTIFY captureGapUmChanged)
+    Q_PROPERTY(int guideLineGapPx READ guideLineGapPx WRITE setGuideLineGapPx NOTIFY guideLineGapPxChanged)
     Q_PROPERTY(int zoom READ zoom WRITE setZoom NOTIFY zoomChanged)
     Q_PROPERTY(QString toolMode READ toolMode WRITE setToolMode NOTIFY toolModeChanged)
     Q_PROPERTY(bool hasSelection READ hasSelection NOTIFY selectionChanged)
@@ -29,6 +30,7 @@ public:
 
     int strokePx() const;
     int captureGapUm() const;
+    int guideLineGapPx() const;
     int zoom() const;
     QString toolMode() const;
     bool hasSelection() const;
@@ -52,6 +54,7 @@ public:
 
     Q_INVOKABLE void setStrokePx(int value);
     Q_INVOKABLE void setCaptureGapUm(int value);
+    Q_INVOKABLE void setGuideLineGapPx(int value);
     Q_INVOKABLE void setZoom(int value);
     Q_INVOKABLE void zoomIn();
     Q_INVOKABLE void zoomOut();
@@ -101,6 +104,7 @@ public:
 signals:
     void strokePxChanged();
     void captureGapUmChanged();
+    void guideLineGapPxChanged();
     void zoomChanged();
     void toolModeChanged();
     void selectionChanged();
@@ -137,6 +141,7 @@ private:
     ToolMode m_toolMode;
     int m_strokePx;
     int m_captureGapUm;
+    int m_guideLineGapPx;
     int m_zoom;
     int m_eraseRadiusPx;
     bool m_drawStrokeEraseActive = false;

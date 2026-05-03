@@ -19,6 +19,7 @@ bool ProjectService::saveProject(const QString &path, const EditorStore &store, 
     root.insert("formatVersion", 2);
     root.insert("strokePx", store.strokePx());
     root.insert("captureGapUm", store.captureGapUm());
+    root.insert("guideLineGapPx", store.guideLineGapPx());
     root.insert("zoom", store.zoom());
     root.insert("eraseRadiusPx", store.eraseRadiusPx());
 
@@ -112,6 +113,7 @@ bool ProjectService::loadProject(const QString &path, EditorStore *store, QStrin
     store->clearAll();
     store->setStrokePx(root.value("strokePx").toInt(store->strokePx()));
     store->setCaptureGapUm(root.value("captureGapUm").toInt(store->captureGapUm()));
+    store->setGuideLineGapPx(root.value("guideLineGapPx").toInt(store->guideLineGapPx()));
     store->setZoom(root.value("zoom").toInt(store->zoom()));
     store->setEraseRadiusPx(root.value("eraseRadiusPx").toInt(store->eraseRadiusPx()));
 

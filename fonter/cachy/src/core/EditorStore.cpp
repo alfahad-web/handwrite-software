@@ -10,6 +10,7 @@
 namespace {
 constexpr int kDefaultStrokePx = 6;
 constexpr int kDefaultCaptureGapUm = 350;
+constexpr int kDefaultGuideLineGapPx = 120;
 constexpr int kDefaultEraseRadiusPx = 20;
 constexpr int kMinRectSide = 4;
 constexpr qreal kSpatialCellSizePx = 48.0;
@@ -51,6 +52,7 @@ EditorStore::EditorStore(QObject *parent)
       m_toolMode(ToolMode::Draw),
       m_strokePx(kDefaultStrokePx),
       m_captureGapUm(kDefaultCaptureGapUm),
+      m_guideLineGapPx(kDefaultGuideLineGapPx),
       m_zoom(100),
       m_eraseRadiusPx(kDefaultEraseRadiusPx),
       m_hasSelectionDraftRect(false),
@@ -60,6 +62,7 @@ EditorStore::EditorStore(QObject *parent)
 
 int EditorStore::strokePx() const { return m_strokePx; }
 int EditorStore::captureGapUm() const { return m_captureGapUm; }
+int EditorStore::guideLineGapPx() const { return m_guideLineGapPx; }
 int EditorStore::zoom() const { return m_zoom; }
 QString EditorStore::toolMode() const {
     if (m_toolMode == ToolMode::Select) return "select";
@@ -112,6 +115,13 @@ void EditorStore::setCaptureGapUm(int value) {
     m_captureGapUm = next;
     emit captureGapUmChanged();
     emit strokesChanged();
+}
+
+void EditorStore::setGuideLineGapPx(int value) {
+    const int next = clampInt(value, 10, 1000);
+    if (next == m_guideLineGapPx) return;
+    m_guideLineGapPx = next;
+    emit guideLineGapPxChanged();
 }
 
 void EditorStore::setZoom(int value) {
