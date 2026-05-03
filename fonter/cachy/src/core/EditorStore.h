@@ -72,7 +72,9 @@ public:
     bool setSelectionAnchorPoint(const QString &selectionId, const QPointF &point);
     void setSelectionResizeState(const ResizeDragState *state);
     bool erasePointsInSelectedSelection(const QPointF &center, qreal radiusPx);
+    bool erasePointsInSelectedSelectionPath(const QVector<QPointF> &centers, qreal radiusPx);
     bool removeStrokePointsNear(const QPointF &center, qreal radiusPx);
+    bool removeStrokePointsNearPath(const QVector<QPointF> &centers, qreal radiusPx);
     bool isPointErasedInSelection(const QString &selectionId, const QString &strokeId, int pointIndex) const;
 
     void setProjectFilePath(const QString &path);
@@ -110,12 +112,23 @@ signals:
     void projectFileNameChanged();
 
 private:
+    struct PointRef {
+        int strokeIndex = -1;
+        int pointIndex = -1;
+    };
+
     static SelectionRect normalizeRect(const SelectionRect &rect, bool *ok = nullptr);
     static int clampInt(int value, int min, int max);
     static QString makeStrokeId();
     static QString makeSelectionId();
     static QString makeSpecialStem();
     static QString makePointKey(const QString &strokeId, int pointIndex);
+    static qint64 makeCellKey(int cellX, int cellY);
+    static int parsePointIndexFromKey(const QString &key);
+    void clearPointSpatialIndex();
+    void rebuildPointSpatialIndex();
+    void ensurePointSpatialIndex();
+    bool addSelectionErasedPoint(const QString &selectionId, const QString &strokeId, int pointIndex);
     int findStrokeIndexById(const QString &id) const;
     int findSelectionIndexById(const QString &id) const;
 
@@ -138,6 +151,9 @@ private:
     QString m_projectFileName;
     QHash<int, QString> m_specialCharStemMap;
     QHash<QString, QSet<QString>> m_selectionErasedPointKeys;
+    QHash<QString, QHash<QString, QSet<int>>> m_selectionErasedPointIndex;
+    QHash<qint64, QVector<PointRef>> m_pointSpatialIndex;
+    bool m_pointSpatialIndexDirty = true;
     QSet<QString> m_highlightedSelectionIds;
     bool m_isDirty;
 };

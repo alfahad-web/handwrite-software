@@ -56,6 +56,7 @@ private:
     bool m_isAnchorDragging = false;
     QPointF m_selectStart;
     QVector<QPointF> m_livePoints;
+    QVector<QPointF> m_eraseTracePoints;
     QString m_activeSelectionId;
     QString m_anchorDragSelectionId;
     QString m_hoverAnchorSelectionId;

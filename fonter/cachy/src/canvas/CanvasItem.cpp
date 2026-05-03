@@ -22,7 +22,6 @@ QObject *CanvasItem::editorStore() const { return m_store; }
 
 void CanvasItem::setEditorStore(QObject *storeObj) {
     EditorStore *store = qobject_cast<EditorStore *>(storeObj);
-    qInfo() << "[canvas] setEditorStore called with" << storeObj << "cast=" << store;
     if (m_store == store) return;
     if (m_store) {
         disconnect(m_store, nullptr, this, nullptr);
@@ -179,7 +178,6 @@ void CanvasItem::mousePressEvent(QMouseEvent *event) {
 }
 
 void CanvasItem::pointerDown(qreal x, qreal y, int button) {
-    qInfo() << "[canvas] pointerDown x=" << x << "y=" << y << "button=" << button << "store=" << m_store;
     if (!m_store || button != Qt::LeftButton) return;
     const QPointF p = toBoard(QPointF(x, y), false);
     if (p.x() < 0 || p.y() < 0) return;
@@ -187,8 +185,8 @@ void CanvasItem::pointerDown(qreal x, qreal y, int button) {
     if (m_store->toolModeValue() == ToolMode::Draw) {
         if (m_store->drawStrokeEraseActive()) {
             m_isStrokeHardErasing = true;
-            (void)m_store->removeStrokePointsNear(p, m_store->eraseRadiusPx());
-            update();
+            m_eraseTracePoints.clear();
+            m_eraseTracePoints.push_back(p);
             return;
         }
         m_isDrawing = true;
@@ -229,7 +227,8 @@ void CanvasItem::pointerDown(qreal x, qreal y, int button) {
         update();
     } else {
         m_isErasing = true;
-        (void)m_store->erasePointsInSelectedSelection(p, m_store->eraseRadiusPx());
+        m_eraseTracePoints.clear();
+        m_eraseTracePoints.push_back(p);
     }
 }
 
@@ -239,12 +238,6 @@ void CanvasItem::mouseMoveEvent(QMouseEvent *event) {
 
 void CanvasItem::pointerMove(qreal x, qreal y) {
     if (!m_store) return;
-    static int moveLogCounter = 0;
-    moveLogCounter++;
-    if ((moveLogCounter % 25) == 0) {
-        qInfo() << "[canvas] pointerMove#" << moveLogCounter << "x=" << x << "y=" << y
-                << "drawing=" << m_isDrawing << "selecting=" << m_isSelecting << "resizing=" << m_isResizing;
-    }
     updateToolCursor();
     const QPointF p = toBoard(
         QPointF(x, y),
@@ -255,7 +248,6 @@ void CanvasItem::pointerMove(qreal x, qreal y) {
     if (m_isDrawing) {
         if (m_livePoints.isEmpty() || QLineF(m_livePoints.last(), p).length() >= kMinStrokeSamplePx) {
             m_livePoints.push_back(p);
-            m_store->replaceActiveStrokePoints(m_livePoints);
             update();
         }
         return;
@@ -280,13 +272,15 @@ void CanvasItem::pointerMove(qreal x, qreal y) {
         return;
     }
     if (m_isErasing) {
-        (void)m_store->erasePointsInSelectedSelection(p, m_store->eraseRadiusPx());
-        update();
+        if (m_eraseTracePoints.isEmpty() || QLineF(m_eraseTracePoints.last(), p).length() >= kMinStrokeSamplePx) {
+            m_eraseTracePoints.push_back(p);
+        }
         return;
     }
     if (m_isStrokeHardErasing) {
-        (void)m_store->removeStrokePointsNear(p, m_store->eraseRadiusPx());
-        update();
+        if (m_eraseTracePoints.isEmpty() || QLineF(m_eraseTracePoints.last(), p).length() >= kMinStrokeSamplePx) {
+            m_eraseTracePoints.push_back(p);
+        }
         return;
     }
     if (m_store->toolModeValue() == ToolMode::Select) {
@@ -329,7 +323,6 @@ void CanvasItem::keyPressEvent(QKeyEvent *event) {
 }
 
 void CanvasItem::pointerUp(qreal x, qreal y, int button) {
-    qInfo() << "[canvas] pointerUp x=" << x << "y=" << y << "button=" << button;
     if (!m_store || button != Qt::LeftButton) return;
     finalizeInteraction(toBoard(QPointF(x, y), true));
 }
@@ -498,8 +491,18 @@ void CanvasItem::finalizeInteraction(const QPointF &point) {
         m_isAnchorDragging = false;
         m_anchorDragSelectionId.clear();
     }
-    if (m_isErasing) m_isErasing = false;
-    if (m_isStrokeHardErasing) m_isStrokeHardErasing = false;
+    if (m_isErasing) {
+        if (m_eraseTracePoints.isEmpty()) m_eraseTracePoints.push_back(point);
+        (void)m_store->erasePointsInSelectedSelectionPath(m_eraseTracePoints, m_store->eraseRadiusPx());
+        m_eraseTracePoints.clear();
+        m_isErasing = false;
+    }
+    if (m_isStrokeHardErasing) {
+        if (m_eraseTracePoints.isEmpty()) m_eraseTracePoints.push_back(point);
+        (void)m_store->removeStrokePointsNearPath(m_eraseTracePoints, m_store->eraseRadiusPx());
+        m_eraseTracePoints.clear();
+        m_isStrokeHardErasing = false;
+    }
     const QString hoverAnchorId = hitAnchorSelectionId(point);
     if (hoverAnchorId != m_hoverAnchorSelectionId) {
         m_hoverAnchorSelectionId = hoverAnchorId;
