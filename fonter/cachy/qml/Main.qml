@@ -17,6 +17,7 @@ ApplicationWindow {
     property bool boardPointerPressed: false
     property real panLastX: 0
     property real panLastY: 0
+    readonly property color headerLabelColor: "#1e3a8a"
     readonly property real boardBaseWidth: Math.max(3000, width * 3)
     readonly property real boardBaseHeight: Math.max(2000, height * 3)
     readonly property bool eraseBrushAppCursor: editorStoreModel.toolMode === "erase"
@@ -60,18 +61,21 @@ ApplicationWindow {
     header: Frame {
         background: Rectangle { color: "#fafafa"; border.color: "#d4d4d8" }
         padding: 10
-        RowLayout {
-            anchors.fill: parent
+        implicitHeight: controlsFlow.implicitHeight + (padding * 2)
+        Flow {
+            id: controlsFlow
+            width: parent.width
             spacing: 10
+            flow: Flow.LeftToRight
 
-            Label { text: "Stroke" }
+            Label { text: "Stroke"; color: root.headerLabelColor }
             SpinBox {
                 from: 1; to: 200
                 value: editorStoreModel.strokePx
                 onValueModified: editorStoreModel.setStrokePx(value)
             }
 
-            Label { text: "Gap (um)" }
+            Label { text: "Gap (um)"; color: root.headerLabelColor }
             SpinBox {
                 from: 1; to: 200000
                 value: editorStoreModel.captureGapUm
@@ -79,7 +83,7 @@ ApplicationWindow {
                 onValueModified: editorStoreModel.setCaptureGapUm(value)
             }
 
-            Label { text: "Guide gap (px)" }
+            Label { text: "Guide gap (px)"; color: root.headerLabelColor }
             SpinBox {
                 from: 10; to: 1000
                 value: editorStoreModel.guideLineGapPx
@@ -145,7 +149,7 @@ ApplicationWindow {
                     }
                 }
             }
-            Label { text: "Erase r(px)" }
+            Label { text: "Erase r(px)"; color: root.headerLabelColor }
             SpinBox {
                 from: 1; to: 500
                 value: editorStoreModel.eraseRadiusPx
@@ -161,11 +165,9 @@ ApplicationWindow {
                 onClicked: appController.generateFonts()
             }
 
-            Item { Layout.fillWidth: true }
-
             Label {
                 text: editorStoreModel.isDirty ? "Unsaved board" : "Saved board"
-                color: "#1e293b"
+                color: root.headerLabelColor
             }
         }
     }
