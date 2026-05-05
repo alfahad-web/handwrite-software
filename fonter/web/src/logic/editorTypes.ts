@@ -89,6 +89,10 @@ export interface SelectionBox {
   assignedAscii: number;
   fileStem: string;
   joinMode: JoinMode;
+  /** User-placed anchor; when false, anchor is derived from predecessors. */
+  hasManualAnchor: boolean;
+  manualAnchorRx: number;
+  manualAnchorRy: number;
   anchorX: number;
   anchorY: number;
 }

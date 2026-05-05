@@ -2,10 +2,18 @@
  * Paint order mirrors fonter/cachy/src/canvas/CanvasItem.cpp paint()
  */
 
-import { K_BOARD_HEIGHT, K_BOARD_WIDTH } from "./canvasPointer";
+import {
+  K_ANCHOR_RADIUS_BOARD,
+  K_BOARD_HEIGHT,
+  K_BOARD_WIDTH,
+} from "./canvasPointer";
 import { pxToUm } from "./exportService";
 import type { EditorStore } from "./editorStore";
 import type { Point } from "./editorTypes";
+
+const COLOR_DOT_DEFAULT = "#eab308";
+const COLOR_DOT_INSIDE_ANY = "rgb(167, 139, 250)";
+const COLOR_DOT_INSIDE_SELECTED = "rgb(109, 40, 217)";
 
 function drawStrokePath(
   ctx: CanvasRenderingContext2D,
@@ -33,12 +41,20 @@ function drawStrokePath(
   ctx.stroke();
 }
 
+export interface PaintBoardOptions {
+  dpi: number;
+  hoverAnchorSelectionId?: string;
+  anchorDragSelectionId?: string;
+}
+
 export function paintBoard(
   ctx: CanvasRenderingContext2D,
   store: EditorStore,
   livePoints: Point[],
-  dpi: number,
+  options: PaintBoardOptions,
 ): void {
+  const { dpi, hoverAnchorSelectionId = "", anchorDragSelectionId = "" } =
+    options;
   const scale = store.zoom() / 100;
   const cw = K_BOARD_WIDTH * scale;
   const ch = K_BOARD_HEIGHT * scale;
@@ -61,6 +77,18 @@ export function paintBoard(
 
   ctx.save();
   ctx.scale(scale, scale);
+
+  const guideGap = store.guideLineGapPx();
+  if (guideGap > 0) {
+    ctx.strokeStyle = "#000000";
+    ctx.lineWidth = 1 / scale;
+    ctx.beginPath();
+    for (let y = guideGap; y < K_BOARD_HEIGHT; y += guideGap) {
+      ctx.moveTo(0, y);
+      ctx.lineTo(K_BOARD_WIDTH, y);
+    }
+    ctx.stroke();
+  }
 
   ctx.strokeStyle = "#000000";
   ctx.lineWidth = store.strokePx();
@@ -88,8 +116,12 @@ export function paintBoard(
     ctx.strokeRect(draft.x, draft.y, draft.width, draft.height);
   }
 
+  const selectedSelectionId = store.selectedSelectionId();
+  const highlightedIds = store.highlightedSelectionIds();
+
   for (const box of store.selectionBoxes()) {
-    const selected = box.id === store.selectedSelectionId();
+    const selected =
+      box.id === selectedSelectionId || highlightedIds.has(box.id);
     ctx.strokeStyle = "#2563eb";
     ctx.fillStyle = selected
       ? "rgba(59, 130, 246, 0.43)"
@@ -100,19 +132,54 @@ export function paintBoard(
   }
 
   const dotRadius = 2.2;
-  ctx.fillStyle = "#eab308";
   const gapPx =
     pxToUm(1, dpi) > 0 ? store.captureGapUm() / pxToUm(1, dpi) : 1;
+  const boxes = store.selectionBoxes();
 
   for (const stroke of store.strokes()) {
     if (stroke.points.length === 0) continue;
     let last: Point | null = null;
-    for (const pt of stroke.points) {
+    for (let pointIndex = 0; pointIndex < stroke.points.length; pointIndex++) {
+      const pt = stroke.points[pointIndex]!;
       if (pt.erased) continue;
       if (
         !last ||
         Math.hypot(last.x - pt.pos.x, last.y - pt.pos.y) >= gapPx
       ) {
+        let inAnySelection = false;
+        let inSelectedSelection = false;
+        for (const box of boxes) {
+          const inside =
+            pt.pos.x >= box.rect.x &&
+            pt.pos.x <= box.rect.x + box.rect.width &&
+            pt.pos.y >= box.rect.y &&
+            pt.pos.y <= box.rect.y + box.rect.height;
+          if (!inside) continue;
+          if (
+            store.isPointErasedInSelection(
+              box.id,
+              stroke.id,
+              pointIndex,
+            )
+          ) {
+            continue;
+          }
+          inAnySelection = true;
+          if (
+            box.id === selectedSelectionId ||
+            highlightedIds.has(box.id)
+          ) {
+            inSelectedSelection = true;
+            break;
+          }
+        }
+        if (inSelectedSelection) {
+          ctx.fillStyle = COLOR_DOT_INSIDE_SELECTED;
+        } else if (inAnySelection) {
+          ctx.fillStyle = COLOR_DOT_INSIDE_ANY;
+        } else {
+          ctx.fillStyle = COLOR_DOT_DEFAULT;
+        }
         ctx.beginPath();
         ctx.arc(pt.pos.x, pt.pos.y, dotRadius, 0, Math.PI * 2);
         ctx.fill();
@@ -121,17 +188,25 @@ export function paintBoard(
     }
   }
 
-  ctx.fillStyle = "#22c55e";
-  const anchorR = 3;
   for (const box of store.selectionBoxes()) {
+    const anchorHot =
+      box.id === hoverAnchorSelectionId ||
+      (box.id === anchorDragSelectionId && anchorDragSelectionId.length > 0);
+    const anchorR = anchorHot
+      ? K_ANCHOR_RADIUS_BOARD * 1.8
+      : K_ANCHOR_RADIUS_BOARD;
+    ctx.fillStyle = anchorHot
+      ? "rgb(22, 163, 74)"
+      : "rgb(34, 197, 94)";
     ctx.beginPath();
     ctx.arc(box.anchorX, box.anchorY, anchorR, 0, Math.PI * 2);
     ctx.fill();
   }
   if (draft && draft.width > 0 && draft.height > 0) {
     const da = store.draftAnchorBoard();
+    ctx.fillStyle = "rgb(34, 197, 94)";
     ctx.beginPath();
-    ctx.arc(da.x, da.y, anchorR, 0, Math.PI * 2);
+    ctx.arc(da.x, da.y, K_ANCHOR_RADIUS_BOARD, 0, Math.PI * 2);
     ctx.fill();
   }
 

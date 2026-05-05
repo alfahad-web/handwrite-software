@@ -121,6 +121,8 @@ export default function App() {
 
   const openAssignFor = (selectionId: string) => {
     pendingAssignIdRef.current = selectionId;
+    setAssignJoin("N");
+    setAssignChar("");
     const rows = store.selectionBoxesModel();
     const row = rows.find((x) => x.id === selectionId);
     setAssignJoin(row?.joinMode ?? "N");
@@ -176,6 +178,18 @@ export default function App() {
               value={store.captureGapUm()}
               onChange={(e) =>
                 store.setCaptureGapUm(Number(e.target.value) || 1)
+              }
+            />
+          </label>
+          <label className="field">
+            <span>Guide gap (px)</span>
+            <input
+              type="number"
+              min={10}
+              max={1000}
+              value={store.guideLineGapPx()}
+              onChange={(e) =>
+                store.setGuideLineGapPx(Number(e.target.value) || 10)
               }
             />
           </label>

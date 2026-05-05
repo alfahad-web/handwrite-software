@@ -30,7 +30,7 @@ export function assignSelectionCharacter(
   if (!box) return "Selection not found.";
   box.assigned = true;
   box.assignedAscii = code;
-  box.fileStem = store.fileStemForAscii(box.assignedAscii);
+  box.fileStem = text;
   box.joinMode = joinModeFromString(joinMode);
   store.recomputeSelectionAnchors();
   store.markDirty();

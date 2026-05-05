@@ -35,7 +35,14 @@ export function BoardCanvas({
     if (!c) return;
     const ctx = c.getContext("2d");
     if (!ctx) return;
-    paintBoard(ctx, store, pointerRef.current.livePoints, dpi);
+    const ctrl = pointerRef.current;
+    paintBoard(ctx, store, ctrl.livePoints, {
+      dpi,
+      hoverAnchorSelectionId: ctrl.hoverAnchorSelectionId(),
+      anchorDragSelectionId: ctrl.isAnchorDragging()
+        ? ctrl.anchorDragSelectionId()
+        : "",
+    });
   }, [store, dpi]);
 
   useEffect(() => {
@@ -81,6 +88,14 @@ export function BoardCanvas({
       panLastRef.current = { x: ev.clientX, y: ev.clientY };
       scrollRef.current.scrollLeft -= dx;
       scrollRef.current.scrollTop -= dy;
+      return;
+    }
+    const primaryDown = (ev.buttons & 1) !== 0;
+    if (
+      store.toolModeValue() === ToolMode.Draw &&
+      !primaryDown
+    ) {
+      repaint();
       return;
     }
     pointerRef.current.pointerMove(x, y);
@@ -164,6 +179,7 @@ export function BoardCanvas({
         onPointerUp={onPointerUp}
         onPointerLeave={(ev) => {
           setCursorVisible(false);
+          pointerRef.current.clearHoverAnchor();
           if (!panningRef.current) {
             const { x, y } = clientToCanvas(ev);
             pointerRef.current.pointerUp(x, y, ev.button);

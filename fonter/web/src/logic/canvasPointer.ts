@@ -35,6 +35,7 @@ export const K_BOARD_HEIGHT = Math.max(
   Math.ceil(viewportHeight * K_VIEWPORT_MULTIPLIER),
 );
 export const K_MIN_STROKE_SAMPLE_PX = 0.45;
+export const K_ANCHOR_RADIUS_BOARD = 3;
 
 export function toBoard(
   itemX: number,
@@ -90,10 +91,7 @@ export function hitHandle(
   return ResizeHandle.None;
 }
 
-export function hitSelectionId(
-  point: Point,
-  store: EditorStore,
-): string {
+export function hitSelectionId(point: Point, store: EditorStore): string {
   const boxes = store.selectionBoxes();
   for (let i = boxes.length - 1; i >= 0; i--) {
     const b = boxes[i]!;
@@ -108,6 +106,30 @@ export function hitSelectionId(
     }
   }
   return "";
+}
+
+export function hitAnchorSelectionId(
+  point: Point,
+  store: EditorStore,
+  zoomPercent: number,
+): string {
+  const scale = zoomPercent / 100;
+  if (scale <= 0) return "";
+  const hitRadiusBoard = (K_ANCHOR_RADIUS_BOARD * 2.4) / scale;
+  const hitRadiusSq = hitRadiusBoard * hitRadiusBoard;
+  let bestId = "";
+  let bestDistSq = Number.POSITIVE_INFINITY;
+  for (const box of store.selectionBoxes()) {
+    const dx = point.x - box.anchorX;
+    const dy = point.y - box.anchorY;
+    const distSq = dx * dx + dy * dy;
+    if (distSq > hitRadiusSq) continue;
+    if (distSq < bestDistSq) {
+      bestDistSq = distSq;
+      bestId = box.id;
+    }
+  }
+  return bestId;
 }
 
 export function hasSelectionAt(
@@ -174,8 +196,12 @@ export class BoardPointerController {
   private mIsResizing = false;
   private mIsErasing = false;
   private mIsStrokeHardErasing = false;
+  private mIsAnchorDragging = false;
   private mSelectStart: Point = { x: 0, y: 0 };
   private mLivePoints: Point[] = [];
+  private mEraseTracePoints: Point[] = [];
+  private mAnchorDragSelectionId = "";
+  private mHoverAnchorSelectionId = "";
 
   constructor(store: EditorStore) {
     this.store = store;
@@ -183,6 +209,23 @@ export class BoardPointerController {
 
   get livePoints(): Point[] {
     return this.mLivePoints;
+  }
+
+  hoverAnchorSelectionId(): string {
+    return this.mHoverAnchorSelectionId;
+  }
+
+  anchorDragSelectionId(): string {
+    return this.mAnchorDragSelectionId;
+  }
+
+  isAnchorDragging(): boolean {
+    return this.mIsAnchorDragging;
+  }
+
+  /** Hover highlight only; interaction end uses pointerUp. */
+  clearHoverAnchor(): void {
+    this.mHoverAnchorSelectionId = "";
   }
 
   pointerDown(x: number, y: number, button: number): void {
@@ -194,13 +237,22 @@ export class BoardPointerController {
     if (store.toolModeValue() === ToolMode.Draw) {
       if (store.drawStrokeEraseActive()) {
         this.mIsStrokeHardErasing = true;
-        store.removeStrokePointsNear(p, store.eraseRadiusPx());
+        this.mEraseTracePoints = [p];
         return;
       }
       this.mIsDrawing = true;
       this.mLivePoints = [p];
       store.startStroke(p);
     } else if (store.toolModeValue() === ToolMode.Select) {
+      const anchorSelectionId = hitAnchorSelectionId(p, store, store.zoom());
+      if (anchorSelectionId) {
+        store.setSelectedSelectionId(anchorSelectionId);
+        this.mIsAnchorDragging = true;
+        this.mAnchorDragSelectionId = anchorSelectionId;
+        this.mHoverAnchorSelectionId = anchorSelectionId;
+        store.setSelectionAnchorPoint(anchorSelectionId, p);
+        return;
+      }
       const hitId = hitSelectionId(p, store);
       if (hitId) store.setSelectedSelectionId(hitId);
       const sel = store.selectedSelection();
@@ -222,7 +274,7 @@ export class BoardPointerController {
       store.setSelectionDraftRect({ x: p.x, y: p.y, width: 0, height: 0 });
     } else {
       this.mIsErasing = true;
-      store.erasePointsInSelectedSelection(p, store.eraseRadiusPx());
+      this.mEraseTracePoints = [p];
     }
   }
 
@@ -235,7 +287,9 @@ export class BoardPointerController {
       this.mIsDrawing ||
         this.mIsSelecting ||
         this.mIsResizing ||
-        this.mIsStrokeHardErasing,
+        this.mIsStrokeHardErasing ||
+        this.mIsAnchorDragging ||
+        this.mIsErasing,
     );
     if (p.x < 0 || p.y < 0) return;
 
@@ -263,12 +317,38 @@ export class BoardPointerController {
       applyResize(store, p);
       return;
     }
+    if (this.mIsAnchorDragging) {
+      if (this.mAnchorDragSelectionId) {
+        store.setSelectionAnchorPoint(this.mAnchorDragSelectionId, p);
+      }
+      this.mHoverAnchorSelectionId = this.mAnchorDragSelectionId;
+      return;
+    }
     if (this.mIsErasing) {
-      store.erasePointsInSelectedSelection(p, store.eraseRadiusPx());
+      const last = this.mEraseTracePoints[this.mEraseTracePoints.length - 1];
+      if (
+        !last ||
+        lineLen(last, p) >= K_MIN_STROKE_SAMPLE_PX
+      ) {
+        this.mEraseTracePoints.push(p);
+      }
       return;
     }
     if (this.mIsStrokeHardErasing) {
-      store.removeStrokePointsNear(p, store.eraseRadiusPx());
+      const last = this.mEraseTracePoints[this.mEraseTracePoints.length - 1];
+      if (
+        !last ||
+        lineLen(last, p) >= K_MIN_STROKE_SAMPLE_PX
+      ) {
+        this.mEraseTracePoints.push(p);
+      }
+      return;
+    }
+    if (store.toolModeValue() === ToolMode.Select) {
+      const hoverAnchorId = hitAnchorSelectionId(p, store, store.zoom());
+      if (hoverAnchorId !== this.mHoverAnchorSelectionId) {
+        this.mHoverAnchorSelectionId = hoverAnchorId;
+      }
     }
   }
 
@@ -325,8 +405,47 @@ export class BoardPointerController {
       store.setSelectionResizeState(null);
       this.mIsResizing = false;
     }
-    if (this.mIsErasing) this.mIsErasing = false;
-    if (this.mIsStrokeHardErasing) this.mIsStrokeHardErasing = false;
+    if (this.mIsAnchorDragging) {
+      if (this.mAnchorDragSelectionId) {
+        store.setSelectionAnchorPoint(this.mAnchorDragSelectionId, point);
+      }
+      this.mIsAnchorDragging = false;
+      this.mAnchorDragSelectionId = "";
+    }
+    if (this.mIsErasing) {
+      if (this.mEraseTracePoints.length === 0) {
+        this.mEraseTracePoints.push(point);
+      }
+      store.erasePointsInSelectedSelectionPath(
+        this.mEraseTracePoints,
+        store.eraseRadiusPx(),
+      );
+      this.mEraseTracePoints = [];
+      this.mIsErasing = false;
+    }
+    if (this.mIsStrokeHardErasing) {
+      if (this.mEraseTracePoints.length === 0) {
+        this.mEraseTracePoints.push(point);
+      }
+      store.removeStrokePointsNearPath(
+        this.mEraseTracePoints,
+        store.eraseRadiusPx(),
+      );
+      this.mEraseTracePoints = [];
+      this.mIsStrokeHardErasing = false;
+    }
+
+    if (
+      store.toolModeValue() === ToolMode.Select &&
+      point.x >= 0 &&
+      point.y >= 0
+    ) {
+      this.mHoverAnchorSelectionId = hitAnchorSelectionId(
+        point,
+        store,
+        store.zoom(),
+      );
+    }
   }
 
   resetGestureState(): void {
@@ -335,6 +454,9 @@ export class BoardPointerController {
     this.mIsResizing = false;
     this.mIsErasing = false;
     this.mIsStrokeHardErasing = false;
+    this.mIsAnchorDragging = false;
     this.mLivePoints = [];
+    this.mEraseTracePoints = [];
+    this.mAnchorDragSelectionId = "";
   }
 }

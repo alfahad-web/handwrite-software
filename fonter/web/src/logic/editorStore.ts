@@ -18,11 +18,23 @@ import {
 
 const kDefaultStrokePx = 6;
 const kDefaultCaptureGapUm = 350;
+const kDefaultGuideLineGapPx = 120;
 const kDefaultEraseRadiusPx = 20;
 const kMinRectSide = 4;
+const kSpatialCellSizePx = 48.0;
 const kStemAlphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
 
-function normRect(r: SelectionRect): { x: number; y: number; w: number; h: number } {
+interface PointRef {
+  strokeIndex: number;
+  pointIndex: number;
+}
+
+function normRect(r: SelectionRect): {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+} {
   const x = r.width < 0 ? r.x + r.width : r.x;
   const y = r.height < 0 ? r.y + r.height : r.y;
   return { x, y, w: Math.abs(r.width), h: Math.abs(r.height) };
@@ -46,6 +58,10 @@ function pointInsideRect(p: Point, r: SelectionRect): boolean {
     p.y >= r.y &&
     p.y <= r.y + r.height
   );
+}
+
+function clamp01(v: number): number {
+  return Math.min(1, Math.max(0, v));
 }
 
 function anchorBoardForBox(
@@ -88,6 +104,21 @@ function makeUint64Hex(): string {
   return n.toString(16);
 }
 
+function cellKey(cellX: number, cellY: number): string {
+  return `${cellX},${cellY}`;
+}
+
+function makePointKey(strokeId: string, pointIndex: number): string {
+  return `${strokeId}#${pointIndex}`;
+}
+
+function parsePointIndexFromKey(key: string): number {
+  const sep = key.indexOf("#");
+  if (sep <= 0 || sep >= key.length - 1) return -1;
+  const idx = Number.parseInt(key.slice(sep + 1), 10);
+  return Number.isFinite(idx) ? idx : -1;
+}
+
 export class EditorStore {
   private listeners = new Set<() => void>();
 
@@ -96,6 +127,7 @@ export class EditorStore {
   private mToolMode: ToolMode = ToolMode.Draw;
   private mStrokePx = kDefaultStrokePx;
   private mCaptureGapUm = kDefaultCaptureGapUm;
+  private mGuideLineGapPx = kDefaultGuideLineGapPx;
   private mZoom = 100;
   private mEraseRadiusPx = kDefaultEraseRadiusPx;
   private mDrawStrokeEraseActive = false;
@@ -119,6 +151,14 @@ export class EditorStore {
   private mProjectFilePath = "";
   private mProjectFileName = "";
   private mSpecialCharStemMap = new Map<number, string>();
+  private mSelectionErasedPointKeys = new Map<string, Set<string>>();
+  private mSelectionErasedPointIndex = new Map<
+    string,
+    Map<string, Set<number>>
+  >();
+  private mPointSpatialIndex = new Map<string, PointRef[]>();
+  private mPointSpatialIndexDirty = true;
+  private mHighlightedSelectionIds = new Set<string>();
   private mIsDirty = false;
 
   subscribe(fn: () => void): () => void {
@@ -137,6 +177,9 @@ export class EditorStore {
   }
   captureGapUm(): number {
     return this.mCaptureGapUm;
+  }
+  guideLineGapPx(): number {
+    return this.mGuideLineGapPx;
   }
   zoom(): number {
     return this.mZoom;
@@ -202,6 +245,59 @@ export class EditorStore {
     return this.mHasResizeState ? this.mResizeState : null;
   }
 
+  highlightedSelectionIds(): ReadonlySet<string> {
+    return this.mHighlightedSelectionIds;
+  }
+
+  setHighlightedSelectionIds(ids: Set<string> | Iterable<string>): void {
+    const valid = new Set<string>();
+    for (const id of ids) {
+      if (this.findSelectionIndexById(id) >= 0) valid.add(id);
+    }
+    if (
+      valid.size === this.mHighlightedSelectionIds.size &&
+      [...valid].every((x) => this.mHighlightedSelectionIds.has(x))
+    ) {
+      return;
+    }
+    this.mHighlightedSelectionIds = valid;
+    this.emit();
+  }
+
+  clearHighlightedSelectionIds(): void {
+    if (this.mHighlightedSelectionIds.size === 0) return;
+    this.mHighlightedSelectionIds.clear();
+    this.emit();
+  }
+
+  isPointErasedInSelection(
+    selectionId: string,
+    strokeId: string,
+    pointIndex: number,
+  ): boolean {
+    if (
+      selectionId.length === 0 ||
+      strokeId.length === 0 ||
+      pointIndex < 0
+    ) {
+      return false;
+    }
+    const bySel = this.mSelectionErasedPointIndex.get(selectionId);
+    if (!bySel) return false;
+    const byStroke = bySel.get(strokeId);
+    if (!byStroke) return false;
+    return byStroke.has(pointIndex);
+  }
+
+  /** Clone of per-selection erased point keys for persistence. */
+  getSelectionErasedPointKeys(): Map<string, Set<string>> {
+    const out = new Map<string, Set<string>>();
+    for (const [selId, keys] of this.mSelectionErasedPointKeys) {
+      out.set(selId, new Set(keys));
+    }
+    return out;
+  }
+
   setStrokePx(value: number): void {
     const next = EditorStore.clampInt(value, 1, 200);
     if (next === this.mStrokePx) return;
@@ -213,6 +309,13 @@ export class EditorStore {
     const next = EditorStore.clampInt(value, 1, 200000);
     if (next === this.mCaptureGapUm) return;
     this.mCaptureGapUm = next;
+    this.emit();
+  }
+
+  setGuideLineGapPx(value: number): void {
+    const next = EditorStore.clampInt(value, 10, 1000);
+    if (next === this.mGuideLineGapPx) return;
+    this.mGuideLineGapPx = next;
     this.emit();
   }
 
@@ -266,9 +369,58 @@ export class EditorStore {
     if (!this.mSelectedSelectionId) return false;
     const idx = this.findSelectionIndexById(this.mSelectedSelectionId);
     if (idx < 0) return false;
+    const deletedOrderIndex = this.mSelectionBoxes[idx]!.orderIndex;
+    const deletedId = this.mSelectedSelectionId;
+    this.mHighlightedSelectionIds.delete(deletedId);
+    this.mSelectionErasedPointKeys.delete(deletedId);
+    this.mSelectionErasedPointIndex.delete(deletedId);
     this.mSelectionBoxes.splice(idx, 1);
     this.mSelectedSelectionId = "";
+    let bestPrevIdx = -1;
+    let bestPrevOrder = -1;
+    for (let i = 0; i < this.mSelectionBoxes.length; i++) {
+      const order = this.mSelectionBoxes[i]!.orderIndex;
+      if (order < deletedOrderIndex && order > bestPrevOrder) {
+        bestPrevOrder = order;
+        bestPrevIdx = i;
+      }
+    }
+    if (bestPrevIdx >= 0) {
+      this.mSelectedSelectionId =
+        this.mSelectionBoxes[bestPrevIdx]!.id;
+    }
     this.mHasResizeState = false;
+    this.recomputeSelectionAnchors();
+    this.markDirty();
+    return true;
+  }
+
+  setSelectionAnchorPoint(selectionId: string, point: Point): boolean {
+    const box = this.selectionByIdMutable(selectionId);
+    if (!box) return false;
+    if (box.rect.width <= 0 || box.rect.height <= 0) return false;
+    const minX = box.rect.x;
+    const minY = box.rect.y;
+    const maxX = box.rect.x + box.rect.width;
+    const maxY = box.rect.y + box.rect.height;
+    const clampedX = Math.min(maxX, Math.max(minX, point.x));
+    const clampedY = Math.min(maxY, Math.max(minY, point.y));
+    const rx =
+      box.rect.width > 0
+        ? (clampedX - minX) / box.rect.width
+        : 0;
+    const ry =
+      box.rect.height > 0
+        ? (clampedY - minY) / box.rect.height
+        : 0;
+    const changed =
+      !box.hasManualAnchor ||
+      Math.abs(box.manualAnchorRx - rx) > 0.0001 ||
+      Math.abs(box.manualAnchorRy - ry) > 0.0001;
+    if (!changed) return false;
+    box.hasManualAnchor = true;
+    box.manualAnchorRx = rx;
+    box.manualAnchorRy = ry;
     this.recomputeSelectionAnchors();
     this.markDirty();
     return true;
@@ -282,6 +434,7 @@ export class EditorStore {
     };
     this.mCurrentStrokeId = stroke.id;
     this.mStrokes.push(stroke);
+    this.mPointSpatialIndexDirty = true;
     this.markDirty();
     this.emit();
   }
@@ -295,6 +448,7 @@ export class EditorStore {
       erased: false,
     }));
     this.mStrokes[index]!.points = normalized;
+    this.mPointSpatialIndexDirty = true;
     this.markDirty();
     this.emit();
   }
@@ -331,6 +485,9 @@ export class EditorStore {
       assignedAscii: -1,
       fileStem: "",
       joinMode: JoinMode.N,
+      hasManualAnchor: false,
+      manualAnchorRx: 0,
+      manualAnchorRy: 0,
       anchorX: 0,
       anchorY: 0,
     };
@@ -361,8 +518,7 @@ export class EditorStore {
 
   setSelectedSelectionId(selectionId: string): void {
     if (selectionId === this.mSelectedSelectionId) return;
-    if (selectionId && this.findSelectionIndexById(selectionId) < 0)
-      return;
+    if (selectionId && this.findSelectionIndexById(selectionId) < 0) return;
     this.mSelectedSelectionId = selectionId;
     this.emit();
   }
@@ -373,33 +529,74 @@ export class EditorStore {
     this.emit();
   }
 
-  erasePointsInSelectedSelection(center: Point, radiusPx: number): boolean {
+  erasePointsInSelectedSelection(
+    center: Point,
+    radiusPx: number,
+  ): boolean {
+    return this.erasePointsInSelectedSelectionPath([center], radiusPx);
+  }
+
+  erasePointsInSelectedSelectionPath(
+    centers: Point[],
+    radiusPx: number,
+  ): boolean {
+    if (centers.length === 0) return false;
     const box = this.selectedSelection();
     if (!box) return false;
-    const rsq = radiusPx * radiusPx;
+    this.ensurePointSpatialIndex();
+    const effectiveRadius = Math.max(1, radiusPx);
+    const rsq = effectiveRadius * effectiveRadius;
     const minX = box.rect.x;
     const minY = box.rect.y;
     const maxX = box.rect.x + box.rect.width;
     const maxY = box.rect.y + box.rect.height;
     let changed = false;
-    for (const stroke of this.mStrokes) {
-      for (const pt of stroke.points) {
-        if (pt.erased) continue;
-        if (
-          pt.pos.x < minX ||
-          pt.pos.x > maxX ||
-          pt.pos.y < minY ||
-          pt.pos.y > maxY
-        )
-          continue;
-        const dx = pt.pos.x - center.x;
-        const dy = pt.pos.y - center.y;
-        if (dx * dx + dy * dy <= rsq) {
-          pt.erased = true;
-          changed = true;
+
+    for (const center of centers) {
+      const minCellX = Math.floor((center.x - effectiveRadius) / kSpatialCellSizePx);
+      const maxCellX = Math.floor((center.x + effectiveRadius) / kSpatialCellSizePx);
+      const minCellY = Math.floor((center.y - effectiveRadius) / kSpatialCellSizePx);
+      const maxCellY = Math.floor((center.y + effectiveRadius) / kSpatialCellSizePx);
+      for (let cx = minCellX; cx <= maxCellX; cx++) {
+        for (let cy = minCellY; cy <= maxCellY; cy++) {
+          const refs = this.mPointSpatialIndex.get(cellKey(cx, cy));
+          if (!refs) continue;
+          for (const ref of refs) {
+            if (
+              ref.strokeIndex < 0 ||
+              ref.strokeIndex >= this.mStrokes.length
+            ) {
+              continue;
+            }
+            const stroke = this.mStrokes[ref.strokeIndex]!;
+            if (
+              ref.pointIndex < 0 ||
+              ref.pointIndex >= stroke.points.length
+            ) {
+              continue;
+            }
+            const pt = stroke.points[ref.pointIndex]!;
+            if (pt.erased) continue;
+            if (
+              pt.pos.x < minX ||
+              pt.pos.x > maxX ||
+              pt.pos.y < minY ||
+              pt.pos.y > maxY
+            ) {
+              continue;
+            }
+            const dx = pt.pos.x - center.x;
+            const dy = pt.pos.y - center.y;
+            if (dx * dx + dy * dy <= rsq) {
+              if (this.addSelectionErasedPoint(box.id, stroke.id, ref.pointIndex)) {
+                changed = true;
+              }
+            }
+          }
         }
       }
     }
+
     if (changed) {
       this.markDirty();
       this.emit();
@@ -408,25 +605,78 @@ export class EditorStore {
   }
 
   removeStrokePointsNear(center: Point, radiusPx: number): boolean {
-    const rsq = radiusPx * radiusPx;
+    return this.removeStrokePointsNearPath([center], radiusPx);
+  }
+
+  removeStrokePointsNearPath(centers: Point[], radiusPx: number): boolean {
+    if (centers.length === 0) return false;
+    this.ensurePointSpatialIndex();
+    const effectiveRadius = Math.max(1, radiusPx);
+    const rsq = effectiveRadius * effectiveRadius;
     const splitDistThresh = Math.max(
       radiusPx * 3.0,
       this.mStrokePx * 5.0,
     );
-    const next: Stroke[] = [];
-    let changed = false;
-    const priorCurrentId = this.mCurrentStrokeId;
 
-    for (const stroke of this.mStrokes) {
-      const kept: StrokePoint[] = [];
-      for (const pt of stroke.points) {
-        const dx = pt.pos.x - center.x;
-        const dy = pt.pos.y - center.y;
-        if (dx * dx + dy * dy <= rsq) {
-          changed = true;
-          continue;
+    type RemoveIndices = Map<number, Set<number>>;
+    const removePointIndicesByStroke: RemoveIndices = new Map();
+
+    for (const center of centers) {
+      const minCellX = Math.floor((center.x - effectiveRadius) / kSpatialCellSizePx);
+      const maxCellX = Math.floor((center.x + effectiveRadius) / kSpatialCellSizePx);
+      const minCellY = Math.floor((center.y - effectiveRadius) / kSpatialCellSizePx);
+      const maxCellY = Math.floor((center.y + effectiveRadius) / kSpatialCellSizePx);
+
+      for (let cx = minCellX; cx <= maxCellX; cx++) {
+        for (let cy = minCellY; cy <= maxCellY; cy++) {
+          const refs =
+            this.mPointSpatialIndex.get(cellKey(cx, cy)) ?? [];
+          for (const ref of refs) {
+            if (
+              ref.strokeIndex < 0 ||
+              ref.strokeIndex >= this.mStrokes.length
+            ) {
+              continue;
+            }
+            const stroke = this.mStrokes[ref.strokeIndex]!;
+            if (
+              ref.pointIndex < 0 ||
+              ref.pointIndex >= stroke.points.length
+            ) {
+              continue;
+            }
+            const pt = stroke.points[ref.pointIndex]!;
+            const dx = pt.pos.x - center.x;
+            const dy = pt.pos.y - center.y;
+            if (dx * dx + dy * dy <= rsq) {
+              let set = removePointIndicesByStroke.get(ref.strokeIndex);
+              if (!set) {
+                set = new Set<number>();
+                removePointIndicesByStroke.set(ref.strokeIndex, set);
+              }
+              set.add(ref.pointIndex);
+            }
+          }
         }
-        kept.push(pt);
+      }
+    }
+
+    if (removePointIndicesByStroke.size === 0) return false;
+
+    const priorCurrentId = this.mCurrentStrokeId;
+    const next: Stroke[] = [];
+
+    for (let strokeIndex = 0; strokeIndex < this.mStrokes.length; strokeIndex++) {
+      const stroke = this.mStrokes[strokeIndex]!;
+      const removed = removePointIndicesByStroke.get(strokeIndex);
+      if (!removed || removed.size === 0) {
+        next.push(stroke);
+        continue;
+      }
+      const kept: StrokePoint[] = [];
+      for (let pointIndex = 0; pointIndex < stroke.points.length; pointIndex++) {
+        const pt = stroke.points[pointIndex]!;
+        if (!removed.has(pointIndex)) kept.push(pt);
       }
       if (kept.length === 0) continue;
 
@@ -456,18 +706,72 @@ export class EditorStore {
       }
     }
 
-    if (!changed) return false;
-
     this.mStrokes = next;
-    if (
-      priorCurrentId &&
-      this.findStrokeIndexById(priorCurrentId) < 0
-    ) {
+    this.mSelectionErasedPointKeys.clear();
+    this.mSelectionErasedPointIndex.clear();
+    this.mPointSpatialIndexDirty = true;
+    if (priorCurrentId && this.findStrokeIndexById(priorCurrentId) < 0) {
       this.mCurrentStrokeId = "";
     }
     this.markDirty();
     this.emit();
     return true;
+  }
+
+  setSelectionErasedPointKeys(
+    raw: Map<string, Set<string>> | Record<string, string[]>,
+  ): void {
+    const validSelectionIds = new Set(
+      this.mSelectionBoxes.map((b) => b.id),
+    );
+    const validStrokeIds = new Set(this.mStrokes.map((s) => s.id));
+
+    const filtered = new Map<string, Set<string>>();
+
+    const entries =
+      raw instanceof Map
+        ? [...raw.entries()]
+        : Object.entries(raw);
+
+    for (const [selId, keysEither] of entries) {
+      if (!validSelectionIds.has(selId)) continue;
+      const keys =
+        keysEither instanceof Set
+          ? keysEither
+          : new Set(keysEither ?? []);
+      const ok = new Set<string>();
+      for (const key of keys) {
+        const sep = key.indexOf("#");
+        if (sep <= 0) continue;
+        const strokeId = key.slice(0, sep);
+        if (!validStrokeIds.has(strokeId)) continue;
+        ok.add(key);
+      }
+      if (ok.size > 0) filtered.set(selId, ok);
+    }
+
+    this.mSelectionErasedPointKeys = filtered;
+    this.mSelectionErasedPointIndex.clear();
+    for (const [selId, keySet] of this.mSelectionErasedPointKeys) {
+      const byStroke = new Map<string, Set<number>>();
+      for (const key of keySet) {
+        const sep = key.indexOf("#");
+        if (sep <= 0) continue;
+        const strokeId = key.slice(0, sep);
+        const pi = parsePointIndexFromKey(key);
+        if (pi < 0) continue;
+        let set = byStroke.get(strokeId);
+        if (!set) {
+          set = new Set<number>();
+          byStroke.set(strokeId, set);
+        }
+        set.add(pi);
+      }
+      if (byStroke.size > 0) {
+        this.mSelectionErasedPointIndex.set(selId, byStroke);
+      }
+    }
+    this.emit();
   }
 
   setProjectFilePath(path: string): void {
@@ -494,6 +798,10 @@ export class EditorStore {
     this.mHasResizeState = false;
     this.mNextSelectionOrder = 1;
     this.mSpecialCharStemMap.clear();
+    this.mSelectionErasedPointKeys.clear();
+    this.mSelectionErasedPointIndex.clear();
+    this.clearPointSpatialIndex();
+    this.mHighlightedSelectionIds.clear();
     this.mIsDirty = false;
     if (this.mDrawStrokeEraseActive) {
       this.mDrawStrokeEraseActive = false;
@@ -502,12 +810,18 @@ export class EditorStore {
   }
 
   fileStemForAscii(asciiCode: number): string {
+    const az = "a".charCodeAt(0);
+    const zz = "z".charCodeAt(0);
+    const AZ = "A".charCodeAt(0);
+    const ZZ = "Z".charCodeAt(0);
     if (
-      (asciiCode >= "a".charCodeAt(0) &&
-        asciiCode <= "z".charCodeAt(0)) ||
-      (asciiCode >= "A".charCodeAt(0) && asciiCode <= "Z".charCodeAt(0))
+      (asciiCode >= az && asciiCode <= zz) ||
+      (asciiCode >= AZ && asciiCode <= ZZ)
     ) {
       return String.fromCharCode(asciiCode);
+    }
+    if (asciiCode >= 0 && asciiCode <= 127) {
+      return String(asciiCode);
     }
     const existing = this.mSpecialCharStemMap.get(asciiCode);
     if (existing !== undefined) return existing;
@@ -555,14 +869,16 @@ export class EditorStore {
       })),
     }));
     this.mCurrentStrokeId = "";
+    this.mSelectionErasedPointKeys.clear();
+    this.mSelectionErasedPointIndex.clear();
+    this.mPointSpatialIndexDirty = true;
     this.emit();
   }
 
   setSelectionBoxes(boxes: SelectionBox[], selectedId: string): void {
-    this.mSelectionBoxes = boxes.map((b) => ({
-      ...b,
-      rect: { ...b.rect },
-    }));
+    this.mSelectionBoxes = boxes.map((b) =>
+      normalizeSelectionBoxIn(b),
+    );
     let maxOrder = 0;
     for (const box of this.mSelectionBoxes) {
       if (box.orderIndex > maxOrder) maxOrder = box.orderIndex;
@@ -575,16 +891,55 @@ export class EditorStore {
     ) {
       this.mSelectedSelectionId = "";
     }
-    this.recomputeSelectionAnchors();
+
+    const filteredMasks = new Map<string, Set<string>>();
+    for (const box of this.mSelectionBoxes) {
+      const k = this.mSelectionErasedPointKeys.get(box.id);
+      if (k) filteredMasks.set(box.id, k);
+    }
+    this.mSelectionErasedPointKeys = filteredMasks;
+    const filteredIndex = new Map<string, Map<string, Set<number>>>();
+    for (const box of this.mSelectionBoxes) {
+      const idx = this.mSelectionErasedPointIndex.get(box.id);
+      if (idx) filteredIndex.set(box.id, idx);
+    }
+    this.mSelectionErasedPointIndex = filteredIndex;
+
+    const filteredHL = new Set<string>();
+    for (const id of this.mHighlightedSelectionIds) {
+      if (this.findSelectionIndexById(id) >= 0) filteredHL.add(id);
+    }
+    this.mHighlightedSelectionIds = filteredHL;
+
+    this.recomputeSelectionAnchorsNoEmit();
+    this.emit();
   }
 
   recomputeSelectionAnchors(): void {
+    this.recomputeSelectionAnchorsNoEmit();
+    this.emit();
+  }
+
+  private recomputeSelectionAnchorsNoEmit(): void {
     for (const box of this.mSelectionBoxes) {
-      const a = anchorBoardForBox(box, this.mSelectionBoxes);
+      let a: Point;
+      if (
+        box.hasManualAnchor &&
+        box.rect.width > 0 &&
+        box.rect.height > 0
+      ) {
+        const rx = clamp01(box.manualAnchorRx);
+        const ry = clamp01(box.manualAnchorRy);
+        a = {
+          x: box.rect.x + box.rect.width * rx,
+          y: box.rect.y + box.rect.height * ry,
+        };
+      } else {
+        a = anchorBoardForBox(box, this.mSelectionBoxes);
+      }
       box.anchorX = a.x;
       box.anchorY = a.y;
     }
-    this.emit();
   }
 
   draftAnchorBoard(): Point {
@@ -597,6 +952,9 @@ export class EditorStore {
       assignedAscii: -1,
       fileStem: "",
       joinMode: JoinMode.N,
+      hasManualAnchor: false,
+      manualAnchorRx: 0,
+      manualAnchorRy: 0,
       anchorX: 0,
       anchorY: 0,
     };
@@ -613,6 +971,67 @@ export class EditorStore {
     if (this.mIsDirty) return;
     this.mIsDirty = true;
     this.emit();
+  }
+
+  private addSelectionErasedPoint(
+    selectionId: string,
+    strokeId: string,
+    pointIndex: number,
+  ): boolean {
+    if (
+      selectionId.length === 0 ||
+      strokeId.length === 0 ||
+      pointIndex < 0
+    ) {
+      return false;
+    }
+    let byStroke = this.mSelectionErasedPointIndex.get(selectionId);
+    if (!byStroke) {
+      byStroke = new Map<string, Set<number>>();
+      this.mSelectionErasedPointIndex.set(selectionId, byStroke);
+    }
+    let indices = byStroke.get(strokeId);
+    if (!indices) {
+      indices = new Set<number>();
+      byStroke.set(strokeId, indices);
+    }
+    if (indices.has(pointIndex)) return false;
+    indices.add(pointIndex);
+    let keys = this.mSelectionErasedPointKeys.get(selectionId);
+    if (!keys) {
+      keys = new Set<string>();
+      this.mSelectionErasedPointKeys.set(selectionId, keys);
+    }
+    keys.add(makePointKey(strokeId, pointIndex));
+    return true;
+  }
+
+  private clearPointSpatialIndex(): void {
+    this.mPointSpatialIndex.clear();
+    this.mPointSpatialIndexDirty = true;
+  }
+
+  private rebuildPointSpatialIndex(): void {
+    this.mPointSpatialIndex.clear();
+    for (let strokeIndex = 0; strokeIndex < this.mStrokes.length; strokeIndex++) {
+      const stroke = this.mStrokes[strokeIndex]!;
+      for (let pointIndex = 0; pointIndex < stroke.points.length; pointIndex++) {
+        const pt = stroke.points[pointIndex]!;
+        if (pt.erased) continue;
+        const cellX = Math.floor(pt.pos.x / kSpatialCellSizePx);
+        const cellY = Math.floor(pt.pos.y / kSpatialCellSizePx);
+        const ck = cellKey(cellX, cellY);
+        const arr = this.mPointSpatialIndex.get(ck) ?? [];
+        arr.push({ strokeIndex, pointIndex });
+        this.mPointSpatialIndex.set(ck, arr);
+      }
+    }
+    this.mPointSpatialIndexDirty = false;
+  }
+
+  private ensurePointSpatialIndex(): void {
+    if (!this.mPointSpatialIndexDirty) return;
+    this.rebuildPointSpatialIndex();
   }
 
   private static normalizeRect(
@@ -670,4 +1089,14 @@ export class EditorStore {
     const parts = path.split(/[/\\]/);
     return parts[parts.length - 1] ?? path;
   }
+}
+
+function normalizeSelectionBoxIn(b: SelectionBox): SelectionBox {
+  return {
+    ...b,
+    rect: { ...b.rect },
+    hasManualAnchor: b.hasManualAnchor ?? false,
+    manualAnchorRx: b.manualAnchorRx ?? 0,
+    manualAnchorRy: b.manualAnchorRy ?? 0,
+  };
 }
