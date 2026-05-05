@@ -23,7 +23,6 @@ export function BoardCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pointerRef = useRef(new BoardPointerController(store));
-  const [, forcePaint] = useState(0);
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
   const [cursorVisible, setCursorVisible] = useState(false);
   const panArmedRef = useRef(false);
@@ -51,9 +50,9 @@ export function BoardCanvas({
 
   useEffect(() => {
     return store.subscribe(() => {
-      forcePaint((n) => n + 1);
+      repaint();
     });
-  }, [store]);
+  }, [store, repaint]);
 
   useEffect(() => {
     repaint();
@@ -117,6 +116,11 @@ export function BoardCanvas({
     repaint();
   };
 
+  const scrollByStep = (dx: number, dy: number) => {
+    if (!scrollRef.current) return;
+    scrollRef.current.scrollBy({ left: dx, top: dy, behavior: "smooth" });
+  };
+
   const onDoubleClick = (ev: React.MouseEvent<HTMLCanvasElement>) => {
     if (store.toolModeValue() !== ToolMode.Select) return;
     const c = canvasRef.current;
@@ -148,64 +152,110 @@ export function BoardCanvas({
 
   return (
     <div
-      ref={scrollRef}
-      className="board-scroll"
+      className="board-shell"
       style={{
         flex: 1,
         minHeight: 0,
-        overflow: "auto",
-        background: "#f4f4f5",
         position: "relative",
       }}
     >
-      <canvas
-        ref={canvasRef}
-        tabIndex={0}
+      <div
+        ref={scrollRef}
+        className="board-scroll"
         style={{
-          display: "block",
-          touchAction: "none",
-          cursor:
-            store.toolModeValue() === ToolMode.Draw &&
-            !store.drawStrokeEraseActive()
-              ? "crosshair"
-              : store.toolModeValue() === ToolMode.Erase ||
-                  store.drawStrokeEraseActive()
-                ? "none"
-                : "default",
+          width: "100%",
+          height: "100%",
+          overflow: "auto",
+          background: "#f4f4f5",
         }}
-        onPointerDown={onPointerDown}
-        onPointerEnter={() => setCursorVisible(true)}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerLeave={(ev) => {
-          setCursorVisible(false);
-          pointerRef.current.clearHoverAnchor();
-          if (!panningRef.current) {
-            const { x, y } = clientToCanvas(ev);
-            pointerRef.current.pointerUp(x, y, ev.button);
-            repaint();
-          }
-        }}
-        onDoubleClick={onDoubleClick}
-      />
-      {(store.toolModeValue() === ToolMode.Erase ||
-        store.drawStrokeEraseActive()) &&
-        cursorVisible && (
-          <div
+      >
+        <div className="board-stage">
+          <canvas
+            ref={canvasRef}
+            tabIndex={0}
             style={{
-              position: "absolute",
-              left: cursorPos.x,
-              top: cursorPos.y,
-              width: `${Math.max(2, store.eraseRadiusPx() * (store.zoom() / 100)) * 2}px`,
-              height: `${Math.max(2, store.eraseRadiusPx() * (store.zoom() / 100)) * 2}px`,
-              transform: "translate(-50%, -50%)",
-              borderRadius: "50%",
-              border: "1.5px solid rgba(161, 98, 7, 0.85)",
-              background: "rgba(250, 204, 21, 0.25)",
-              pointerEvents: "none",
+              display: "block",
+              touchAction: "none",
+              cursor:
+                store.toolModeValue() === ToolMode.Draw &&
+                !store.drawStrokeEraseActive()
+                  ? "crosshair"
+                  : store.toolModeValue() === ToolMode.Erase ||
+                      store.drawStrokeEraseActive()
+                    ? "none"
+                    : "default",
             }}
+            onPointerDown={onPointerDown}
+            onPointerEnter={() => setCursorVisible(true)}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerLeave={(ev) => {
+              setCursorVisible(false);
+              pointerRef.current.clearHoverAnchor();
+              if (!panningRef.current) {
+                const { x, y } = clientToCanvas(ev);
+                pointerRef.current.pointerUp(x, y, ev.button);
+                repaint();
+              }
+            }}
+            onDoubleClick={onDoubleClick}
           />
-        )}
+          {(store.toolModeValue() === ToolMode.Erase ||
+            store.drawStrokeEraseActive()) &&
+            cursorVisible && (
+              <div
+                style={{
+                  position: "absolute",
+                  left: cursorPos.x,
+                  top: cursorPos.y,
+                  width: `${Math.max(2, store.eraseRadiusPx() * (store.zoom() / 100)) * 2}px`,
+                  height: `${Math.max(2, store.eraseRadiusPx() * (store.zoom() / 100)) * 2}px`,
+                  transform: "translate(-50%, -50%)",
+                  borderRadius: "50%",
+                  border: "1.5px solid rgba(161, 98, 7, 0.85)",
+                  background: "rgba(250, 204, 21, 0.25)",
+                  pointerEvents: "none",
+                }}
+              />
+            )}
+        </div>
+      </div>
+      <div className="board-nav">
+        <div className="board-nav-row">
+          <button
+            type="button"
+            className="board-nav-btn"
+            onClick={() => scrollByStep(0, -140)}
+          >
+            U
+          </button>
+        </div>
+        <div className="board-nav-row">
+          <button
+            type="button"
+            className="board-nav-btn"
+            onClick={() => scrollByStep(-140, 0)}
+          >
+            L
+          </button>
+          <button
+            type="button"
+            className="board-nav-btn"
+            onClick={() => scrollByStep(140, 0)}
+          >
+            R
+          </button>
+        </div>
+        <div className="board-nav-row">
+          <button
+            type="button"
+            className="board-nav-btn"
+            onClick={() => scrollByStep(0, 140)}
+          >
+            D
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

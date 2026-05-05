@@ -242,7 +242,6 @@ export default function App() {
           <input
             ref={openInputRef}
             type="file"
-            accept=".hw,application/json,.json"
             className="hidden-input"
             onChange={(e) => {
               const f = e.target.files?.[0];
@@ -253,7 +252,6 @@ export default function App() {
           <input
             ref={uploadInputRef}
             type="file"
-            accept=".hw,application/json,.json"
             className="hidden-input"
             onChange={(e) => {
               const f = e.target.files?.[0];
