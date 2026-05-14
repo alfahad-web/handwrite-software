@@ -10,8 +10,20 @@ ApplicationWindow {
     height: 840
     minimumWidth: 900
     minimumHeight: 640
-    title: "CNC handwriting preview"
+    title: writerController.projectFilePath.length > 0
+           ? ("CNC handwriting — " + writerController.projectFilePath)
+           : "CNC handwriting preview"
     color: "#f4f4f5"
+
+    property string pendingAfterDiscard: ""
+
+    readonly property string writerProjectFileName: {
+        const p = writerController.projectFilePath
+        if (!p || p.length === 0) return ""
+        const i = Math.max(p.lastIndexOf("/"), p.lastIndexOf("\\"))
+        return i >= 0 ? p.substring(i + 1) : p
+    }
+
     Component.onCompleted: Qt.callLater(function () {
         if (writerController.viewMode === "typing")
             typeArea.forceActiveFocus()
@@ -23,6 +35,105 @@ ApplicationWindow {
         target: writerController
         function onLineHeightCollisionWarning() {
             lineHeightWarnDialog.open()
+        }
+        function onFontFolderMissing(path) {
+            fontMissingDialog.missingPath = path
+            fontMissingDialog.open()
+        }
+        function onProjectIoError(message) {
+            projectErrorDialog.errorText = message
+            projectErrorDialog.open()
+        }
+    }
+
+    Dialog {
+        id: fontMissingDialog
+        property string missingPath: ""
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        modal: true
+        title: "Font folder not found"
+        standardButtons: Dialog.Ok
+        width: Math.min(520, root.width - 48)
+        contentItem: Label {
+            text: fontMissingDialog.missingPath.length > 0
+                  ? ("Font folder not found at memorized location:\n" + fontMissingDialog.missingPath)
+                  : "Font folder not found."
+            wrapMode: Text.Wrap
+            color: "#18181b"
+            width: parent ? parent.width : implicitWidth
+        }
+    }
+
+    Dialog {
+        id: projectErrorDialog
+        property string errorText: ""
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        modal: true
+        title: "File error"
+        standardButtons: Dialog.Ok
+        width: Math.min(480, root.width - 48)
+        contentItem: Label {
+            text: projectErrorDialog.errorText
+            wrapMode: Text.Wrap
+            color: "#dc2626"
+            width: parent ? parent.width : implicitWidth
+        }
+    }
+
+    Dialog {
+        id: unsavedDialog
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        modal: true
+        title: "Unsaved changes"
+        width: Math.min(420, root.width - 48)
+        standardButtons: Dialog.NoButton
+        contentItem: ColumnLayout {
+            spacing: 12
+            width: Math.min(360, root.width - 64)
+            Label {
+                text: "Save changes before continuing?"
+                wrapMode: Text.Wrap
+                Layout.fillWidth: true
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+                Button {
+                    text: "Save"
+                    onClicked: {
+                        writerController.saveWriterProject()
+                        if (!writerController.documentDirty) {
+                            unsavedDialog.close()
+                            if (root.pendingAfterDiscard === "new")
+                                writerController.newWriterProject()
+                            else if (root.pendingAfterDiscard === "open")
+                                writerController.openWriterProject()
+                            root.pendingAfterDiscard = ""
+                        }
+                    }
+                }
+                Button {
+                    text: "Discard"
+                    onClicked: {
+                        unsavedDialog.close()
+                        if (root.pendingAfterDiscard === "new")
+                            writerController.newWriterProject()
+                        else if (root.pendingAfterDiscard === "open")
+                            writerController.openWriterProject()
+                        root.pendingAfterDiscard = ""
+                    }
+                }
+                Button {
+                    text: "Cancel"
+                    onClicked: {
+                        root.pendingAfterDiscard = ""
+                        unsavedDialog.close()
+                    }
+                }
+            }
         }
     }
 
@@ -46,6 +157,42 @@ ApplicationWindow {
         RowLayout {
             anchors.fill: parent
             spacing: 8
+            Button {
+                id: fileButton
+                text: root.writerProjectFileName.length > 0 ? root.writerProjectFileName : "File"
+                onClicked: fileMenu.open()
+            }
+            Menu {
+                id: fileMenu
+                y: fileButton.height
+                MenuItem {
+                    text: "New"
+                    onTriggered: {
+                        if (writerController.documentDirty) {
+                            root.pendingAfterDiscard = "new"
+                            unsavedDialog.open()
+                        } else {
+                            writerController.newWriterProject()
+                        }
+                    }
+                }
+                MenuItem {
+                    text: "Open"
+                    onTriggered: {
+                        if (writerController.documentDirty) {
+                            root.pendingAfterDiscard = "open"
+                            unsavedDialog.open()
+                        } else {
+                            writerController.openWriterProject()
+                        }
+                    }
+                }
+                MenuItem {
+                    text: "Save"
+                    onTriggered: writerController.saveWriterProject()
+                }
+            }
+            ToolSeparator {}
             Button {
                 text: "Typing"
                 highlighted: writerController.viewMode === "typing"

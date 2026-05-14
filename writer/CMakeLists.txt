@@ -16,6 +16,7 @@ qt_add_executable(WriterQt
   src/app/DocumentModel.cpp
   src/app/AppSettings.cpp
   src/app/WriterController.cpp
+  src/services/WriterProjectService.cpp
   src/font/FontLoader.cpp
   src/layout/LayoutEngine.cpp
   src/ui/HandwritingCanvasItem.cpp

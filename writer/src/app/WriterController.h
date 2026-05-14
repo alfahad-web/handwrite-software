@@ -14,6 +14,8 @@ class WriterController : public QObject {
     Q_PROPERTY(QString viewMode READ viewMode WRITE setViewMode NOTIFY viewModeChanged)
     Q_PROPERTY(QString fontFolderPath READ fontFolderPath NOTIFY fontFolderPathChanged)
     Q_PROPERTY(QString fontStatus READ fontStatus NOTIFY fontStatusChanged)
+    Q_PROPERTY(QString projectFilePath READ projectFilePath NOTIFY projectFilePathChanged)
+    Q_PROPERTY(bool documentDirty READ documentDirty NOTIFY documentDirtyChanged)
     Q_PROPERTY(DocumentModel *document READ document CONSTANT)
     Q_PROPERTY(AppSettings *settings READ settings CONSTANT)
     Q_PROPERTY(bool settingsOpen READ settingsOpen WRITE setSettingsOpen NOTIFY settingsOpenChanged)
@@ -28,6 +30,9 @@ public:
     QString fontFolderPath() const { return m_fontFolderPath; }
     QString fontStatus() const { return m_fontStatus; }
 
+    QString projectFilePath() const { return m_projectFilePath; }
+    bool documentDirty() const { return m_documentDirty; }
+
     DocumentModel *document() const { return m_document; }
     AppSettings *settings() const { return m_settings; }
 
@@ -38,6 +43,11 @@ public:
 
     const FontCatalog &fontCatalog() const { return m_fontCatalog; }
 
+    QHash<int, QPointF> manualAnchors() const { return m_manualAnchors; }
+    void setManualAnchors(const QHash<int, QPointF> &h);
+    void setManualAnchor(int docIndex, const QPointF &anchorCm);
+    void clearAllManualAnchors();
+
     Q_INVOKABLE void pickFontFolder();
     Q_INVOKABLE void reloadFonts();
     Q_INVOKABLE void startRun();
@@ -45,30 +55,52 @@ public:
 
     Q_INVOKABLE void notifyLineHeightCollision(bool exceeds);
 
-    QHash<int, QPointF> anchorOverrides() const { return m_anchorOverrides; }
-    void setAnchorOverrides(const QHash<int, QPointF> &h);
-    void clearAnchorOverrides();
+    Q_INVOKABLE void newWriterProject();
+    Q_INVOKABLE void openWriterProject();
+    Q_INVOKABLE void saveWriterProject();
+    Q_INVOKABLE void saveWriterProjectAs();
+    Q_INVOKABLE bool loadWriterProjectFromPath(const QString &path);
+
+    void markSaved();
+    void resetToEmptyProject(bool resetSettingsToDefaults);
+
+    void beginProjectLoad();
+    void endProjectLoad();
+    void setFontFolderPathAndLoad(const QString &path, bool emitMissingIfNotFound);
 
 signals:
     void viewModeChanged();
     void fontFolderPathChanged();
     void fontStatusChanged();
+    void projectFilePathChanged();
+    void documentDirtyChanged();
     void layoutInvalidated();
     void settingsOpenChanged();
     void runActiveChanged();
     void lineHeightCollisionWarning();
+    void fontFolderMissing(const QString &path);
+    void projectIoError(const QString &message);
 
 private:
-    void loadFontsFromPath(const QString &path);
+    void loadFontsFromPath(const QString &path, bool emitMissingIfNotFound);
+    void onDocumentTextChanged();
+    void setDocumentDirty(bool dirty);
+    void setProjectFilePath(const QString &path);
+    void bumpDirty();
 
     DocumentModel *m_document = nullptr;
     AppSettings *m_settings = nullptr;
     QString m_viewMode = QStringLiteral("typing");
     QString m_fontFolderPath;
     QString m_fontStatus;
+    QString m_projectFilePath;
+    QString m_lastDocumentText;
     FontCatalog m_fontCatalog;
-    QHash<int, QPointF> m_anchorOverrides;
+    QHash<int, QPointF> m_manualAnchors;
     bool m_settingsOpen = false;
     bool m_runActive = false;
     bool m_wasLineHeightExceeding = false;
+    bool m_documentDirty = false;
+    bool m_suppressDirty = false;
+    bool m_blockAnchorRemap = false;
 };

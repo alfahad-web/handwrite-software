@@ -79,13 +79,17 @@ QPointF HandwritingCanvasItem::cmFromPixel(const QPointF &px) const {
     return QPointF(px.x() / s, px.y() / s);
 }
 
-QPointF HandwritingCanvasItem::pixelFromCm(const QPointF &cm) const {
-    const double s = pxPerCm();
-    return QPointF(cm.x() * s, cm.y() * s);
-}
-
 QPointF HandwritingCanvasItem::glyphBottomLeft(const LayoutGlyph &g) const {
     return g.placementAnchorCm;
+}
+
+QHash<int, QPointF> HandwritingCanvasItem::forcedAnchorsForLayout() const {
+    if (!m_ctrl) return {};
+    QHash<int, QPointF> f = m_ctrl->manualAnchors();
+    if (m_dragDocIndex >= 0) {
+        f.insert(m_dragDocIndex, m_dragGlyphStartCm + (m_currentDragCm - m_pressCm));
+    }
+    return f;
 }
 
 void HandwritingCanvasItem::rebuildLayout() {
@@ -104,7 +108,7 @@ void HandwritingCanvasItem::rebuildLayout() {
         st->hyCm(),
         st->lineHeightCm(),
         st->joinDistMm(),
-        m_ctrl->anchorOverrides()
+        forcedAnchorsForLayout()
     );
     m_ctrl->notifyLineHeightCollision(m_layout.anyGlyphExceedsLineHeight);
     const double hPx = qMax(100.0, m_layout.totalHeightCm * pxPerCm());
@@ -112,6 +116,7 @@ void HandwritingCanvasItem::rebuildLayout() {
 }
 
 void HandwritingCanvasItem::onInvalidated() {
+    if (m_ctrl && m_selectedDocIndex >= m_ctrl->document()->text().size()) m_selectedDocIndex = -1;
     m_layoutDirty = true;
     update();
 }
@@ -162,6 +167,20 @@ int HandwritingCanvasItem::hitTestGlyph(const QPointF &px) {
     return -1;
 }
 
+void HandwritingCanvasItem::mouseDoubleClickEvent(QMouseEvent *event) {
+    if (!m_ctrl || event->button() != Qt::LeftButton) {
+        QQuickPaintedItem::mouseDoubleClickEvent(event);
+        return;
+    }
+    rebuildLayout();
+    m_layoutDirty = false;
+    const int hit = hitTestGlyph(event->position());
+    m_selectedDocIndex = hit;
+    m_dragDocIndex = -1;
+    event->accept();
+    update();
+}
+
 void HandwritingCanvasItem::mousePressEvent(QMouseEvent *event) {
     if (!m_ctrl || event->button() != Qt::LeftButton) {
         QQuickPaintedItem::mousePressEvent(event);
@@ -170,15 +189,21 @@ void HandwritingCanvasItem::mousePressEvent(QMouseEvent *event) {
     rebuildLayout();
     m_layoutDirty = false;
     const QPointF local = event->position();
-    m_dragDocIndex = hitTestGlyph(local);
-    if (m_dragDocIndex < 0) {
-        QQuickPaintedItem::mousePressEvent(event);
+    const int hit = hitTestGlyph(local);
+    if (hit < 0) {
+        m_selectedDocIndex = -1;
+        m_dragDocIndex = -1;
+        update();
+        event->accept();
         return;
     }
-    m_pressCm = cmFromPixel(local);
-    for (const LayoutGlyph &lg : m_layout.glyphs) {
-        if (lg.docIndex < m_dragDocIndex) m_frozenDuringDrag.insert(lg.docIndex, glyphBottomLeft(lg));
+    if (hit != m_selectedDocIndex) {
+        event->accept();
+        return;
     }
+    m_dragDocIndex = hit;
+    m_pressCm = cmFromPixel(local);
+    m_currentDragCm = m_pressCm;
     m_dragGlyphStartCm = QPointF();
     for (const LayoutGlyph &lg : m_layout.glyphs) {
         if (lg.docIndex == m_dragDocIndex) {
@@ -186,9 +211,6 @@ void HandwritingCanvasItem::mousePressEvent(QMouseEvent *event) {
             break;
         }
     }
-    QHash<int, QPointF> merged = m_frozenDuringDrag;
-    merged.insert(m_dragDocIndex, m_dragGlyphStartCm);
-    m_ctrl->setAnchorOverrides(merged);
     event->accept();
 }
 
@@ -197,13 +219,10 @@ void HandwritingCanvasItem::mouseMoveEvent(QMouseEvent *event) {
         QQuickPaintedItem::mouseMoveEvent(event);
         return;
     }
-    const QPointF cm = cmFromPixel(event->position());
-    const QPointF delta = cm - m_pressCm;
-    const QPointF newBl = m_dragGlyphStartCm + delta;
-    QHash<int, QPointF> merged = m_frozenDuringDrag;
-    merged.insert(m_dragDocIndex, newBl);
-    m_ctrl->setAnchorOverrides(merged);
+    m_currentDragCm = cmFromPixel(event->position());
+    rebuildLayout();
     event->accept();
+    update();
 }
 
 void HandwritingCanvasItem::mouseReleaseEvent(QMouseEvent *event) {
@@ -211,14 +230,13 @@ void HandwritingCanvasItem::mouseReleaseEvent(QMouseEvent *event) {
         QQuickPaintedItem::mouseReleaseEvent(event);
         return;
     }
-    const QPointF cm = cmFromPixel(event->position());
-    const QPointF newBl = m_dragGlyphStartCm + (cm - m_pressCm);
-    QHash<int, QPointF> merged = m_frozenDuringDrag;
-    merged.insert(m_dragDocIndex, newBl);
-    m_ctrl->setAnchorOverrides(merged);
+    m_currentDragCm = cmFromPixel(event->position());
+    const QPointF newBl = m_dragGlyphStartCm + (m_currentDragCm - m_pressCm);
+    m_ctrl->setManualAnchor(m_dragDocIndex, newBl);
     m_dragDocIndex = -1;
-    m_frozenDuringDrag.clear();
+    m_layoutDirty = true;
     event->accept();
+    update();
 }
 
 void HandwritingCanvasItem::paint(QPainter *painter) {
@@ -278,6 +296,22 @@ void HandwritingCanvasItem::paint(QPainter *painter) {
         }
     }
 
+    if (m_selectedDocIndex >= 0) {
+        painter->setPen(QPen(QColor("#2563eb"), 1));
+        painter->setBrush(QColor("#2563eb"));
+        const double r = 3.0;
+        for (const LayoutGlyph &lg : m_layout.glyphs) {
+            if (lg.docIndex != m_selectedDocIndex) continue;
+            for (const QVector<QPointF> &poly : lg.polylinesCm) {
+                for (const QPointF &pt : poly) {
+                    const QPointF px = pt * s;
+                    painter->drawEllipse(px, r, r);
+                }
+            }
+            break;
+        }
+    }
+
     if (!m_ctrl->runActive()) return;
 
     const double drawDist = m_runDistance;
@@ -309,7 +343,6 @@ void HandwritingCanvasItem::paint(QPainter *painter) {
             } else break;
         } else {
             if (pts.size() < 2) continue;
-            double segConsumed = 0;
             for (int i = 0; i < pts.size(); ++i) {
                 if (i == 0) {
                     painter->drawEllipse(pts[0] * s, 2.5, 2.5);

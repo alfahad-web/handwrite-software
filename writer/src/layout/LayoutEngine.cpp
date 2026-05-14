@@ -479,16 +479,17 @@ LayoutResult LayoutEngine::layout(
             }
             bool usedChain = false;
             if (hasChain && !ch.isSpace() && prevPage == pageIndex && prevLine == lineIndex) {
+                // Always chain to previous glyph's selection bottom-right (anchor + advance in X).
+                // Do not skip chaining when the next glyph would extend past the right margin; skipping
+                // caused following letters to wrap to the next line and lose connection to a
+                // manually placed (forced-anchor) character.
                 const QPointF chainedAnchor(
                     prevAnchorCm.x() + prevAdvanceVectorCm.x(),
                     baselineY
                 );
-                const double expectedRight = chainedAnchor.x() + qMax(0.02, fallbackAdvanceCm);
-                if (expectedRight <= contentRight + 1e-9) {
-                    placementAnchor = chainedAnchor;
-                    cursorX = placementAnchor.x() + qMax(0.0, advanceVectorCm.x());
-                    usedChain = true;
-                }
+                placementAnchor = chainedAnchor;
+                cursorX = placementAnchor.x() + qMax(0.0, advanceVectorCm.x());
+                usedChain = true;
             }
             if (!usedChain && cursorX + qMax(0.02, fallbackAdvanceCm) > contentRight + 1e-9) {
                 ++lineIndex;

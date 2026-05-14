@@ -26,6 +26,7 @@ protected:
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
+    void mouseDoubleClickEvent(QMouseEvent *event) override;
 
 signals:
     void controllerChanged();
@@ -35,10 +36,10 @@ private slots:
     void onRunTick();
 
 private:
+    QHash<int, QPointF> forcedAnchorsForLayout() const;
     void rebuildLayout();
     double pxPerCm() const;
     QPointF cmFromPixel(const QPointF &px) const;
-    QPointF pixelFromCm(const QPointF &cm) const;
     int hitTestGlyph(const QPointF &px);
     void rebuildRunPath();
     QPointF glyphBottomLeft(const LayoutGlyph &g) const;
@@ -47,10 +48,11 @@ private:
     LayoutResult m_layout;
     bool m_layoutDirty = true;
 
+    int m_selectedDocIndex = -1;
     int m_dragDocIndex = -1;
     QPointF m_pressCm;
+    QPointF m_currentDragCm;
     QPointF m_dragGlyphStartCm;
-    QHash<int, QPointF> m_frozenDuringDrag;
 
     QTimer m_runTimer;
     QVector<QPair<bool, QVector<QPointF>>> m_runSegments;
