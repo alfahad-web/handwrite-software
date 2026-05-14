@@ -253,8 +253,16 @@ ApplicationWindow {
                 onClicked: writerController.settingsOpen = !writerController.settingsOpen
             }
             Button {
-                text: writerController.runActive ? "Stop" : "Run"
-                onClicked: writerController.runActive ? writerController.stopRun() : writerController.startRun()
+                text: !writerController.runActive ? "Run"
+                      : (writerController.runPaused ? "Resume" : "Pause")
+                onClicked: {
+                    if (!writerController.runActive)
+                        writerController.startRun()
+                    else if (writerController.runPaused)
+                        writerController.resumeRun()
+                    else
+                        writerController.pauseRun()
+                }
             }
             Label {
                 text: "Join (mm)"
@@ -371,6 +379,12 @@ ApplicationWindow {
                     height: implicitHeight
                     implicitHeight: 400
                     controller: writerController
+                }
+
+                Binding {
+                    target: handFlick
+                    property: "interactive"
+                    value: !handCanvas.glyphDragActive
                 }
             }
         }

@@ -162,13 +162,29 @@ void WriterController::clearAllManualAnchors() {
 
 void WriterController::startRun() {
     if (m_runActive) return;
+    m_runPaused = false;
     m_runActive = true;
     emit runActiveChanged();
 }
 
+void WriterController::pauseRun() {
+    if (!m_runActive || m_runPaused) return;
+    m_runPaused = true;
+    emit runPausedChanged();
+}
+
+void WriterController::resumeRun() {
+    if (!m_runActive || !m_runPaused) return;
+    m_runPaused = false;
+    emit runPausedChanged();
+}
+
 void WriterController::stopRun() {
     if (!m_runActive) return;
+    const bool hadPause = m_runPaused;
     m_runActive = false;
+    m_runPaused = false;
+    if (hadPause) emit runPausedChanged();
     emit runActiveChanged();
 }
 

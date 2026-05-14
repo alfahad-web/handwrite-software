@@ -20,6 +20,7 @@ class WriterController : public QObject {
     Q_PROPERTY(AppSettings *settings READ settings CONSTANT)
     Q_PROPERTY(bool settingsOpen READ settingsOpen WRITE setSettingsOpen NOTIFY settingsOpenChanged)
     Q_PROPERTY(bool runActive READ runActive NOTIFY runActiveChanged)
+    Q_PROPERTY(bool runPaused READ runPaused NOTIFY runPausedChanged)
 
 public:
     explicit WriterController(QObject *parent = nullptr);
@@ -40,6 +41,7 @@ public:
     void setSettingsOpen(bool v);
 
     bool runActive() const { return m_runActive; }
+    bool runPaused() const { return m_runPaused; }
 
     const FontCatalog &fontCatalog() const { return m_fontCatalog; }
 
@@ -51,6 +53,8 @@ public:
     Q_INVOKABLE void pickFontFolder();
     Q_INVOKABLE void reloadFonts();
     Q_INVOKABLE void startRun();
+    Q_INVOKABLE void pauseRun();
+    Q_INVOKABLE void resumeRun();
     Q_INVOKABLE void stopRun();
 
     Q_INVOKABLE void notifyLineHeightCollision(bool exceeds);
@@ -77,6 +81,7 @@ signals:
     void layoutInvalidated();
     void settingsOpenChanged();
     void runActiveChanged();
+    void runPausedChanged();
     void lineHeightCollisionWarning();
     void fontFolderMissing(const QString &path);
     void projectIoError(const QString &message);
@@ -99,6 +104,7 @@ private:
     QHash<int, QPointF> m_manualAnchors;
     bool m_settingsOpen = false;
     bool m_runActive = false;
+    bool m_runPaused = false;
     bool m_wasLineHeightExceeding = false;
     bool m_documentDirty = false;
     bool m_suppressDirty = false;

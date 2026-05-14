@@ -16,6 +16,7 @@ class AppSettings;
 class HandwritingCanvasItem : public QQuickPaintedItem {
     Q_OBJECT
     Q_PROPERTY(WriterController *controller READ controller WRITE setController NOTIFY controllerChanged)
+    Q_PROPERTY(bool glyphDragActive READ glyphDragActive NOTIFY glyphDragActiveChanged)
 
 public:
     explicit HandwritingCanvasItem(QQuickItem *parent = nullptr);
@@ -23,10 +24,13 @@ public:
     WriterController *controller() const { return m_ctrl; }
     void setController(WriterController *c);
 
+    bool glyphDragActive() const { return m_dragDocIndex >= 0; }
+
     void paint(QPainter *painter) override;
 
 signals:
     void controllerChanged();
+    void glyphDragActiveChanged();
     void runPreparationStarted();
     void runPreparationFinished();
 
@@ -55,6 +59,7 @@ private:
     void paintStaticContent(QPainter *painter, const AppSettings *st, double s) const;
     void drawRunProgressAlongPath(QPainter *painter, double pathFrom, double pathTo, double s) const;
     void prepareRunSimulationAfterUi();
+    void setDragDocIndex(int idx);
 
     WriterController *m_ctrl = nullptr;
     LayoutResult m_layout;
