@@ -153,6 +153,44 @@ ApplicationWindow {
         }
     }
 
+    Popup {
+        id: runCalcPopup
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        modal: true
+        closePolicy: Popup.NoAutoClose
+        width: 300
+        height: 140
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 20
+            BusyIndicator {
+                Layout.alignment: Qt.AlignHCenter
+                running: true
+            }
+            Label {
+                text: "Doing calculations..."
+                Layout.alignment: Qt.AlignHCenter
+                color: "#18181b"
+            }
+        }
+        background: Rectangle {
+            color: "#ffffff"
+            radius: 8
+            border.color: "#d4d4d8"
+        }
+    }
+
+    Connections {
+        target: handCanvas
+        function onRunPreparationStarted() {
+            runCalcPopup.open()
+        }
+        function onRunPreparationFinished() {
+            runCalcPopup.close()
+        }
+    }
+
     header: ToolBar {
         RowLayout {
             anchors.fill: parent
@@ -231,6 +269,10 @@ ApplicationWindow {
                 value: Math.round(writerController.settings.joinDistMm * 10)
                 onValueModified: writerController.settings.joinDistMm = value / 10.0
                 Layout.preferredWidth: 84
+            }
+            Label {
+                text: writerController.documentDirty ? "(unsaved changes)" : "Saved"
+                color: writerController.documentDirty ? "#ca8a04" : "#3f3f46"
             }
             Item { Layout.fillWidth: true }
             Label {
