@@ -390,20 +390,204 @@ ApplicationWindow {
         }
 
         Rectangle {
-            Layout.preferredWidth: 260
+            id: gcodePanel
+            Layout.preferredWidth: 280
             Layout.fillHeight: true
             color: "#fafafa"
             border.color: "#d4d4d8"
-            ScrollView {
+
+            ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 6
-                TextArea {
-                    id: gcodePlaceholder
-                    readOnly: true
-                    wrapMode: TextArea.Wrap
-                    text: ""
-                    placeholderText: "G-code / program output will appear here."
-                    background: Item {}
+                spacing: 4
+
+                Label {
+                    text: "Generated G-code"
+                    font.bold: true
+                    color: "#3f3f46"
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 4
+                    Button {
+                        text: "Copy"
+                        implicitHeight: 28
+                        onClicked: gcodeController.copyToClipboard()
+                    }
+                    Button {
+                        text: "Save…"
+                        implicitHeight: 28
+                        onClicked: gcodeController.saveGcodeFile()
+                    }
+                    Button {
+                        text: "Send"
+                        implicitHeight: 28
+                        enabled: grblConnection.connected && !grblConnection.streaming
+                        onClicked: grblConnection.streamProgram(gcodeController.generatedGcode)
+                    }
+                    Item { Layout.fillWidth: true }
+                    Label {
+                        text: gcodeController.gcodeStale ? "(stale)" : ""
+                        color: "#ca8a04"
+                        font.pixelSize: 11
+                    }
+                }
+
+                ScrollView {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: parent.height * 0.55
+                    Layout.fillHeight: true
+                    clip: true
+                    TextArea {
+                        id: gcodeView
+                        readOnly: true
+                        wrapMode: TextArea.NoWrap
+                        font.family: "monospace"
+                        font.pixelSize: 11
+                        text: gcodeController.generatedGcode
+                        background: Rectangle {
+                            color: "#ffffff"
+                            border.color: "#e4e4e7"
+                            radius: 4
+                        }
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 1
+                    color: "#d4d4d8"
+                }
+
+                Label {
+                    text: "GRBL console"
+                    font.bold: true
+                    color: "#3f3f46"
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 4
+                    ComboBox {
+                        id: portCombo
+                        Layout.fillWidth: true
+                        implicitHeight: 28
+                        model: grblConnection.availablePorts
+                        onActivated: grblConnection.portName = currentText
+                        Component.onCompleted: {
+                            const idx = model.indexOf(grblConnection.portName)
+                            if (idx >= 0) currentIndex = idx
+                        }
+                        Connections {
+                            target: grblConnection
+                            function onPortNameChanged() {
+                                const idx = portCombo.model.indexOf(grblConnection.portName)
+                                if (idx >= 0) portCombo.currentIndex = idx
+                            }
+                            function onAvailablePortsChanged() {
+                                const idx = portCombo.model.indexOf(grblConnection.portName)
+                                if (idx >= 0) portCombo.currentIndex = idx
+                            }
+                        }
+                    }
+                    Button {
+                        text: "↻"
+                        implicitHeight: 28
+                        implicitWidth: 32
+                        onClicked: grblConnection.refreshPorts()
+                    }
+                    Button {
+                        text: grblConnection.connected ? "Disconnect" : "Connect"
+                        implicitHeight: 28
+                        onClicked: {
+                            if (grblConnection.connected)
+                                grblConnection.disconnectPort()
+                            else {
+                                if (portCombo.currentIndex >= 0)
+                                    grblConnection.portName = portCombo.currentText
+                                grblConnection.connectPort()
+                            }
+                        }
+                    }
+                }
+
+                Label {
+                    text: grblConnection.connected
+                          ? (grblConnection.streaming
+                             ? ("Streaming " + Math.round(grblConnection.streamProgress * 100) + "%")
+                             : "Connected")
+                          : "Disconnected"
+                    color: grblConnection.connected ? "#16a34a" : "#71717a"
+                    font.pixelSize: 11
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 4
+                    Button {
+                        text: "Clear"
+                        implicitHeight: 24
+                        onClicked: grblConnection.clearLog()
+                    }
+                    Button {
+                        text: "Cancel"
+                        implicitHeight: 24
+                        enabled: grblConnection.streaming
+                        onClicked: grblConnection.cancelStream()
+                    }
+                    Item { Layout.fillWidth: true }
+                }
+
+                ScrollView {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 120
+                    clip: true
+                    TextArea {
+                        id: consoleLog
+                        readOnly: true
+                        wrapMode: TextArea.Wrap
+                        font.family: "monospace"
+                        font.pixelSize: 10
+                        text: grblConnection.consoleLog
+                        onTextChanged: cursorPosition = length
+                        background: Rectangle {
+                            color: "#18181b"
+                            radius: 4
+                        }
+                        color: "#e4e4e7"
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 4
+                    TextField {
+                        id: consoleInput
+                        Layout.fillWidth: true
+                        implicitHeight: 32
+                        placeholderText: "G-code or ! ~ ?"
+                        font.family: "monospace"
+                        font.pixelSize: 11
+                        enabled: grblConnection.connected && !grblConnection.streaming
+                        onAccepted: {
+                            if (text.trim().length > 0) {
+                                grblConnection.sendLine(text)
+                                text = ""
+                            }
+                        }
+                    }
+                    Button {
+                        text: "Send"
+                        implicitHeight: 32
+                        enabled: grblConnection.connected && !grblConnection.streaming
+                        onClicked: {
+                            if (consoleInput.text.trim().length > 0) {
+                                grblConnection.sendLine(consoleInput.text)
+                                consoleInput.text = ""
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -440,6 +624,14 @@ ApplicationWindow {
                 spacing: 10
 
                 Label { text: "Feed rate (cm/s)"; font.bold: true; color: root.settingsTitleColor }
+                Label {
+                    text: "Also sets G-code F in mm/min (×600). Current: "
+                          + Math.round(writerController.settings.feedRateMmPerMin)
+                    wrapMode: Text.Wrap
+                    Layout.fillWidth: true
+                    color: "#3f3f46"
+                    font.pixelSize: 11
+                }
                 SpinBox {
                     from: 1
                     to: 50000
@@ -548,6 +740,28 @@ ApplicationWindow {
                     wheelEnabled: true
                     value: Math.round(writerController.settings.joinDistMm * 10)
                     onValueModified: writerController.settings.joinDistMm = value / 10.0
+                }
+
+                Label { text: "CNC / pen"; font.bold: true; color: root.settingsTitleColor }
+                Label { text: "Pen up Z"; color: root.settingsTitleColor }
+                SpinBox {
+                    from: -1000
+                    to: 1000
+                    stepSize: 1
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.penUpZ * 10)
+                    onValueModified: writerController.settings.penUpZ = value / 10.0
+                }
+                Label { text: "Pen down Z"; color: root.settingsTitleColor }
+                SpinBox {
+                    from: -1000
+                    to: 1000
+                    stepSize: 1
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.penDownZ * 10)
+                    onValueModified: writerController.settings.penDownZ = value / 10.0
                 }
 
                 Label { text: "Font unit → mm scale"; font.bold: true; color: root.settingsTitleColor }

@@ -19,6 +19,8 @@ int main(int argc, char *argv[]) {
         for (const QQmlError &err : warnings) qWarning() << "[qml]" << err.toString();
     });
     engine.rootContext()->setContextProperty("writerController", &writer);
+    engine.rootContext()->setContextProperty("gcodeController", writer.gcode());
+    engine.rootContext()->setContextProperty("grblConnection", writer.grbl());
     engine.load(QUrl(QStringLiteral("qrc:/qml/Main.qml")));
     if (engine.rootObjects().isEmpty()) return 1;
     return app.exec();

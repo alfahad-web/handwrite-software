@@ -15,6 +15,9 @@ class AppSettings : public QObject {
     Q_PROPERTY(double lineHeightCm READ lineHeightCm WRITE setLineHeightCm NOTIFY lineHeightCmChanged)
     Q_PROPERTY(double fontUnitToCm READ fontUnitToCm WRITE setFontUnitToCm NOTIFY fontUnitToCmChanged)
     Q_PROPERTY(double joinDistMm READ joinDistMm WRITE setJoinDistMm NOTIFY joinDistMmChanged)
+    Q_PROPERTY(double penUpZ READ penUpZ WRITE setPenUpZ NOTIFY penUpZChanged)
+    Q_PROPERTY(double penDownZ READ penDownZ WRITE setPenDownZ NOTIFY penDownZChanged)
+    Q_PROPERTY(double feedRateMmPerMin READ feedRateMmPerMin NOTIFY feedRateMmPerMinChanged)
 
 public:
     explicit AppSettings(QObject *parent = nullptr);
@@ -52,6 +55,14 @@ public:
     double joinDistMm() const { return m_joinDistMm; }
     void setJoinDistMm(double v);
 
+    double penUpZ() const { return m_penUpZ; }
+    void setPenUpZ(double v);
+
+    double penDownZ() const { return m_penDownZ; }
+    void setPenDownZ(double v);
+
+    double feedRateMmPerMin() const { return m_feedRateCmPerS * 600.0; }
+
     Q_INVOKABLE void load();
     Q_INVOKABLE void save();
 
@@ -67,6 +78,9 @@ signals:
     void lineHeightCmChanged();
     void fontUnitToCmChanged();
     void joinDistMmChanged();
+    void penUpZChanged();
+    void penDownZChanged();
+    void feedRateMmPerMinChanged();
     void anyChanged();
 
 private:
@@ -81,4 +95,6 @@ private:
     double m_lineHeightCm = 0.45;
     double m_fontUnitToCm = 0.0001;
     double m_joinDistMm = 0.0;
+    double m_penUpZ = 30.0;
+    double m_penDownZ = -5.0;
 };

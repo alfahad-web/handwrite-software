@@ -19,6 +19,7 @@ void AppSettings::setFeedRateCmPerS(double v) {
     if (qFuzzyCompare(m_feedRateCmPerS, v)) return;
     m_feedRateCmPerS = v;
     emit feedRateCmPerSChanged();
+    emit feedRateMmPerMinChanged();
     emit anyChanged();
 }
 
@@ -102,6 +103,22 @@ void AppSettings::setJoinDistMm(double v) {
     emit anyChanged();
 }
 
+void AppSettings::setPenUpZ(double v) {
+    if (!std::isfinite(v)) v = 30.0;
+    if (qFuzzyCompare(m_penUpZ, v)) return;
+    m_penUpZ = v;
+    emit penUpZChanged();
+    emit anyChanged();
+}
+
+void AppSettings::setPenDownZ(double v) {
+    if (!std::isfinite(v)) v = -5.0;
+    if (qFuzzyCompare(m_penDownZ, v)) return;
+    m_penDownZ = v;
+    emit penDownZChanged();
+    emit anyChanged();
+}
+
 void AppSettings::load() {
     QSettings s;
     s.beginGroup(kG);
@@ -116,6 +133,8 @@ void AppSettings::load() {
     setLineHeightCm(s.value("lineHeightCm", m_lineHeightCm).toDouble());
     setFontUnitToCm(s.value("fontUnitToCm", m_fontUnitToCm).toDouble());
     setJoinDistMm(s.value("joinDistMm", m_joinDistMm).toDouble());
+    setPenUpZ(s.value("penUpZ", m_penUpZ).toDouble());
+    setPenDownZ(s.value("penDownZ", m_penDownZ).toDouble());
     s.endGroup();
 }
 
@@ -133,5 +152,7 @@ void AppSettings::save() {
     s.setValue("lineHeightCm", m_lineHeightCm);
     s.setValue("fontUnitToCm", m_fontUnitToCm);
     s.setValue("joinDistMm", m_joinDistMm);
+    s.setValue("penUpZ", m_penUpZ);
+    s.setValue("penDownZ", m_penDownZ);
     s.endGroup();
 }

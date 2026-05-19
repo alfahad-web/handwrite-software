@@ -10,7 +10,7 @@
 #include <QJsonObject>
 
 namespace {
-constexpr int kFormatVersion = 1;
+constexpr int kFormatVersion = 2;
 
 QJsonObject settingsToJson(const AppSettings *st) {
     QJsonObject o;
@@ -25,6 +25,8 @@ QJsonObject settingsToJson(const AppSettings *st) {
     o.insert(QStringLiteral("lineHeightCm"), st->lineHeightCm());
     o.insert(QStringLiteral("fontUnitToCm"), st->fontUnitToCm());
     o.insert(QStringLiteral("joinDistMm"), st->joinDistMm());
+    o.insert(QStringLiteral("penUpZ"), st->penUpZ());
+    o.insert(QStringLiteral("penDownZ"), st->penDownZ());
     return o;
 }
 
@@ -40,6 +42,8 @@ void applySettingsFromJson(AppSettings *st, const QJsonObject &o) {
     if (o.contains(QStringLiteral("lineHeightCm"))) st->setLineHeightCm(o.value(QStringLiteral("lineHeightCm")).toDouble());
     if (o.contains(QStringLiteral("fontUnitToCm"))) st->setFontUnitToCm(o.value(QStringLiteral("fontUnitToCm")).toDouble());
     if (o.contains(QStringLiteral("joinDistMm"))) st->setJoinDistMm(o.value(QStringLiteral("joinDistMm")).toDouble());
+    if (o.contains(QStringLiteral("penUpZ"))) st->setPenUpZ(o.value(QStringLiteral("penUpZ")).toDouble());
+    if (o.contains(QStringLiteral("penDownZ"))) st->setPenDownZ(o.value(QStringLiteral("penDownZ")).toDouble());
 }
 }
 
@@ -98,7 +102,7 @@ bool WriterProjectService::loadProject(const QString &path, WriterController *ct
     }
     const QJsonObject root = doc.object();
     const int fmt = root.value(QStringLiteral("formatVersion")).toInt(0);
-    if (fmt != kFormatVersion) {
+    if (fmt < 1 || fmt > kFormatVersion) {
         if (errorMessage) *errorMessage = QStringLiteral("Unsupported project format version.");
         return false;
     }

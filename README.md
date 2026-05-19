@@ -10,7 +10,7 @@ This repository contains two Qt 6 desktop applications and a browser-based font 
 | `[writer/](writer/)`             | `WriterQt`     | Preview typed text as handwriting from a font folder, layout, and run simulation |
 
 
-**Requirements:** CMake 3.21+, a C++17 toolchain, and Qt 6.5+ (Quick, QuickControls2, Widgets).
+**Requirements:** CMake 3.21+, a C++17 toolchain, and Qt 6.5+ (Quick, QuickControls2, Widgets). For CNC serial control in Writer, install **qt6-serialport** (e.g. `pacman -S qt6-serialport`). **qt6-base and qt6-serialport must be the same minor version** (e.g. both 6.11.1); a mismatch causes link errors or Writer will build with a stubbed console. On Arch/CachyOS: `sudo pacman -Syu qt6-base qt6-serialport`.
 
 During configuration you may see `Could NOT find WrapVulkanHeaders` — that is normal for these apps and can be ignored unless you are building Qt Vulkan-specific features yourself.
 

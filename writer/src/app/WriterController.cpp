@@ -1,5 +1,7 @@
 #include "WriterController.h"
 
+#include "cnc/GrblConnection.h"
+#include "gcode/GcodeController.h"
 #include "services/WriterProjectService.h"
 
 #include <QDir>
@@ -36,12 +38,17 @@ void remapManualAnchors(QHash<int, QPointF> *anchors, const QString &oldText, co
 WriterController::WriterController(QObject *parent) : QObject(parent) {
     m_document = new DocumentModel(this);
     m_settings = new AppSettings(this);
+    m_gcode = new GcodeController(this, this);
+    m_grbl = new GrblConnection(this);
     m_settings->load();
     m_lastDocumentText = m_document->text();
     connect(m_document, &DocumentModel::textChanged, this, &WriterController::onDocumentTextChanged);
     connect(m_settings, &AppSettings::anyChanged, this, [this]() {
         emit layoutInvalidated();
         bumpDirty();
+    });
+    connect(m_grbl, &GrblConnection::streamFinished, this, [this](bool) {
+        if (m_runActive) stopRun();
     });
 }
 
@@ -162,6 +169,12 @@ void WriterController::clearAllManualAnchors() {
 
 void WriterController::startRun() {
     if (m_runActive) return;
+    m_gcode->regenerate();
+    if (m_grbl->connected()) {
+        m_grbl->streamProgram(m_gcode->generatedGcode());
+    } else {
+        m_grbl->logMessage(QStringLiteral("Not connected — preview only (no CNC stream)."));
+    }
     m_runPaused = false;
     m_runActive = true;
     emit runActiveChanged();
@@ -170,22 +183,26 @@ void WriterController::startRun() {
 void WriterController::pauseRun() {
     if (!m_runActive || m_runPaused) return;
     m_runPaused = true;
+    if (m_grbl->connected()) m_grbl->sendRealtimeCommand(QStringLiteral("!"));
     emit runPausedChanged();
 }
 
 void WriterController::resumeRun() {
     if (!m_runActive || !m_runPaused) return;
     m_runPaused = false;
+    if (m_grbl->connected()) m_grbl->sendRealtimeCommand(QStringLiteral("~"));
     emit runPausedChanged();
 }
 
 void WriterController::stopRun() {
-    if (!m_runActive) return;
+    if (!m_runActive && !m_grbl->streaming()) return;
+    if (m_grbl->streaming()) m_grbl->cancelStream();
     const bool hadPause = m_runPaused;
+    const bool wasActive = m_runActive;
     m_runActive = false;
     m_runPaused = false;
     if (hadPause) emit runPausedChanged();
-    emit runActiveChanged();
+    if (wasActive) emit runActiveChanged();
 }
 
 void WriterController::notifyLineHeightCollision(bool exceeds) {
@@ -217,6 +234,8 @@ void WriterController::resetToEmptyProject(bool resetSettingsToDefaults) {
         m_settings->setLineHeightCm(0.45);
         m_settings->setFontUnitToCm(0.0001);
         m_settings->setJoinDistMm(0.0);
+        m_settings->setPenUpZ(30.0);
+        m_settings->setPenDownZ(-5.0);
     }
     m_fontFolderPath.clear();
     emit fontFolderPathChanged();

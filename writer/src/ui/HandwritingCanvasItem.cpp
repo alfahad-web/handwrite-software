@@ -2,6 +2,8 @@
 
 #include "app/AppSettings.h"
 #include "app/WriterController.h"
+#include "cnc/GrblConnection.h"
+#include "gcode/PathBuilder.h"
 
 #include <QPainter>
 #include <QPainterPath>
@@ -90,6 +92,12 @@ void HandwritingCanvasItem::setController(WriterController *c) {
                 clearRunCaches();
                 update();
             }
+        });
+        connect(m_ctrl->grbl(), &GrblConnection::streamProgressChanged, this, [this]() {
+            if (!m_ctrl || !m_ctrl->runActive() || m_runTotalCm <= 1e-9) return;
+            m_runDistance = m_ctrl->grbl()->streamProgress() * m_runTotalCm;
+            if (m_runDistance > m_runTotalCm) m_runDistance = m_runTotalCm;
+            update();
         });
         connect(m_ctrl, &WriterController::runPausedChanged, this, [this]() {
             if (!m_ctrl || !m_ctrl->runActive()) return;
@@ -183,10 +191,10 @@ void HandwritingCanvasItem::onInvalidated() {
     update();
 }
 
-double HandwritingCanvasItem::segmentLengthCm(const QPair<bool, QVector<QPointF>> &seg) const {
-    const QVector<QPointF> &pts = seg.second;
+double HandwritingCanvasItem::segmentLengthCm(const PathSegment &seg) const {
+    const QVector<QPointF> &pts = seg.pointsCm;
     if (pts.size() < 2) return 0;
-    if (seg.first) return dist(pts[0], pts[1]);
+    if (seg.travel) return dist(pts[0], pts[1]);
     return polylineLength(pts);
 }
 
@@ -195,28 +203,15 @@ void HandwritingCanvasItem::rebuildRunPath() {
     m_runSegCumStartCm.clear();
     m_runSegLenCm.clear();
     m_runTotalCm = 0;
-    QPointF prevEnd;
-    bool hasPrev = false;
 
-    for (const LayoutGlyph &lg : m_layout.glyphs) {
-        for (const QVector<QPointF> &poly : lg.polylinesCm) {
-            if (poly.size() < 2) continue;
-            if (hasPrev) {
-                QVector<QPointF> bridge = {prevEnd, poly.first()};
-                const double len = dist(prevEnd, poly.first());
-                m_runSegCumStartCm.push_back(m_runTotalCm);
-                m_runSegLenCm.push_back(len);
-                m_runSegments.push_back(qMakePair(true, bridge));
-                m_runTotalCm += len;
-            }
-            const double len = polylineLength(poly);
-            m_runSegCumStartCm.push_back(m_runTotalCm);
-            m_runSegLenCm.push_back(len);
-            m_runSegments.push_back(qMakePair(false, poly));
-            m_runTotalCm += len;
-            prevEnd = poly.last();
-            hasPrev = true;
-        }
+    const PathBuildResult built = PathBuilder::build(m_layout);
+    for (const PathSegment &seg : built.segments) {
+        const double len = segmentLengthCm(seg);
+        if (len <= 1e-9) continue;
+        m_runSegCumStartCm.push_back(m_runTotalCm);
+        m_runSegLenCm.push_back(len);
+        m_runSegments.push_back(seg);
+        m_runTotalCm += len;
     }
 }
 
@@ -238,8 +233,8 @@ void HandwritingCanvasItem::drawRunProgressAlongPath(QPainter *painter, double p
             continue;
         }
 
-        const bool travel = m_runSegments[si].first;
-        const QVector<QPointF> &pts = m_runSegments[si].second;
+        const bool travel = m_runSegments[si].travel;
+        const QVector<QPointF> &pts = m_runSegments[si].pointsCm;
         if (travel && pts.size() >= 2) {
             const QPointF a = pts[0];
             const QPointF b = pts[1];

@@ -8,6 +8,7 @@
 #include <QTimer>
 #include <QVector>
 
+#include "gcode/PathBuilder.h"
 #include "layout/LayoutEngine.h"
 
 class WriterController;
@@ -52,7 +53,7 @@ private:
     QPointF cmFromPixel(const QPointF &px) const;
     int hitTestGlyph(const QPointF &px);
     void rebuildRunPath();
-    double segmentLengthCm(const QPair<bool, QVector<QPointF>> &seg) const;
+    double segmentLengthCm(const PathSegment &seg) const;
     QPointF glyphBottomLeft(const LayoutGlyph &g) const;
 
     void clearRunCaches();
@@ -72,7 +73,7 @@ private:
     QPointF m_dragGlyphStartCm;
 
     QTimer m_runTimer;
-    QVector<QPair<bool, QVector<QPointF>>> m_runSegments;
+    QVector<PathSegment> m_runSegments;
     QVector<double> m_runSegCumStartCm;
     QVector<double> m_runSegLenCm;
     double m_runTotalCm = 0;

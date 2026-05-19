@@ -7,7 +7,9 @@
 
 #include "AppSettings.h"
 #include "DocumentModel.h"
+#include "cnc/GrblConnection.h"
 #include "font/FontLoader.h"
+#include "gcode/GcodeController.h"
 
 class WriterController : public QObject {
     Q_OBJECT
@@ -18,6 +20,8 @@ class WriterController : public QObject {
     Q_PROPERTY(bool documentDirty READ documentDirty NOTIFY documentDirtyChanged)
     Q_PROPERTY(DocumentModel *document READ document CONSTANT)
     Q_PROPERTY(AppSettings *settings READ settings CONSTANT)
+    Q_PROPERTY(GcodeController *gcode READ gcode CONSTANT)
+    Q_PROPERTY(GrblConnection *grbl READ grbl CONSTANT)
     Q_PROPERTY(bool settingsOpen READ settingsOpen WRITE setSettingsOpen NOTIFY settingsOpenChanged)
     Q_PROPERTY(bool runActive READ runActive NOTIFY runActiveChanged)
     Q_PROPERTY(bool runPaused READ runPaused NOTIFY runPausedChanged)
@@ -36,6 +40,8 @@ public:
 
     DocumentModel *document() const { return m_document; }
     AppSettings *settings() const { return m_settings; }
+    GcodeController *gcode() const { return m_gcode; }
+    GrblConnection *grbl() const { return m_grbl; }
 
     bool settingsOpen() const { return m_settingsOpen; }
     void setSettingsOpen(bool v);
@@ -95,6 +101,8 @@ private:
 
     DocumentModel *m_document = nullptr;
     AppSettings *m_settings = nullptr;
+    GcodeController *m_gcode = nullptr;
+    GrblConnection *m_grbl = nullptr;
     QString m_viewMode = QStringLiteral("typing");
     QString m_fontFolderPath;
     QString m_fontStatus;
