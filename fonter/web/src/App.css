@@ -155,13 +155,19 @@
 }
 
 .board-nav {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  z-index: 8;
+}
+
+.header-board-nav {
+  flex-shrink: 0;
+}
+
+.header-board-nav .board-nav-btn {
+  width: 32px;
+  height: 32px;
+  font-size: 13px;
 }
 
 .board-nav-row {

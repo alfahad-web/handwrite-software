@@ -7,7 +7,10 @@ import {
   useState,
 } from "react";
 import "./App.css";
-import { BoardCanvas } from "./components/BoardCanvas";
+import {
+  BoardCanvas,
+  type BoardCanvasHandle,
+} from "./components/BoardCanvas";
 import {
   assignSelectionCharacter,
   deleteSelectedSelectionWithMessage,
@@ -36,6 +39,7 @@ export default function App() {
   const pendingAssignIdRef = useRef("");
   const openInputRef = useRef<HTMLInputElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
+  const boardCanvasRef = useRef<BoardCanvasHandle>(null);
 
   useEffect(() => {
     return store.subscribe(() => rerender());
@@ -285,6 +289,47 @@ export default function App() {
               +
             </button>
           </div>
+          <div
+            className="board-nav header-board-nav"
+            aria-label="Pan board view"
+          >
+            <div className="board-nav-row">
+              <button
+                type="button"
+                className="board-nav-btn"
+                onClick={() => boardCanvasRef.current?.scrollByStep(0, -140)}
+              >
+                U
+              </button>
+            </div>
+            <div className="board-nav-row">
+              <button
+                type="button"
+                className="board-nav-btn"
+                onClick={() =>
+                  boardCanvasRef.current?.scrollByStep(-140, 0)
+                }
+              >
+                L
+              </button>
+              <button
+                type="button"
+                className="board-nav-btn"
+                onClick={() => boardCanvasRef.current?.scrollByStep(140, 0)}
+              >
+                R
+              </button>
+            </div>
+            <div className="board-nav-row">
+              <button
+                type="button"
+                className="board-nav-btn"
+                onClick={() => boardCanvasRef.current?.scrollByStep(0, 140)}
+              >
+                D
+              </button>
+            </div>
+          </div>
           <button
             type="button"
             className={`btn ${store.toolMode() === "select" ? "active" : ""}`}
@@ -351,6 +396,7 @@ export default function App() {
 
       <main className="app-main">
         <BoardCanvas
+          ref={boardCanvasRef}
           store={store}
           dpi={dpi}
           onSelectionDoubleClick={openAssignFor}

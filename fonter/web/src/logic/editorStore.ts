@@ -18,7 +18,7 @@ import {
 
 const kDefaultStrokePx = 6;
 const kDefaultCaptureGapUm = 350;
-const kDefaultGuideLineGapPx = 120;
+const kDefaultGuideLineGapPx = 65;
 const kDefaultEraseRadiusPx = 20;
 const kMinRectSide = 4;
 const kSpatialCellSizePx = 48.0;

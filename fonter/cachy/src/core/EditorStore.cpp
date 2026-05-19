@@ -10,7 +10,7 @@
 namespace {
 constexpr int kDefaultStrokePx = 6;
 constexpr int kDefaultCaptureGapUm = 350;
-constexpr int kDefaultGuideLineGapPx = 120;
+constexpr int kDefaultGuideLineGapPx = 65;
 constexpr int kDefaultEraseRadiusPx = 20;
 constexpr int kMinRectSide = 4;
 constexpr qreal kSpatialCellSizePx = 48.0;

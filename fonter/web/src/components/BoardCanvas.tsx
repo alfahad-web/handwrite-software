@@ -1,6 +1,8 @@
 import {
+  forwardRef,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useRef,
   useState,
 } from "react";
@@ -15,11 +17,17 @@ type BoardCanvasProps = {
   onSelectionDoubleClick: (selectionId: string) => void;
 };
 
-export function BoardCanvas({
-  store,
-  dpi,
-  onSelectionDoubleClick,
-}: BoardCanvasProps) {
+export type BoardCanvasHandle = {
+  scrollByStep: (dx: number, dy: number) => void;
+};
+
+export const BoardCanvas = forwardRef<
+  BoardCanvasHandle,
+  BoardCanvasProps
+>(function BoardCanvas(
+  { store, dpi, onSelectionDoubleClick },
+  ref,
+) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pointerRef = useRef(new BoardPointerController(store));
@@ -116,10 +124,18 @@ export function BoardCanvas({
     repaint();
   };
 
-  const scrollByStep = (dx: number, dy: number) => {
+  const scrollByStep = useCallback((dx: number, dy: number) => {
     if (!scrollRef.current) return;
     scrollRef.current.scrollBy({ left: dx, top: dy, behavior: "smooth" });
-  };
+  }, []);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      scrollByStep,
+    }),
+    [scrollByStep],
+  );
 
   const onDoubleClick = (ev: React.MouseEvent<HTMLCanvasElement>) => {
     if (store.toolModeValue() !== ToolMode.Select) return;
@@ -220,42 +236,6 @@ export function BoardCanvas({
             )}
         </div>
       </div>
-      <div className="board-nav">
-        <div className="board-nav-row">
-          <button
-            type="button"
-            className="board-nav-btn"
-            onClick={() => scrollByStep(0, -140)}
-          >
-            U
-          </button>
-        </div>
-        <div className="board-nav-row">
-          <button
-            type="button"
-            className="board-nav-btn"
-            onClick={() => scrollByStep(-140, 0)}
-          >
-            L
-          </button>
-          <button
-            type="button"
-            className="board-nav-btn"
-            onClick={() => scrollByStep(140, 0)}
-          >
-            R
-          </button>
-        </div>
-        <div className="board-nav-row">
-          <button
-            type="button"
-            className="board-nav-btn"
-            onClick={() => scrollByStep(0, 140)}
-          >
-            D
-          </button>
-        </div>
-      </div>
     </div>
   );
-}
+});
