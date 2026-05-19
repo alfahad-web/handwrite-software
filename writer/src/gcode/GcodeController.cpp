@@ -39,6 +39,25 @@ void GcodeController::copyToClipboard() {
         cb->setText(m_generatedGcode);
 }
 
+void GcodeController::setGcodeText(const QString &gcode) {
+    setGeneratedGcode(gcode);
+    setGcodeStale(false);
+}
+
+void GcodeController::openGcodeFile() {
+    const QString path = QFileDialog::getOpenFileName(
+        nullptr,
+        QStringLiteral("Open G-code"),
+        QString(),
+        QStringLiteral("G-code (*.gcode);;All files (*)")
+    );
+    if (path.isEmpty()) return;
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return;
+    setGcodeText(QString::fromUtf8(file.readAll()));
+    file.close();
+}
+
 void GcodeController::saveGcodeFile() {
     const QString path = QFileDialog::getSaveFileName(
         nullptr,

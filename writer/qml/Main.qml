@@ -277,6 +277,20 @@ ApplicationWindow {
                 enabled: grblConnection.serialAvailable && !grblConnection.connected
                          && !grblConnection.streaming
 
+                background: Rectangle {
+                    color: toolbarPortCombo.enabled ? "#3f3f46" : "#52525b"
+                    border.color: "#71717a"
+                    radius: 4
+                }
+
+                indicator: Text {
+                    x: toolbarPortCombo.width - width - 10
+                    y: toolbarPortCombo.topPadding + (toolbarPortCombo.availableHeight - height) / 2
+                    text: "▼"
+                    color: "#ffffff"
+                    font.pixelSize: 9
+                }
+
                 delegate: ItemDelegate {
                     width: toolbarPortCombo.width
                     contentItem: Text {
@@ -286,7 +300,11 @@ ApplicationWindow {
                                    ? grblConnection.portLabels[idx] : modelData
                         }
                         elide: Text.ElideRight
-                        color: "#18181b"
+                        color: "#1e3a8a"
+                    }
+                    highlighted: toolbarPortCombo.highlightedIndex === index
+                    background: Rectangle {
+                        color: highlighted ? "#dbeafe" : "#ffffff"
                     }
                 }
 
@@ -302,7 +320,7 @@ ApplicationWindow {
                         return grblConnection.availablePorts.length > 0
                                ? "Select port…" : "No ports found"
                     }
-                    color: "#18181b"
+                    color: "#ffffff"
                     verticalAlignment: Text.AlignVCenter
                     elide: Text.ElideRight
                 }
@@ -519,6 +537,11 @@ ApplicationWindow {
                         onClicked: gcodeController.copyToClipboard()
                     }
                     Button {
+                        text: "Open…"
+                        implicitHeight: 28
+                        onClicked: gcodeController.openGcodeFile()
+                    }
+                    Button {
                         text: "Save…"
                         implicitHeight: 28
                         onClicked: gcodeController.saveGcodeFile()
@@ -539,20 +562,122 @@ ApplicationWindow {
 
                 ScrollView {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: parent.height * 0.55
                     Layout.fillHeight: true
+                    Layout.minimumHeight: 80
                     clip: true
                     TextArea {
                         id: gcodeView
-                        readOnly: true
                         wrapMode: TextArea.NoWrap
                         font.family: "monospace"
                         font.pixelSize: 11
+                        color: "#1e3a8a"
+                        selectedTextColor: "#ffffff"
+                        selectionColor: "#2563eb"
+                        selectByMouse: true
+                        placeholderText: "Generated G-code (editable). Lines starting with ; are ignored when sending."
+                        placeholderTextColor: "#64748b"
+                        property bool gcodeSync: false
                         text: gcodeController.generatedGcode
+                        onTextChanged: {
+                            if (gcodeSync) return
+                            gcodeSync = true
+                            gcodeController.generatedGcode = text
+                            gcodeSync = false
+                        }
+                        Connections {
+                            target: gcodeController
+                            function onGeneratedGcodeChanged() {
+                                if (gcodeView.text === gcodeController.generatedGcode) return
+                                gcodeView.gcodeSync = true
+                                gcodeView.text = gcodeController.generatedGcode
+                                gcodeView.gcodeSync = false
+                            }
+                        }
                         background: Rectangle {
                             color: "#ffffff"
                             border.color: "#e4e4e7"
                             radius: 4
+                        }
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 1
+                    color: "#d4d4d8"
+                }
+
+                Label {
+                    text: "Position (mm)"
+                    font.bold: true
+                    color: "#3f3f46"
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    radius: 4
+                    color: "#ffffff"
+                    border.color: "#e4e4e7"
+                    implicitHeight: positionCol.implicitHeight + 16
+
+                    ColumnLayout {
+                        id: positionCol
+                        anchors.fill: parent
+                        anchors.margins: 8
+                        spacing: 6
+
+                        GridLayout {
+                            Layout.fillWidth: true
+                            columns: 2
+                            columnSpacing: 8
+                            rowSpacing: 4
+
+                            Label {
+                                text: "X:"
+                                font.bold: true
+                                color: "#3f3f46"
+                            }
+                            Label {
+                                text: grblConnection.positionKnown
+                                      ? grblConnection.posX.toFixed(3) : "—"
+                                font.family: "monospace"
+                                font.pixelSize: 13
+                                color: "#18181b"
+                            }
+                            Label {
+                                text: "Y:"
+                                font.bold: true
+                                color: "#3f3f46"
+                            }
+                            Label {
+                                text: grblConnection.positionKnown
+                                      ? grblConnection.posY.toFixed(3) : "—"
+                                font.family: "monospace"
+                                font.pixelSize: 13
+                                color: "#18181b"
+                            }
+                            Label {
+                                text: "Z:"
+                                font.bold: true
+                                color: "#3f3f46"
+                            }
+                            Label {
+                                text: grblConnection.positionKnown
+                                      ? grblConnection.posZ.toFixed(3) : "—"
+                                font.family: "monospace"
+                                font.pixelSize: 13
+                                color: "#18181b"
+                            }
+                        }
+
+                        Button {
+                            Layout.fillWidth: true
+                            text: "Home"
+                            implicitHeight: 32
+                            enabled: grblConnection.connected && !grblConnection.streaming
+                            ToolTip.visible: hovered
+                            ToolTip.text: "Set current position as origin (G92 X0 Y0 Z0)"
+                            onClicked: grblConnection.setWorkOriginHere()
                         }
                     }
                 }

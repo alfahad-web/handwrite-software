@@ -32,6 +32,10 @@ bool GrblConnection::serialAvailable() const {
 GrblConnection::GrblConnection(QObject *parent) : QObject(parent) {
     m_wakeTimer.setSingleShot(true);
     connect(&m_wakeTimer, &QTimer::timeout, this, &GrblConnection::onWakeTimer);
+    m_statusTimer.setInterval(250);
+    connect(&m_statusTimer, &QTimer::timeout, this, [this]() {
+        if (m_connected && !m_waking) writeRaw("?");
+    });
 #ifdef WRITER_HAS_SERIALPORT
     connect(&m_serial, &QSerialPort::readyRead, this, &GrblConnection::onReadyRead);
     connect(&m_serial, &QSerialPort::errorOccurred, this, &GrblConnection::onSerialError);
@@ -105,6 +109,110 @@ void GrblConnection::clearLog() {
 void GrblConnection::logMessage(const QString &msg) {
     if (msg.trimmed().isEmpty()) return;
     appendLog(msg.trimmed(), true);
+}
+
+void GrblConnection::setPosition(double x, double y, double z) {
+    const bool changed = !m_positionKnown || !qFuzzyCompare(m_posX, x) || !qFuzzyCompare(m_posY, y)
+                         || !qFuzzyCompare(m_posZ, z);
+    m_posX = x;
+    m_posY = y;
+    m_posZ = z;
+    m_positionKnown = true;
+    if (changed) emit positionChanged();
+}
+
+void GrblConnection::resetPosition() {
+    m_posX = 0;
+    m_posY = 0;
+    m_posZ = 0;
+    m_positionKnown = false;
+    m_wcoX = 0;
+    m_wcoY = 0;
+    m_wcoZ = 0;
+    m_wcoKnown = false;
+    m_pendingOriginZero = false;
+    m_mposX = 0;
+    m_mposY = 0;
+    m_mposZ = 0;
+    m_mposKnown = false;
+    m_wcoLockTimer.invalidate();
+    emit positionChanged();
+}
+
+void GrblConnection::applyOriginZero() {
+    if (m_mposKnown) {
+        m_wcoX = m_mposX;
+        m_wcoY = m_mposY;
+        m_wcoZ = m_mposZ;
+        m_wcoKnown = true;
+        m_wcoLockTimer.start();
+    }
+    setPosition(0, 0, 0);
+}
+
+namespace {
+bool parseAxisTriplet(const QString &line, const QString &key, double *x, double *y, double *z) {
+    const int keyIdx = line.indexOf(key);
+    if (keyIdx < 0) return false;
+    QString coords = line.mid(keyIdx + key.size());
+    const int pipe = coords.indexOf(QLatin1Char('|'));
+    if (pipe >= 0) coords = coords.left(pipe);
+    const QStringList parts = coords.split(QLatin1Char(','), Qt::SkipEmptyParts);
+    if (parts.size() < 3) return false;
+    bool okX = false, okY = false, okZ = false;
+    *x = parts[0].toDouble(&okX);
+    *y = parts[1].toDouble(&okY);
+    *z = parts[2].toDouble(&okZ);
+    return okX && okY && okZ;
+}
+}
+
+void GrblConnection::parseStatusReport(const QString &line) {
+    double x = 0, y = 0, z = 0;
+
+    if (parseAxisTriplet(line, QStringLiteral("WPos:"), &x, &y, &z)) {
+        setPosition(x, y, z);
+        return;
+    }
+
+    double wcoX = 0, wcoY = 0, wcoZ = 0;
+    if (parseAxisTriplet(line, QStringLiteral("WCO:"), &wcoX, &wcoY, &wcoZ)) {
+        const bool wcoLocked = m_wcoLockTimer.isValid() && m_wcoLockTimer.elapsed() < 2000;
+        if (!wcoLocked) {
+            m_wcoX = wcoX;
+            m_wcoY = wcoY;
+            m_wcoZ = wcoZ;
+            m_wcoKnown = true;
+        }
+    }
+
+    double mX = 0, mY = 0, mZ = 0;
+    if (!parseAxisTriplet(line, QStringLiteral("MPos:"), &mX, &mY, &mZ)) return;
+
+    m_mposX = mX;
+    m_mposY = mY;
+    m_mposZ = mZ;
+    m_mposKnown = true;
+
+    // GRBL $10=1 reports MPos; work position is MPos - WCO (G92 updates WCO).
+    if (m_wcoKnown) {
+        setPosition(mX - m_wcoX, mY - m_wcoY, mZ - m_wcoZ);
+    } else {
+        setPosition(mX, mY, mZ);
+    }
+}
+
+void GrblConnection::setWorkOriginHere() {
+    if (!m_connected) {
+        appendLog(QStringLiteral("Not connected — cannot set origin."));
+        return;
+    }
+    if (m_waking) {
+        appendLog(QStringLiteral("Still waking GRBL — try again."));
+        return;
+    }
+    m_pendingOriginZero = true;
+    sendLine(QStringLiteral("G92 X0 Y0 Z0"));
 }
 
 bool GrblConnection::writeRaw(const QByteArray &data) {
@@ -240,6 +348,8 @@ void GrblConnection::disconnectPort() {
     m_waitingOk = false;
     m_sendQueue.clear();
     m_readBuffer.clear();
+    m_statusTimer.stop();
+    resetPosition();
     emit connectedChanged();
     appendLog(QStringLiteral("Disconnected."));
 }
@@ -258,6 +368,7 @@ void GrblConnection::onWakeTimer() {
 #endif
     appendLog(QStringLiteral("GRBL ready."), true);
     trySendNext();
+    m_statusTimer.start();
 }
 
 QString GrblConnection::stripComment(const QString &line) const {
@@ -290,6 +401,9 @@ void GrblConnection::sendLine(const QString &line) {
         sendRealtimeCommand(trimmed);
         return;
     }
+
+    const QString stripped = stripComment(trimmed);
+    if (stripped.startsWith(QLatin1String("G92"), Qt::CaseInsensitive)) m_pendingOriginZero = true;
 
     appendLog(trimmed, false);
     enqueueLine(trimmed);
@@ -391,14 +505,33 @@ void GrblConnection::finishStream(bool success) {
 }
 
 void GrblConnection::processIncomingData() {
-    while (true) {
-        const int nl = m_readBuffer.indexOf('\n');
-        if (nl < 0) break;
+    auto takeLine = [this]() -> QString {
+        int sep = -1;
+        for (int i = 0; i < m_readBuffer.size(); ++i) {
+            const char c = m_readBuffer.at(i);
+            if (c == '\n' || c == '\r') {
+                sep = i;
+                break;
+            }
+        }
+        if (sep < 0) return {};
+        const QByteArray raw = m_readBuffer.left(sep);
+        int removeThrough = sep + 1;
+        if (sep + 1 < m_readBuffer.size() && m_readBuffer.at(sep) == '\r' && m_readBuffer.at(sep + 1) == '\n')
+            removeThrough = sep + 2;
+        m_readBuffer.remove(0, removeThrough);
+        return QString::fromUtf8(raw).trimmed();
+    };
 
-        QByteArray raw = m_readBuffer.left(nl);
-        m_readBuffer.remove(0, nl + 1);
-        QString line = QString::fromUtf8(raw).trimmed();
-        if (line.isEmpty()) continue;
+    while (true) {
+        QString line = takeLine();
+        if (line.isEmpty()) break;
+
+        if (line.startsWith(QLatin1Char('<')) && line.endsWith(QLatin1Char('>'))) {
+            parseStatusReport(line);
+            continue;
+        }
+
         appendLog(line, true);
 
         const bool isOk = line == QLatin1String("ok");
@@ -407,9 +540,16 @@ void GrblConnection::processIncomingData() {
 
         if (m_waitingOk && (isOk || isError)) {
             m_waitingOk = false;
-            if (isError && m_streaming) {
-                finishStream(false);
-                return;
+            if (isError) {
+                m_pendingOriginZero = false;
+                if (m_streaming) {
+                    finishStream(false);
+                    return;
+                }
+            } else if (m_pendingOriginZero) {
+                m_pendingOriginZero = false;
+                applyOriginZero();
+                writeRaw("?");
             }
             if (m_streaming && isOk) {
                 ++m_streamIndex;
@@ -418,6 +558,15 @@ void GrblConnection::processIncomingData() {
             }
             trySendNext();
         }
+    }
+
+  // GRBL status reports may arrive without a trailing newline before the next byte.
+    const int start = m_readBuffer.indexOf('<');
+    const int end = m_readBuffer.indexOf('>');
+    if (start >= 0 && end > start) {
+        const QString status = QString::fromUtf8(m_readBuffer.mid(start, end - start + 1));
+        parseStatusReport(status);
+        m_readBuffer.remove(start, end - start + 1);
     }
 }
 
@@ -496,6 +645,10 @@ void GrblConnection::clearLog() {
 }
 
 void GrblConnection::sendRealtimeCommand(const QString &) {
+    logMessage(QStringLiteral("Serial not available."));
+}
+
+void GrblConnection::setWorkOriginHere() {
     logMessage(QStringLiteral("Serial not available."));
 }
 

@@ -17,7 +17,7 @@ G0 X50 Y30
 G0 Z-5
 
 ; Set feed rate
-F3000
+F1000
 
 ; Draw full circle
 G2 X50 Y30 I-20 J0

@@ -7,7 +7,7 @@ class WriterController;
 
 class GcodeController : public QObject {
     Q_OBJECT
-    Q_PROPERTY(QString generatedGcode READ generatedGcode NOTIFY generatedGcodeChanged)
+    Q_PROPERTY(QString generatedGcode READ generatedGcode WRITE setGcodeText NOTIFY generatedGcodeChanged)
     Q_PROPERTY(bool gcodeStale READ gcodeStale NOTIFY gcodeStaleChanged)
 
 public:
@@ -15,9 +15,11 @@ public:
 
     QString generatedGcode() const { return m_generatedGcode; }
     bool gcodeStale() const { return m_gcodeStale; }
+    void setGcodeText(const QString &gcode);
 
     Q_INVOKABLE void regenerate();
     Q_INVOKABLE void saveGcodeFile();
+    Q_INVOKABLE void openGcodeFile();
     Q_INVOKABLE void copyToClipboard();
 
 public slots:

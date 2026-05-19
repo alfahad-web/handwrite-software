@@ -14,6 +14,7 @@
 #ifdef WRITER_POSIX_SERIAL
 #include <QSocketNotifier>
 #endif
+#include <QElapsedTimer>
 #include <QTimer>
 
 class GrblConnection : public QObject {
@@ -26,6 +27,10 @@ class GrblConnection : public QObject {
     Q_PROPERTY(bool streaming READ streaming NOTIFY streamingChanged)
     Q_PROPERTY(double streamProgress READ streamProgress NOTIFY streamProgressChanged)
     Q_PROPERTY(bool serialAvailable READ serialAvailable CONSTANT)
+    Q_PROPERTY(double posX READ posX NOTIFY positionChanged)
+    Q_PROPERTY(double posY READ posY NOTIFY positionChanged)
+    Q_PROPERTY(double posZ READ posZ NOTIFY positionChanged)
+    Q_PROPERTY(bool positionKnown READ positionKnown NOTIFY positionChanged)
 
 public:
     explicit GrblConnection(QObject *parent = nullptr);
@@ -40,6 +45,10 @@ public:
     bool streaming() const { return m_streaming; }
     double streamProgress() const { return m_streamProgress; }
     bool serialAvailable() const;
+    double posX() const { return m_posX; }
+    double posY() const { return m_posY; }
+    double posZ() const { return m_posZ; }
+    bool positionKnown() const { return m_positionKnown; }
 
     Q_INVOKABLE void refreshPorts();
     Q_INVOKABLE bool connectPort();
@@ -50,6 +59,7 @@ public:
     Q_INVOKABLE void clearLog();
     Q_INVOKABLE void logMessage(const QString &msg);
     Q_INVOKABLE void sendRealtimeCommand(const QString &cmd);
+    Q_INVOKABLE void setWorkOriginHere();
 
 signals:
     void connectedChanged();
@@ -59,6 +69,7 @@ signals:
     void streamingChanged();
     void streamProgressChanged();
     void streamFinished(bool success);
+    void positionChanged();
 
 private:
 #ifdef WRITER_HAS_SERIAL
@@ -71,6 +82,9 @@ private:
     void trySendNext();
     void processIncomingData();
     bool writeRaw(const QByteArray &data);
+    void parseStatusReport(const QString &line);
+    void setPosition(double x, double y, double z);
+    void resetPosition();
 
     QString m_consoleLog;
     QStringList m_availablePorts;
@@ -86,7 +100,23 @@ private:
     int m_streamIndex = 0;
     int m_streamTotal = 0;
     QTimer m_wakeTimer;
+    QTimer m_statusTimer;
     QByteArray m_readBuffer;
+    double m_posX = 0;
+    double m_posY = 0;
+    double m_posZ = 0;
+    bool m_positionKnown = false;
+    double m_wcoX = 0;
+    double m_wcoY = 0;
+    double m_wcoZ = 0;
+    bool m_wcoKnown = false;
+    bool m_pendingOriginZero = false;
+    double m_mposX = 0;
+    double m_mposY = 0;
+    double m_mposZ = 0;
+    bool m_mposKnown = false;
+    QElapsedTimer m_wcoLockTimer;
+    void applyOriginZero();
 
 #ifdef WRITER_HAS_SERIALPORT
     QSerialPort m_serial;
@@ -108,5 +138,9 @@ private slots:
     bool m_connected = false;
     bool m_streaming = false;
     double m_streamProgress = 0.0;
+    double m_posX = 0;
+    double m_posY = 0;
+    double m_posZ = 0;
+    bool m_positionKnown = false;
 #endif
 };
