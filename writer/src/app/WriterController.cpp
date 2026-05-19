@@ -7,6 +7,8 @@
 #include <QDir>
 #include <QFileDialog>
 
+#include "gcode/GcodeController.h"
+
 namespace {
 void remapManualAnchors(QHash<int, QPointF> *anchors, const QString &oldText, const QString &newText) {
     if (!anchors || oldText == newText) return;
@@ -169,7 +171,6 @@ void WriterController::clearAllManualAnchors() {
 
 void WriterController::startRun() {
     if (m_runActive) return;
-    m_gcode->regenerate();
     if (m_grbl->connected()) {
         m_grbl->streamProgram(m_gcode->generatedGcode());
     } else {
@@ -210,6 +211,19 @@ void WriterController::notifyLineHeightCollision(bool exceeds) {
     m_wasLineHeightExceeding = exceeds;
 }
 
+bool WriterController::generateGcode() {
+    if (m_fontFolderPath.isEmpty() || !QDir(m_fontFolderPath).exists()) {
+        emit fontFolderMissing(m_fontFolderPath);
+        return false;
+    }
+    if (m_fontCatalog.isEmpty()) {
+        emit fontFolderMissing(m_fontFolderPath);
+        return false;
+    }
+    if (m_gcode) m_gcode->regenerate();
+    return true;
+}
+
 void WriterController::markSaved() {
     setDocumentDirty(false);
 }
@@ -236,6 +250,7 @@ void WriterController::resetToEmptyProject(bool resetSettingsToDefaults) {
         m_settings->setJoinDistMm(0.0);
         m_settings->setPenUpZ(30.0);
         m_settings->setPenDownZ(-5.0);
+        m_settings->setPreviewDisplayScale(1.0);
     }
     m_fontFolderPath.clear();
     emit fontFolderPathChanged();

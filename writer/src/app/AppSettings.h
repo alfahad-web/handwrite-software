@@ -18,6 +18,7 @@ class AppSettings : public QObject {
     Q_PROPERTY(double penUpZ READ penUpZ WRITE setPenUpZ NOTIFY penUpZChanged)
     Q_PROPERTY(double penDownZ READ penDownZ WRITE setPenDownZ NOTIFY penDownZChanged)
     Q_PROPERTY(double feedRateMmPerMin READ feedRateMmPerMin NOTIFY feedRateMmPerMinChanged)
+    Q_PROPERTY(double previewDisplayScale READ previewDisplayScale WRITE setPreviewDisplayScale NOTIFY previewDisplayScaleChanged)
 
 public:
     explicit AppSettings(QObject *parent = nullptr);
@@ -63,6 +64,9 @@ public:
 
     double feedRateMmPerMin() const { return m_feedRateCmPerS * 600.0; }
 
+    double previewDisplayScale() const { return m_previewDisplayScale; }
+    void setPreviewDisplayScale(double v);
+
     Q_INVOKABLE void load();
     Q_INVOKABLE void save();
 
@@ -81,6 +85,7 @@ signals:
     void penUpZChanged();
     void penDownZChanged();
     void feedRateMmPerMinChanged();
+    void previewDisplayScaleChanged();
     void anyChanged();
 
 private:
@@ -97,4 +102,5 @@ private:
     double m_joinDistMm = 0.0;
     double m_penUpZ = 30.0;
     double m_penDownZ = -5.0;
+    double m_previewDisplayScale = 1.0;
 };

@@ -80,6 +80,9 @@ void HandwritingCanvasItem::setController(WriterController *c) {
     m_ctrl = c;
     if (m_ctrl) {
         connect(m_ctrl, &WriterController::layoutInvalidated, this, &HandwritingCanvasItem::onInvalidated);
+        if (m_ctrl->settings()) {
+            connect(m_ctrl->settings(), &AppSettings::previewDisplayScaleChanged, this, [this]() { update(); });
+        }
         connect(m_ctrl, &WriterController::runActiveChanged, this, [this]() {
             if (!m_ctrl) return;
             if (m_ctrl->runActive()) {
@@ -139,7 +142,7 @@ double HandwritingCanvasItem::pxPerCm() const {
     if (!m_ctrl || !m_ctrl->settings()) return 40.0;
     const double w = width();
     if (w < 4) return 40.0;
-    return w / m_ctrl->settings()->pageWidthCm();
+    return (w / m_ctrl->settings()->pageWidthCm()) * m_ctrl->settings()->previewDisplayScale();
 }
 
 QPointF HandwritingCanvasItem::cmFromPixel(const QPointF &px) const {
@@ -286,8 +289,16 @@ void HandwritingCanvasItem::paintStaticContent(QPainter *painter, const AppSetti
         painter->fillRect(QRectF(rightCm.topLeft() * s, rightCm.size() * s), green);
     }
 
-    painter->setPen(QPen(Qt::black, 1.2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
     for (const LayoutGlyph &lg : m_layout.glyphs) {
+        if (lg.isMissing) {
+            painter->setPen(QPen(QColor("#dc2626"), 1.5));
+            painter->setBrush(Qt::NoBrush);
+            const QRectF boxPx(lg.bboxCm.topLeft() * s, lg.bboxCm.size() * s);
+            painter->drawRect(boxPx);
+            continue;
+        }
+        painter->setPen(QPen(Qt::black, 1.2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+        painter->setBrush(Qt::NoBrush);
         for (const QVector<QPointF> &poly : lg.polylinesCm) {
             if (poly.size() < 2) continue;
             QPainterPath path;

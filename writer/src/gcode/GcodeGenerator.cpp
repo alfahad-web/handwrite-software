@@ -1,6 +1,7 @@
 #include "GcodeGenerator.h"
 
 #include <QLineF>
+#include <QPointF>
 #include <QStringList>
 #include <QtMath>
 
@@ -11,6 +12,11 @@ QString fmtMm(double v) {
 
 QString xyLine(const char *cmd, double xMm, double yMm) {
     return QStringLiteral("%1 X%2 Y%3").arg(QLatin1String(cmd), fmtMm(xMm), fmtMm(yMm));
+}
+
+// App layout uses +X right, +Y down (cm). This machine expects GRBL X = layout Y, GRBL Y = layout X.
+QPointF layoutCmToMachineMm(const QPointF &pCm) {
+    return QPointF(pCm.y() * 10.0, pCm.x() * 10.0);
 }
 
 double segmentLengthCm(const PathSegment &seg) {
@@ -47,24 +53,20 @@ QString GcodeGenerator::generate(const PathBuildResult &path, const AppSettings 
         if (pts.size() < 2) continue;
 
         if (seg.travel) {
-            const double x0 = pts[0].x() * 10.0;
-            const double y0 = pts[0].y() * 10.0;
-            const double x1 = pts[1].x() * 10.0;
-            const double y1 = pts[1].y() * 10.0;
+            const QPointF p0 = layoutCmToMachineMm(pts[0]);
+            const QPointF p1 = layoutCmToMachineMm(pts[1]);
             lines << QStringLiteral("G0 Z%1").arg(fmtMm(penUpZ));
-            lines << xyLine("G0", x0, y0);
-            lines << xyLine("G0", x1, y1);
+            lines << xyLine("G0", p0.x(), p0.y());
+            lines << xyLine("G0", p1.x(), p1.y());
             hasMotion = true;
         } else {
-            const double x0 = pts[0].x() * 10.0;
-            const double y0 = pts[0].y() * 10.0;
+            const QPointF p0 = layoutCmToMachineMm(pts[0]);
             lines << QStringLiteral("G0 Z%1").arg(fmtMm(penUpZ));
-            lines << xyLine("G0", x0, y0);
+            lines << xyLine("G0", p0.x(), p0.y());
             lines << QStringLiteral("G0 Z%1").arg(fmtMm(penDownZ));
             for (int i = 1; i < pts.size(); ++i) {
-                const double x = pts[i].x() * 10.0;
-                const double y = pts[i].y() * 10.0;
-                lines << xyLine("G1", x, y);
+                const QPointF p = layoutCmToMachineMm(pts[i]);
+                lines << xyLine("G1", p.x(), p.y());
             }
             hasMotion = true;
         }

@@ -119,6 +119,14 @@ void AppSettings::setPenDownZ(double v) {
     emit anyChanged();
 }
 
+void AppSettings::setPreviewDisplayScale(double v) {
+    if (!std::isfinite(v) || v < 0.25) v = 0.25;
+    if (v > 3.0) v = 3.0;
+    if (qFuzzyCompare(m_previewDisplayScale, v)) return;
+    m_previewDisplayScale = v;
+    emit previewDisplayScaleChanged();
+}
+
 void AppSettings::load() {
     QSettings s;
     s.beginGroup(kG);
@@ -135,6 +143,7 @@ void AppSettings::load() {
     setJoinDistMm(s.value("joinDistMm", m_joinDistMm).toDouble());
     setPenUpZ(s.value("penUpZ", m_penUpZ).toDouble());
     setPenDownZ(s.value("penDownZ", m_penDownZ).toDouble());
+    setPreviewDisplayScale(s.value("previewDisplayScale", m_previewDisplayScale).toDouble());
     s.endGroup();
 }
 
@@ -154,5 +163,6 @@ void AppSettings::save() {
     s.setValue("joinDistMm", m_joinDistMm);
     s.setValue("penUpZ", m_penUpZ);
     s.setValue("penDownZ", m_penDownZ);
+    s.setValue("previewDisplayScale", m_previewDisplayScale);
     s.endGroup();
 }

@@ -64,6 +64,7 @@ public:
     Q_INVOKABLE void stopRun();
 
     Q_INVOKABLE void notifyLineHeightCollision(bool exceeds);
+    Q_INVOKABLE bool generateGcode();
 
     Q_INVOKABLE void newWriterProject();
     Q_INVOKABLE void openWriterProject();

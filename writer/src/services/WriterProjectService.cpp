@@ -10,7 +10,7 @@
 #include <QJsonObject>
 
 namespace {
-constexpr int kFormatVersion = 2;
+constexpr int kFormatVersion = 3;
 
 QJsonObject settingsToJson(const AppSettings *st) {
     QJsonObject o;
@@ -27,6 +27,7 @@ QJsonObject settingsToJson(const AppSettings *st) {
     o.insert(QStringLiteral("joinDistMm"), st->joinDistMm());
     o.insert(QStringLiteral("penUpZ"), st->penUpZ());
     o.insert(QStringLiteral("penDownZ"), st->penDownZ());
+    o.insert(QStringLiteral("previewDisplayScale"), st->previewDisplayScale());
     return o;
 }
 
@@ -44,6 +45,7 @@ void applySettingsFromJson(AppSettings *st, const QJsonObject &o) {
     if (o.contains(QStringLiteral("joinDistMm"))) st->setJoinDistMm(o.value(QStringLiteral("joinDistMm")).toDouble());
     if (o.contains(QStringLiteral("penUpZ"))) st->setPenUpZ(o.value(QStringLiteral("penUpZ")).toDouble());
     if (o.contains(QStringLiteral("penDownZ"))) st->setPenDownZ(o.value(QStringLiteral("penDownZ")).toDouble());
+    if (o.contains(QStringLiteral("previewDisplayScale"))) st->setPreviewDisplayScale(o.value(QStringLiteral("previewDisplayScale")).toDouble());
 }
 }
 

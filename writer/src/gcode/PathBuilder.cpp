@@ -26,6 +26,10 @@ PathBuildResult PathBuilder::build(const LayoutResult &layout) {
     bool hasPrev = false;
 
     for (const LayoutGlyph &lg : layout.glyphs) {
+        if (lg.isMissing) {
+            hasPrev = false;
+            continue;
+        }
         for (const QVector<QPointF> &poly : lg.polylinesCm) {
             if (poly.size() < 2) continue;
             if (hasPrev) {

@@ -4,6 +4,7 @@
 #include "PathBuilder.h"
 #include "app/WriterController.h"
 
+#include <QDir>
 #include <QFile>
 #include <QFileDialog>
 #include <QGuiApplication>
@@ -13,19 +14,19 @@ GcodeController::GcodeController(WriterController *writer, QObject *parent)
     : QObject(parent), m_writer(writer) {
     if (m_writer) {
         connect(m_writer, &WriterController::layoutInvalidated, this, &GcodeController::onLayoutInvalidated);
-        connect(m_writer->settings(), &AppSettings::anyChanged, this, &GcodeController::onLayoutInvalidated);
     }
-    regenerate();
+    setGeneratedGcode(QStringLiteral("; Switch to Handwriting and click Generate G-codes\n"));
+    setGcodeStale(true);
 }
 
 void GcodeController::onLayoutInvalidated() {
     setGcodeStale(true);
-    regenerate();
 }
 
 void GcodeController::regenerate() {
     if (!m_writer) {
         setGeneratedGcode(QStringLiteral("; No document\n"));
+        setGcodeStale(true);
         return;
     }
     const PathBuildResult path = PathBuilder::buildFromController(m_writer);

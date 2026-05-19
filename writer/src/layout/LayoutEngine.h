@@ -19,6 +19,7 @@ struct LayoutGlyph {
     QPointF placementAnchorCm;
     int pageIndex = 0;
     int lineIndex = 0;
+    bool isMissing = false;
 };
 
 struct LayoutResult {

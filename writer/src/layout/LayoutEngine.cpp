@@ -514,6 +514,7 @@ LayoutResult LayoutEngine::layout(
         lg.ch = ch;
         lg.joinMode = g.joinMode;
         lg.variantIndex = g.variantIndex;
+        lg.isMissing = (g.sourceFile == QStringLiteral("<missing>"));
         lg.polylinesCm = polys;
         lg.bboxCm = bbox;
         lg.placementAnchorCm = placementAnchor;

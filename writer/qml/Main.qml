@@ -16,6 +16,7 @@ ApplicationWindow {
     color: "#f4f4f5"
 
     property string pendingAfterDiscard: ""
+    property string settingsSection: "view"
 
     readonly property string writerProjectFileName: {
         const p = writerController.projectFilePath
@@ -74,7 +75,7 @@ ApplicationWindow {
         contentItem: Label {
             text: fontMissingDialog.missingPath.length > 0
                   ? ("Font folder not found at memorized location:\n" + fontMissingDialog.missingPath)
-                  : "Font folder not found."
+                  : "No font folder selected. Choose “Select font folder” before generating G-codes."
             wrapMode: Text.Wrap
             color: "#18181b"
             width: parent ? parent.width : implicitWidth
@@ -256,6 +257,24 @@ ApplicationWindow {
                 text: "Handwriting"
                 highlighted: writerController.viewMode === "handwriting"
                 onClicked: writerController.viewMode = "handwriting"
+            }
+            Button {
+                id: generateGcodeBtn
+                visible: writerController.viewMode === "handwriting"
+                text: "Generate G-codes"
+                onClicked: writerController.generateGcode()
+                ToolTip.visible: hovered
+                ToolTip.text: gcodeController.gcodeStale
+                       ? "Content or plot settings changed — click to regenerate G-code"
+                       : "Generate G-code from current handwriting layout"
+                background: Rectangle {
+                    radius: 4
+                    color: gcodeController.gcodeStale ? "#eab308"
+                           : (generateGcodeBtn.down ? "#d4d4d8"
+                              : (generateGcodeBtn.hovered ? "#e4e4e7" : "#fafafa"))
+                    border.color: gcodeController.gcodeStale ? "#ca8a04" : "#d4d4d8"
+                    border.width: 1
+                }
             }
             ToolSeparator {}
             Button {
@@ -553,31 +572,41 @@ ApplicationWindow {
                         onClicked: grblConnection.streamProgram(gcodeController.generatedGcode)
                     }
                     Item { Layout.fillWidth: true }
-                    Label {
-                        text: gcodeController.gcodeStale ? "(stale)" : ""
-                        color: "#ca8a04"
-                        font.pixelSize: 11
-                    }
                 }
 
                 ScrollView {
+                    id: gcodeScroll
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     Layout.minimumHeight: 80
                     clip: true
+                    ScrollBar.horizontal: ScrollBar { policy: ScrollBar.AsNeeded }
+                    ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+
                     TextArea {
                         id: gcodeView
+                        width: gcodeScroll.availableWidth
+                        implicitHeight: Math.max(contentHeight, gcodeScroll.availableHeight)
                         wrapMode: TextArea.NoWrap
+                        readOnly: false
+                        cursorVisible: true
+                        selectByMouse: true
+                        selectByKeyboard: true
+                        focusPolicy: Qt.StrongFocus
                         font.family: "monospace"
                         font.pixelSize: 11
                         color: "#1e3a8a"
                         selectedTextColor: "#ffffff"
                         selectionColor: "#2563eb"
-                        selectByMouse: true
                         placeholderText: "Generated G-code (editable). Lines starting with ; are ignored when sending."
                         placeholderTextColor: "#64748b"
                         property bool gcodeSync: false
-                        text: gcodeController.generatedGcode
+
+                        Component.onCompleted: {
+                            gcodeSync = true
+                            text = gcodeController.generatedGcode
+                            gcodeSync = false
+                        }
                         onTextChanged: {
                             if (gcodeSync) return
                             gcodeSync = true
@@ -587,15 +616,19 @@ ApplicationWindow {
                         Connections {
                             target: gcodeController
                             function onGeneratedGcodeChanged() {
+                                if (gcodeView.activeFocus) return
                                 if (gcodeView.text === gcodeController.generatedGcode) return
                                 gcodeView.gcodeSync = true
                                 gcodeView.text = gcodeController.generatedGcode
                                 gcodeView.gcodeSync = false
                             }
                         }
+                        TapHandler {
+                            onTapped: gcodeView.forceActiveFocus()
+                        }
                         background: Rectangle {
                             color: "#ffffff"
-                            border.color: "#e4e4e7"
+                            border.color: gcodeView.activeFocus ? "#2563eb" : "#e4e4e7"
                             radius: 4
                         }
                     }
@@ -719,13 +752,17 @@ ApplicationWindow {
                 }
 
                 ScrollView {
+                    id: consoleLogScroll
                     Layout.fillWidth: true
                     Layout.preferredHeight: 120
                     clip: true
                     TextArea {
                         id: consoleLog
+                        width: consoleLogScroll.availableWidth
+                        implicitHeight: Math.max(contentHeight, consoleLogScroll.availableHeight)
                         readOnly: true
                         wrapMode: TextArea.Wrap
+                        selectByMouse: true
                         font.family: "monospace"
                         font.pixelSize: 10
                         text: grblConnection.consoleLog
@@ -745,15 +782,26 @@ ApplicationWindow {
                         id: consoleInput
                         Layout.fillWidth: true
                         implicitHeight: 32
-                        placeholderText: "G-code or ! ~ ?"
+                        placeholderText: grblConnection.connected
+                                     ? "G-code or ! ~ ?"
+                                     : "Connect to send commands"
                         font.family: "monospace"
                         font.pixelSize: 11
+                        cursorVisible: true
+                        selectByMouse: true
+                        focusPolicy: Qt.StrongFocus
                         enabled: grblConnection.connected && !grblConnection.streaming
                         onAccepted: {
                             if (text.trim().length > 0) {
                                 grblConnection.sendLine(text)
                                 text = ""
                             }
+                        }
+                        TapHandler {
+                            onTapped: consoleInput.forceActiveFocus()
+                        }
+                        onEnabledChanged: {
+                            if (enabled) Qt.callLater(function () { consoleInput.forceActiveFocus() })
                         }
                     }
                     Button {
@@ -802,24 +850,26 @@ ApplicationWindow {
                 width: settingsPanel.width - 36
                 spacing: 10
 
-                Label { text: "Feed rate (cm/s)"; font.bold: true; color: root.settingsTitleColor }
-                Label {
-                    text: "Also sets G-code F in mm/min (×600). Current: "
-                          + Math.round(writerController.settings.feedRateMmPerMin)
-                    wrapMode: Text.Wrap
+                RowLayout {
                     Layout.fillWidth: true
-                    color: "#3f3f46"
-                    font.pixelSize: 11
+                    spacing: 8
+                    Button {
+                        text: "View"
+                        highlighted: root.settingsSection === "view"
+                        onClicked: root.settingsSection = "view"
+                    }
+                    Button {
+                        text: "Plotter"
+                        highlighted: root.settingsSection === "plotter"
+                        onClicked: root.settingsSection = "plotter"
+                    }
+                    Item { Layout.fillWidth: true }
                 }
-                SpinBox {
-                    from: 1
-                    to: 50000
-                    stepSize: 1
-                    editable: true
-                    wheelEnabled: true
-                    value: Math.round(writerController.settings.feedRateCmPerS * 1000)
-                    onValueModified: writerController.settings.feedRateCmPerS = value / 1000.0
-                }
+
+                ColumnLayout {
+                    visible: root.settingsSection === "view"
+                    Layout.fillWidth: true
+                    spacing: 10
 
                 // SpinBox value is integer mm (stored settings remain cm): ±1 == ±1 mm on the page.
                 Label { text: "Page width (mm)"; font.bold: true; color: root.settingsTitleColor }
@@ -910,6 +960,68 @@ ApplicationWindow {
                     onValueModified: writerController.settings.lineHeightCm = value / 10.0
                 }
 
+                Label { text: "Font unit → mm scale"; font.bold: true; color: root.settingsTitleColor }
+                Label {
+                    text: "Multiply stroke coordinates from .txt to mm on paper (µm→mm: use 0.001). Each step ±1 here changes the scale by 0.00001 mm per font unit."
+                    wrapMode: Text.Wrap
+                    Layout.fillWidth: true
+                    color: "#3f3f46"
+                }
+                // value/1e6 == fontUnitToCm; ±1 == ±1e-6 cm == ±10 nm per font unit on the scale factor (fontUnitToMm ±0.00001).
+                SpinBox {
+                    from: 1
+                    to: 100000000
+                    stepSize: 1
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.fontUnitToCm * 1000000)
+                    onValueModified: writerController.settings.fontUnitToCm = value / 1000000.0
+                }
+
+                Label { text: "Screen preview scale"; font.bold: true; color: root.settingsTitleColor }
+                Label {
+                    text: "Display-only multiplier for the handwriting preview (does not change G-code or plotted size). Use below 1.0 if on-screen text looks larger than on paper."
+                    wrapMode: Text.Wrap
+                    Layout.fillWidth: true
+                    color: "#3f3f46"
+                    font.pixelSize: 11
+                }
+                SpinBox {
+                    from: 25
+                    to: 300
+                    stepSize: 5
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.previewDisplayScale * 100)
+                    onValueModified: writerController.settings.previewDisplayScale = value / 100.0
+                }
+
+                } // View section
+
+                ColumnLayout {
+                    visible: root.settingsSection === "plotter"
+                    Layout.fillWidth: true
+                    spacing: 10
+
+                Label { text: "Feed rate (cm/s)"; font.bold: true; color: root.settingsTitleColor }
+                Label {
+                    text: "Also sets G-code F in mm/min (×600). Current: "
+                          + Math.round(writerController.settings.feedRateMmPerMin)
+                    wrapMode: Text.Wrap
+                    Layout.fillWidth: true
+                    color: "#3f3f46"
+                    font.pixelSize: 11
+                }
+                SpinBox {
+                    from: 1
+                    to: 50000
+                    stepSize: 1
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.feedRateCmPerS * 1000)
+                    onValueModified: writerController.settings.feedRateCmPerS = value / 1000.0
+                }
+
                 Label { text: "Join distance (mm)"; font.bold: true; color: root.settingsTitleColor }
                 SpinBox {
                     from: 0
@@ -943,23 +1055,7 @@ ApplicationWindow {
                     onValueModified: writerController.settings.penDownZ = value / 10.0
                 }
 
-                Label { text: "Font unit → mm scale"; font.bold: true; color: root.settingsTitleColor }
-                Label {
-                    text: "Multiply stroke coordinates from .txt to mm on paper (µm→mm: use 0.001). Each step ±1 here changes the scale by 0.00001 mm per font unit."
-                    wrapMode: Text.Wrap
-                    Layout.fillWidth: true
-                    color: "#3f3f46"
-                }
-                // value/1e6 == fontUnitToCm; ±1 == ±1e-6 cm == ±10 nm per font unit on the scale factor (fontUnitToMm ±0.00001).
-                SpinBox {
-                    from: 1
-                    to: 100000000
-                    stepSize: 1
-                    editable: true
-                    wheelEnabled: true
-                    value: Math.round(writerController.settings.fontUnitToCm * 1000000)
-                    onValueModified: writerController.settings.fontUnitToCm = value / 1000000.0
-                }
+                } // Plotter section
 
                 RowLayout {
                     Layout.fillWidth: true
