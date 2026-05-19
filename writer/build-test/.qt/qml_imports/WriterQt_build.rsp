@@ -1,0 +1,11 @@
+-rootPath
+/mnt/shared/handwrite-software/writer
+-cmake-output
+-output-file
+/mnt/shared/handwrite-software/writer/build-test/.qt/qml_imports/WriterQt_build.cmake
+-importPath
+/mnt/shared/handwrite-software/writer/build-test
+-importPath
+/usr/lib/qt6/qml
+-qrcFiles
+/mnt/shared/handwrite-software/writer/build-test/.qt/rcc/qml_resources.qrc

@@ -24,12 +24,28 @@ ApplicationWindow {
         return i >= 0 ? p.substring(i + 1) : p
     }
 
-    Component.onCompleted: Qt.callLater(function () {
-        if (writerController.viewMode === "typing")
-            typeArea.forceActiveFocus()
-    })
+    Component.onCompleted: {
+        grblConnection.refreshPorts()
+        Qt.callLater(function () {
+            if (writerController.viewMode === "typing")
+                typeArea.forceActiveFocus()
+        })
+    }
 
     readonly property color settingsTitleColor: "#1e3a8a"
+
+    function toggleGrblConnection() {
+        if (grblConnection.connected) {
+            grblConnection.disconnectPort()
+        } else {
+            grblConnection.refreshPorts()
+            if (toolbarPortCombo.currentIndex >= 0)
+                grblConnection.portName = toolbarPortCombo.currentText
+            else if (grblConnection.portName.length === 0 && grblConnection.availablePorts.length > 0)
+                grblConnection.portName = grblConnection.availablePorts[0]
+            grblConnection.connectPort()
+        }
+    }
 
     Connections {
         target: writerController
@@ -252,6 +268,91 @@ ApplicationWindow {
                 checked: writerController.settingsOpen
                 onClicked: writerController.settingsOpen = !writerController.settingsOpen
             }
+            ToolSeparator {}
+            ComboBox {
+                id: toolbarPortCombo
+                Layout.minimumWidth: 200
+                Layout.preferredWidth: 300
+                model: grblConnection.availablePorts
+                enabled: grblConnection.serialAvailable && !grblConnection.connected
+                         && !grblConnection.streaming
+
+                delegate: ItemDelegate {
+                    width: toolbarPortCombo.width
+                    contentItem: Text {
+                        text: {
+                            const idx = grblConnection.availablePorts.indexOf(modelData)
+                            return idx >= 0 && idx < grblConnection.portLabels.length
+                                   ? grblConnection.portLabels[idx] : modelData
+                        }
+                        elide: Text.ElideRight
+                        color: "#18181b"
+                    }
+                }
+
+                contentItem: Text {
+                    leftPadding: 12
+                    rightPadding: toolbarPortCombo.indicator.width + toolbarPortCombo.spacing + 8
+                    text: {
+                        const idx = grblConnection.availablePorts.indexOf(grblConnection.portName)
+                        if (idx >= 0 && idx < grblConnection.portLabels.length)
+                            return grblConnection.portLabels[idx]
+                        if (grblConnection.portName.length > 0)
+                            return grblConnection.portName
+                        return grblConnection.availablePorts.length > 0
+                               ? "Select port…" : "No ports found"
+                    }
+                    color: "#18181b"
+                    verticalAlignment: Text.AlignVCenter
+                    elide: Text.ElideRight
+                }
+
+                onActivated: grblConnection.portName = currentText
+
+                Connections {
+                    target: grblConnection
+                    function onPortNameChanged() {
+                        const idx = grblConnection.availablePorts.indexOf(grblConnection.portName)
+                        if (idx >= 0) toolbarPortCombo.currentIndex = idx
+                    }
+                    function onAvailablePortsChanged() {
+                        const idx = grblConnection.availablePorts.indexOf(grblConnection.portName)
+                        toolbarPortCombo.currentIndex = idx >= 0 ? idx : 0
+                    }
+                }
+            }
+            Button {
+                text: "↻"
+                implicitWidth: 32
+                ToolTip.visible: hovered
+                ToolTip.text: "Refresh serial ports"
+                enabled: grblConnection.serialAvailable && !grblConnection.streaming
+                onClicked: grblConnection.refreshPorts()
+            }
+            Button {
+                id: cncConnectBtn
+                implicitHeight: 32
+                implicitWidth: Math.max(96, cncConnectLabel.implicitWidth + 24)
+                enabled: grblConnection.serialAvailable && !grblConnection.streaming
+                onClicked: root.toggleGrblConnection()
+
+                contentItem: Label {
+                    id: cncConnectLabel
+                    anchors.centerIn: parent
+                    text: grblConnection.connected ? "Connected" : "Connect"
+                    color: "#ffffff"
+                    font.bold: true
+                    font.pixelSize: 13
+                }
+
+                background: Rectangle {
+                    radius: 6
+                    color: grblConnection.connected ? "#16a34a" : "#dc2626"
+                    border.color: grblConnection.connected ? "#15803d" : "#b91c1c"
+                    border.width: 1
+                    opacity: cncConnectBtn.down ? 0.85 : (cncConnectBtn.enabled ? 1.0 : 0.5)
+                }
+            }
             Button {
                 text: !writerController.runActive ? "Run"
                       : (writerController.runPaused ? "Resume" : "Pause")
@@ -291,13 +392,14 @@ ApplicationWindow {
         }
     }
 
-    RowLayout {
+    SplitView {
+        id: mainSplit
         anchors.fill: parent
-        spacing: 0
+        orientation: Qt.Horizontal
 
         Item {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
+            SplitView.fillWidth: true
+            SplitView.minimumWidth: 320
             clip: true
 
             Connections {
@@ -391,8 +493,9 @@ ApplicationWindow {
 
         Rectangle {
             id: gcodePanel
-            Layout.preferredWidth: 280
-            Layout.fillHeight: true
+            SplitView.preferredWidth: 280
+            SplitView.minimumWidth: 200
+            SplitView.maximumWidth: Math.max(400, root.width * 0.55)
             color: "#fafafa"
             border.color: "#d4d4d8"
 
@@ -466,59 +569,10 @@ ApplicationWindow {
                     color: "#3f3f46"
                 }
 
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 4
-                    ComboBox {
-                        id: portCombo
-                        Layout.fillWidth: true
-                        implicitHeight: 28
-                        model: grblConnection.availablePorts
-                        onActivated: grblConnection.portName = currentText
-                        Component.onCompleted: {
-                            const idx = model.indexOf(grblConnection.portName)
-                            if (idx >= 0) currentIndex = idx
-                        }
-                        Connections {
-                            target: grblConnection
-                            function onPortNameChanged() {
-                                const idx = portCombo.model.indexOf(grblConnection.portName)
-                                if (idx >= 0) portCombo.currentIndex = idx
-                            }
-                            function onAvailablePortsChanged() {
-                                const idx = portCombo.model.indexOf(grblConnection.portName)
-                                if (idx >= 0) portCombo.currentIndex = idx
-                            }
-                        }
-                    }
-                    Button {
-                        text: "↻"
-                        implicitHeight: 28
-                        implicitWidth: 32
-                        onClicked: grblConnection.refreshPorts()
-                    }
-                    Button {
-                        text: grblConnection.connected ? "Disconnect" : "Connect"
-                        implicitHeight: 28
-                        onClicked: {
-                            if (grblConnection.connected)
-                                grblConnection.disconnectPort()
-                            else {
-                                if (portCombo.currentIndex >= 0)
-                                    grblConnection.portName = portCombo.currentText
-                                grblConnection.connectPort()
-                            }
-                        }
-                    }
-                }
-
                 Label {
-                    text: grblConnection.connected
-                          ? (grblConnection.streaming
-                             ? ("Streaming " + Math.round(grblConnection.streamProgress * 100) + "%")
-                             : "Connected")
-                          : "Disconnected"
-                    color: grblConnection.connected ? "#16a34a" : "#71717a"
+                    visible: grblConnection.streaming
+                    text: "Streaming " + Math.round(grblConnection.streamProgress * 100) + "%"
+                    color: "#2563eb"
                     font.pixelSize: 11
                 }
 

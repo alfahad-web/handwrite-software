@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/mnt/shared/handwrite-software/writer/build-test/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

@@ -1,0 +1,6 @@
+# Hashes of file build rules.
+9316e17504aba0a35d36af480e2701b2 .qt/qml_imports/WriterQt_build.cmake
+3b767e83b0852f39155f0730b18d5ec2 .qt/rcc/qrc_qml_resources.cpp
+0110625a848d825400e1659a67832975 CMakeFiles/WriterQt_autogen
+0110625a848d825400e1659a67832975 CMakeFiles/WriterQt_qmlimportscan
+71de40c4770dafaa803da89997c77306 WriterQt_autogen/timestamp

@@ -1,20 +1,45 @@
 #include "GrblConnection.h"
 
-#ifdef WRITER_HAS_SERIALPORT
+#include "SerialPortScan.h"
 
-#include <QSerialPortInfo>
 #include <QSettings>
+
+#if defined(WRITER_POSIX_SERIAL)
+#include <cerrno>
+#include <cstring>
+#include <fcntl.h>
+#include <grp.h>
+#include <sys/stat.h>
+#include <termios.h>
+#include <unistd.h>
+#endif
 
 namespace {
 constexpr const char *kG = "WriterQt";
 constexpr const char *kPortKey = "lastSerialPort";
 }
 
+bool GrblConnection::serialAvailable() const {
+#ifdef WRITER_HAS_SERIAL
+    return true;
+#else
+    return false;
+#endif
+}
+
+#ifdef WRITER_HAS_SERIAL
+
 GrblConnection::GrblConnection(QObject *parent) : QObject(parent) {
     m_wakeTimer.setSingleShot(true);
     connect(&m_wakeTimer, &QTimer::timeout, this, &GrblConnection::onWakeTimer);
+#ifdef WRITER_HAS_SERIALPORT
     connect(&m_serial, &QSerialPort::readyRead, this, &GrblConnection::onReadyRead);
     connect(&m_serial, &QSerialPort::errorOccurred, this, &GrblConnection::onSerialError);
+#elif defined(WRITER_POSIX_SERIAL)
+    m_readNotifier = new QSocketNotifier(QSocketNotifier::Read, this);
+    m_readNotifier->setEnabled(false);
+    connect(m_readNotifier, &QSocketNotifier::activated, this, &GrblConnection::onReadyRead);
+#endif
     loadLastPort();
     refreshPorts();
 }
@@ -46,11 +71,14 @@ void GrblConnection::setPortName(const QString &name) {
 
 void GrblConnection::refreshPorts() {
     QStringList ports;
-    for (const QSerialPortInfo &info : QSerialPortInfo::availablePorts())
-        ports.append(info.portName());
-    ports.sort();
-    if (m_availablePorts == ports) return;
+    QStringList labels;
+    for (const SerialPortEntry &e : SerialPortScan::listPorts()) {
+        ports.append(e.deviceName);
+        labels.append(e.label);
+    }
+    if (m_availablePorts == ports && m_portLabels == labels) return;
     m_availablePorts = ports;
+    m_portLabels = labels;
     emit availablePortsChanged();
     if (!m_portName.isEmpty() && !ports.contains(m_portName) && !ports.isEmpty())
         setPortName(ports.first());
@@ -79,6 +107,65 @@ void GrblConnection::logMessage(const QString &msg) {
     appendLog(msg.trimmed(), true);
 }
 
+bool GrblConnection::writeRaw(const QByteArray &data) {
+#ifdef WRITER_HAS_SERIALPORT
+    return m_serial.isOpen() && m_serial.write(data) == data.size();
+#elif defined(WRITER_POSIX_SERIAL)
+    if (m_fd < 0) return false;
+    const ssize_t n = ::write(m_fd, data.constData(), data.size());
+    return n == data.size();
+#else
+    return false;
+#endif
+}
+
+#if defined(WRITER_POSIX_SERIAL)
+namespace {
+bool configureTermios(int fd) {
+    struct termios tio {};
+    if (tcgetattr(fd, &tio) != 0) return false;
+    cfmakeraw(&tio);
+    cfsetispeed(&tio, B115200);
+    cfsetospeed(&tio, B115200);
+    tio.c_cflag |= (CLOCAL | CREAD);
+    tio.c_cflag &= ~CSIZE;
+    tio.c_cflag |= CS8;
+    tio.c_cflag &= ~PARENB;
+    tio.c_cflag &= ~CSTOPB;
+    tio.c_cc[VMIN] = 0;
+    tio.c_cc[VTIME] = 1;
+    return tcsetattr(fd, TCSANOW, &tio) == 0;
+}
+
+QString devicePath(const QString &portName) {
+    if (portName.startsWith(QLatin1String("/dev/"))) return portName;
+    return QStringLiteral("/dev/") + portName;
+}
+
+void logOpenFailure(GrblConnection *self, const QString &path) {
+    const int err = errno;
+    self->logMessage(QStringLiteral("Connect failed: could not open %1 (%2)")
+                         .arg(path, QString::fromLocal8Bit(std::strerror(err))));
+    if (err == EACCES || err == EPERM) {
+        struct stat st {};
+        QString groupHint = QStringLiteral("dialout or uucp");
+        if (stat(path.toLocal8Bit().constData(), &st) == 0) {
+            struct group *gr = getgrgid(st.st_gid);
+            if (gr && gr->gr_name) groupHint = QString::fromLocal8Bit(gr->gr_name);
+        }
+        self->logMessage(
+            QStringLiteral("Permission denied. Add your user to group \"%1\", then log out and back in:\n"
+                             "  sudo usermod -aG %1 $USER")
+                .arg(groupHint));
+    } else if (err == EBUSY) {
+        self->logMessage(QStringLiteral("Port is in use. Close Universal G-code Sender or any other app using this port."));
+    } else if (err == ENOENT) {
+        self->logMessage(QStringLiteral("Device not found. Click Refresh and pick the port that appears when the board is plugged in."));
+    }
+}
+}
+#endif
+
 bool GrblConnection::connectPort() {
     if (m_connected) return true;
     refreshPorts();
@@ -87,17 +174,39 @@ bool GrblConnection::connectPort() {
         return false;
     }
 
+#ifdef WRITER_HAS_SERIALPORT
     m_serial.setPortName(m_portName);
     m_serial.setBaudRate(QSerialPort::Baud115200);
     m_serial.setDataBits(QSerialPort::Data8);
     m_serial.setParity(QSerialPort::NoParity);
     m_serial.setStopBits(QSerialPort::OneStop);
     m_serial.setFlowControl(QSerialPort::NoFlowControl);
-
     if (!m_serial.open(QIODevice::ReadWrite)) {
         appendLog(QStringLiteral("Connect failed: %1").arg(m_serial.errorString()));
         return false;
     }
+#elif defined(WRITER_POSIX_SERIAL)
+    const QString path = devicePath(m_portName);
+    if (::access(path.toLocal8Bit().constData(), F_OK) != 0) {
+        logOpenFailure(this, path);
+        return false;
+    }
+    m_fd = ::open(path.toLocal8Bit().constData(), O_RDWR | O_NOCTTY | O_NONBLOCK);
+    if (m_fd < 0) {
+        logOpenFailure(this, path);
+        return false;
+    }
+    const int flags = fcntl(m_fd, F_GETFL, 0);
+    if (flags >= 0) fcntl(m_fd, F_SETFL, flags & ~O_NONBLOCK);
+    if (!configureTermios(m_fd)) {
+        ::close(m_fd);
+        m_fd = -1;
+        appendLog(QStringLiteral("Connect failed: could not configure %1").arg(path));
+        return false;
+    }
+    m_readNotifier->setSocket(m_fd);
+    m_readNotifier->setEnabled(true);
+#endif
 
     m_connected = true;
     emit connectedChanged();
@@ -106,33 +215,54 @@ bool GrblConnection::connectPort() {
     m_waking = true;
     m_waitingOk = false;
     m_sendQueue.clear();
-    m_serial.write("\r\n\r\n");
+    m_readBuffer.clear();
+    writeRaw("\r\n\r\n");
     m_wakeTimer.start(2000);
     return true;
 }
 
 void GrblConnection::disconnectPort() {
     cancelStream();
-    if (!m_connected && !m_serial.isOpen()) return;
+    if (!m_connected) return;
+
+#ifdef WRITER_HAS_SERIALPORT
     if (m_serial.isOpen()) m_serial.close();
+#elif defined(WRITER_POSIX_SERIAL)
+    if (m_readNotifier) m_readNotifier->setEnabled(false);
+    if (m_fd >= 0) {
+        ::close(m_fd);
+        m_fd = -1;
+    }
+#endif
+
     m_connected = false;
     m_waking = false;
     m_waitingOk = false;
     m_sendQueue.clear();
+    m_readBuffer.clear();
     emit connectedChanged();
     appendLog(QStringLiteral("Disconnected."));
 }
 
 void GrblConnection::onWakeTimer() {
     m_waking = false;
+#ifdef WRITER_HAS_SERIALPORT
     m_serial.readAll();
+#else
+    m_readBuffer.clear();
+    char buf[512];
+    while (m_fd >= 0) {
+        const ssize_t n = ::read(m_fd, buf, sizeof(buf));
+        if (n <= 0) break;
+    }
+#endif
     appendLog(QStringLiteral("GRBL ready."), true);
     trySendNext();
 }
 
 QString GrblConnection::stripComment(const QString &line) const {
-    int idx = line.indexOf(QLatin1Char(';'));
-    QString s = idx >= 0 ? line.left(idx) : line;
+    const int idx = line.indexOf(QLatin1Char(';'));
+    const QString s = idx >= 0 ? line.left(idx) : line;
     return s.trimmed();
 }
 
@@ -154,8 +284,9 @@ void GrblConnection::sendLine(const QString &line) {
     const QString trimmed = line.trimmed();
     if (trimmed.isEmpty()) return;
 
-    if (trimmed.size() == 1 && (trimmed == QLatin1String("!") || trimmed == QLatin1String("~")
-                                || trimmed == QLatin1String("?"))) {
+    if (trimmed.size() == 1
+        && (trimmed == QLatin1String("!") || trimmed == QLatin1String("~")
+            || trimmed == QLatin1String("?"))) {
         sendRealtimeCommand(trimmed);
         return;
     }
@@ -166,13 +297,13 @@ void GrblConnection::sendLine(const QString &line) {
 }
 
 void GrblConnection::sendRealtimeCommand(const QString &cmd) {
-    if (!m_connected || !m_serial.isOpen()) {
+    if (!m_connected) {
         appendLog(QStringLiteral("Not connected — cannot send."));
         return;
     }
     const QString c = cmd.trimmed();
     if (c.isEmpty()) return;
-    m_serial.write(c.toLatin1());
+    writeRaw(c.toLatin1());
     appendLog(QStringLiteral("[realtime %1]").arg(c), false);
 }
 
@@ -243,7 +374,7 @@ void GrblConnection::trySendNext() {
     }
 
     m_waitingOk = true;
-    m_serial.write((line + QLatin1Char('\n')).toLatin1());
+    writeRaw((line + QLatin1Char('\n')).toUtf8());
 }
 
 void GrblConnection::finishStream(bool success) {
@@ -259,9 +390,13 @@ void GrblConnection::finishStream(bool success) {
     emit streamFinished(success);
 }
 
-void GrblConnection::onReadyRead() {
-    while (m_serial.canReadLine()) {
-        const QByteArray raw = m_serial.readLine();
+void GrblConnection::processIncomingData() {
+    while (true) {
+        const int nl = m_readBuffer.indexOf('\n');
+        if (nl < 0) break;
+
+        QByteArray raw = m_readBuffer.left(nl);
+        m_readBuffer.remove(0, nl + 1);
         QString line = QString::fromUtf8(raw).trimmed();
         if (line.isEmpty()) continue;
         appendLog(line, true);
@@ -286,6 +421,19 @@ void GrblConnection::onReadyRead() {
     }
 }
 
+void GrblConnection::onReadyRead() {
+#ifdef WRITER_HAS_SERIALPORT
+    m_readBuffer.append(m_serial.readAll());
+#elif defined(WRITER_POSIX_SERIAL)
+    if (m_fd < 0) return;
+    char buf[512];
+    const ssize_t n = ::read(m_fd, buf, sizeof(buf));
+    if (n > 0) m_readBuffer.append(buf, int(n));
+#endif
+    processIncomingData();
+}
+
+#ifdef WRITER_HAS_SERIALPORT
 void GrblConnection::onSerialError(QSerialPort::SerialPortError error) {
     if (error == QSerialPort::NoError) return;
     if (error == QSerialPort::ResourceError) {
@@ -293,8 +441,9 @@ void GrblConnection::onSerialError(QSerialPort::SerialPortError error) {
         disconnectPort();
     }
 }
+#endif
 
-#else // !WRITER_HAS_SERIALPORT
+#else // stub — no serial backend
 
 GrblConnection::GrblConnection(QObject *parent) : QObject(parent) {}
 
@@ -307,8 +456,9 @@ void GrblConnection::setPortName(const QString &name) {
 }
 
 void GrblConnection::refreshPorts() {
-    if (!m_availablePorts.isEmpty()) return;
-    m_availablePorts = QStringList();
+    if (m_availablePorts.isEmpty() && m_portLabels.isEmpty()) return;
+    m_availablePorts.clear();
+    m_portLabels.clear();
     emit availablePortsChanged();
 }
 
@@ -319,7 +469,7 @@ void GrblConnection::logMessage(const QString &msg) {
 }
 
 bool GrblConnection::connectPort() {
-    logMessage(QStringLiteral("Serial support not built. Install qt6-serialport and rebuild WriterQt."));
+    logMessage(QStringLiteral("Serial not available. Install qt6-serialport and upgrade qt6-base to match, then rebuild."));
     return false;
 }
 
@@ -330,11 +480,11 @@ void GrblConnection::disconnectPort() {
 }
 
 void GrblConnection::sendLine(const QString &) {
-    logMessage(QStringLiteral("Serial support not built."));
+    logMessage(QStringLiteral("Serial not available."));
 }
 
 void GrblConnection::streamProgram(const QString &) {
-    logMessage(QStringLiteral("Serial support not built."));
+    logMessage(QStringLiteral("Serial not available."));
     emit streamFinished(false);
 }
 
@@ -346,7 +496,7 @@ void GrblConnection::clearLog() {
 }
 
 void GrblConnection::sendRealtimeCommand(const QString &) {
-    logMessage(QStringLiteral("Serial support not built."));
+    logMessage(QStringLiteral("Serial not available."));
 }
 
-#endif // WRITER_HAS_SERIALPORT
+#endif // WRITER_HAS_SERIAL

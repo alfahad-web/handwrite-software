@@ -1,0 +1,42 @@
+file(REMOVE_RECURSE
+  ".qt/rcc/qrc_qml_resources.cpp"
+  "CMakeFiles/WriterQt.dir/link.d"
+  "CMakeFiles/WriterQt_autogen.dir/AutogenUsed.txt"
+  "CMakeFiles/WriterQt_autogen.dir/ParseCache.txt"
+  "WriterQt_autogen"
+  "CMakeFiles/WriterQt.dir/WriterQt_autogen/mocs_compilation.cpp.o"
+  "CMakeFiles/WriterQt.dir/WriterQt_autogen/mocs_compilation.cpp.o.d"
+  "CMakeFiles/WriterQt.dir/build-test/.qt/rcc/qrc_qml_resources.cpp.o"
+  "CMakeFiles/WriterQt.dir/build-test/.qt/rcc/qrc_qml_resources.cpp.o.d"
+  "CMakeFiles/WriterQt.dir/main.cpp.o"
+  "CMakeFiles/WriterQt.dir/main.cpp.o.d"
+  "CMakeFiles/WriterQt.dir/src/app/AppSettings.cpp.o"
+  "CMakeFiles/WriterQt.dir/src/app/AppSettings.cpp.o.d"
+  "CMakeFiles/WriterQt.dir/src/app/DocumentModel.cpp.o"
+  "CMakeFiles/WriterQt.dir/src/app/DocumentModel.cpp.o.d"
+  "CMakeFiles/WriterQt.dir/src/app/WriterController.cpp.o"
+  "CMakeFiles/WriterQt.dir/src/app/WriterController.cpp.o.d"
+  "CMakeFiles/WriterQt.dir/src/cnc/GrblConnection.cpp.o"
+  "CMakeFiles/WriterQt.dir/src/cnc/GrblConnection.cpp.o.d"
+  "CMakeFiles/WriterQt.dir/src/font/FontLoader.cpp.o"
+  "CMakeFiles/WriterQt.dir/src/font/FontLoader.cpp.o.d"
+  "CMakeFiles/WriterQt.dir/src/gcode/GcodeController.cpp.o"
+  "CMakeFiles/WriterQt.dir/src/gcode/GcodeController.cpp.o.d"
+  "CMakeFiles/WriterQt.dir/src/gcode/GcodeGenerator.cpp.o"
+  "CMakeFiles/WriterQt.dir/src/gcode/GcodeGenerator.cpp.o.d"
+  "CMakeFiles/WriterQt.dir/src/gcode/PathBuilder.cpp.o"
+  "CMakeFiles/WriterQt.dir/src/gcode/PathBuilder.cpp.o.d"
+  "CMakeFiles/WriterQt.dir/src/layout/LayoutEngine.cpp.o"
+  "CMakeFiles/WriterQt.dir/src/layout/LayoutEngine.cpp.o.d"
+  "CMakeFiles/WriterQt.dir/src/services/WriterProjectService.cpp.o"
+  "CMakeFiles/WriterQt.dir/src/services/WriterProjectService.cpp.o.d"
+  "CMakeFiles/WriterQt.dir/src/ui/HandwritingCanvasItem.cpp.o"
+  "CMakeFiles/WriterQt.dir/src/ui/HandwritingCanvasItem.cpp.o.d"
+  "WriterQt"
+  "WriterQt.pdb"
+)
+
+# Per-language clean rules from dependency scanning.
+foreach(lang CXX)
+  include(CMakeFiles/WriterQt.dir/cmake_clean_${lang}.cmake OPTIONAL)
+endforeach()

@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/">
+    <file alias="qml/Main.qml">/mnt/shared/handwrite-software/writer/qml/Main.qml</file>
+  </qresource>
+</RCC>
+

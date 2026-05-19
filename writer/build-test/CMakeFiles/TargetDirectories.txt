@@ -1,0 +1,6 @@
+/mnt/shared/handwrite-software/writer/build-test/CMakeFiles/WriterQt.dir
+/mnt/shared/handwrite-software/writer/build-test/CMakeFiles/WriterQt_qmlimportscan.dir
+/mnt/shared/handwrite-software/writer/build-test/CMakeFiles/edit_cache.dir
+/mnt/shared/handwrite-software/writer/build-test/CMakeFiles/rebuild_cache.dir
+/mnt/shared/handwrite-software/writer/build-test/CMakeFiles/WriterQt_autogen_timestamp_deps.dir
+/mnt/shared/handwrite-software/writer/build-test/CMakeFiles/WriterQt_autogen.dir
