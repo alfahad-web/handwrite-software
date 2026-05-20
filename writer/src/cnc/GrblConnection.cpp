@@ -452,6 +452,12 @@ void GrblConnection::onWakeTimer() {
     }
 #endif
     appendLog(QStringLiteral("GRBL ready."), true);
+    // Keep servo-based Z reference consistent after each fresh connection.
+    m_pendingOriginZero = true;
+    m_pendingOriginX = 0.0;
+    m_pendingOriginY = 0.0;
+    m_pendingOriginZ = 30.0;
+    enqueueLine(QStringLiteral("G92 X0 Y0 Z30"));
     trySendNext();
     m_statusTimer.start();
 }
