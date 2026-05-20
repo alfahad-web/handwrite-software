@@ -91,17 +91,23 @@ GcodeGenerateResult GcodeGenerator::generateWithPageLines(const PathBuildResult 
     const double yErrorNearMm = qMax(0.0, settings->yErrorNearMm());
     const double yErrorFarMm = qMax(0.0, settings->yErrorMm());
     const double axisEpsMm = 1e-6;
+    const double reversalDeadbandMm = 0.03;
+    const double minReversalStepMm = 0.05;
+    const double minTravelFloorMm = 0.08;
+    const double minTravelFactor = 0.2;
     double pendingCompX = 0.0;
     double pendingCompY = 0.0;
+    double rearmTravelX = 0.0;
+    double rearmTravelY = 0.0;
     int lastDirX = 0;
     int lastDirY = 0;
 
     auto samePoint = [](const QPointF &a, const QPointF &b) {
         return QLineF(a, b).length() <= 1e-6;
     };
-    auto dirFromDelta = [&](double d) {
-        if (d > axisEpsMm) return 1;
-        if (d < -axisEpsMm) return -1;
+    auto dirFromDelta = [&](double d, double threshold) {
+        if (d > threshold) return 1;
+        if (d < -threshold) return -1;
         return 0;
     };
     auto effectiveErrorMm = [&](double absYmm) {
@@ -125,34 +131,48 @@ GcodeGenerateResult GcodeGenerator::generateWithPageLines(const PathBuildResult 
         const QPointF eff = effectiveErrorMm(absYmm);
         const double effX = eff.x();
         const double effY = eff.y();
+        const double minTravelX = qMax(minTravelFloorMm, effX * minTravelFactor);
+        const double minTravelY = qMax(minTravelFloorMm, effY * minTravelFactor);
         pendingCompX = qMin(pendingCompX, effX);
         pendingCompY = qMin(pendingCompY, effY);
 
-        int dirX = dirFromDelta(nominalToMm.x() - currentPosMm.x());
+        int dirX = dirFromDelta(nominalToMm.x() - currentPosMm.x(), reversalDeadbandMm);
         if (dirX != 0) {
-            if (lastDirX != 0 && dirX != lastDirX && pendingCompX > axisEpsMm) {
+            const bool canApplyX = lastDirX != 0 && dirX != lastDirX
+                                   && pendingCompX > axisEpsMm
+                                   && rearmTravelX >= minTravelX
+                                   && qAbs(nominalToMm.x() - currentPosMm.x()) >= minReversalStepMm;
+            if (canApplyX) {
                 correctedToMm.setX(correctedToMm.x() + dirX * pendingCompX);
                 pendingCompX = 0.0;
+                rearmTravelX = 0.0;
             }
             const double movedX = correctedToMm.x() - currentPosMm.x();
-            dirX = dirFromDelta(movedX);
+            dirX = dirFromDelta(movedX, axisEpsMm);
             if (dirX != 0) {
                 lastDirX = dirX;
                 pendingCompX = qMin(effX, pendingCompX + qAbs(movedX));
+                rearmTravelX += qAbs(movedX);
             }
         }
 
-        int dirY = dirFromDelta(nominalToMm.y() - currentPosMm.y());
+        int dirY = dirFromDelta(nominalToMm.y() - currentPosMm.y(), reversalDeadbandMm);
         if (dirY != 0) {
-            if (lastDirY != 0 && dirY != lastDirY && pendingCompY > axisEpsMm) {
+            const bool canApplyY = lastDirY != 0 && dirY != lastDirY
+                                   && pendingCompY > axisEpsMm
+                                   && rearmTravelY >= minTravelY
+                                   && qAbs(nominalToMm.y() - currentPosMm.y()) >= minReversalStepMm;
+            if (canApplyY) {
                 correctedToMm.setY(correctedToMm.y() + dirY * pendingCompY);
                 pendingCompY = 0.0;
+                rearmTravelY = 0.0;
             }
             const double movedY = correctedToMm.y() - currentPosMm.y();
-            dirY = dirFromDelta(movedY);
+            dirY = dirFromDelta(movedY, axisEpsMm);
             if (dirY != 0) {
                 lastDirY = dirY;
                 pendingCompY = qMin(effY, pendingCompY + qAbs(movedY));
+                rearmTravelY += qAbs(movedY);
             }
         }
 
