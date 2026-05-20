@@ -238,6 +238,7 @@ QString GcodeGenerator::generateSinglePage(const PathBuildResult &path, int page
     // Page-local CNC origin is page top-left in writer coordinates.
     const QPointF plotOriginCm(0, pageIndex * settings->pageHeightCm());
     PathBuildResult pagePath;
+    bool sawFirstInk = false;
     for (const PathSegment &seg : path.segments) {
         if (seg.pageIndex != pageIndex) continue;
         PathSegment copy = seg;
@@ -245,6 +246,10 @@ QString GcodeGenerator::generateSinglePage(const PathBuildResult &path, int page
             pt -= plotOriginCm;
         const double len = segmentLengthCm(copy);
         if (len <= 1e-9) continue;
+        // Drop cross-page connector travel that may be tagged with this page.
+        // For standalone page output, we only start once first ink segment begins.
+        if (copy.travel && !sawFirstInk) continue;
+        if (!copy.travel) sawFirstInk = true;
         pagePath.segments.push_back(copy);
         pagePath.totalLengthCm += len;
     }
@@ -252,27 +257,5 @@ QString GcodeGenerator::generateSinglePage(const PathBuildResult &path, int page
     if (pagePath.segments.isEmpty())
         return QStringLiteral("; No strokes on page %1\n").arg(pageIndex);
 
-    QString g = generate(pagePath, settings);
-    if (pageIndex <= 0) return g;
-
-    const QPointF absMm = layoutCmToMachineMm(plotOriginCm);
-    QStringList preamble;
-    preamble << QStringLiteral("; Page %1 — pen up, move to plot origin, home for local coords")
-                    .arg(pageIndex);
-    preamble << QStringLiteral("G0 Z%1").arg(fmtMm(settings->penUpZ()));
-    preamble << xyLine("G0", absMm.x(), absMm.y());
-    preamble << QStringLiteral("G92 X0 Y0 Z0");
-
-    QStringList lines = g.split(QLatin1Char('\n'), Qt::KeepEmptyParts);
-    int insertAt = lines.size();
-    for (int i = 0; i < lines.size(); ++i) {
-        if (lines.at(i).startsWith(QLatin1String("F"))) {
-            insertAt = i + 1;
-            break;
-        }
-    }
-    for (int i = preamble.size() - 1; i >= 0; --i)
-        lines.insert(insertAt, preamble.at(i));
-
-    return lines.join(QLatin1Char('\n')) + QLatin1Char('\n');
+    return generate(pagePath, settings);
 }
