@@ -64,6 +64,7 @@ public:
     double runStartDistanceCm() const { return m_runStartDistanceCm; }
     double runEndDistanceCm() const { return m_runEndDistanceCm; }
     int executingPage() const { return m_executingPage; }
+    bool pageLocalMachineCoords() const { return m_pageLocalGrblStream; }
     const PathPageMap &pathPageMap() const { return m_pathPageMap; }
 
     bool canUndo() const { return !m_undoStack.isEmpty(); }
@@ -190,6 +191,7 @@ private:
     double m_runEndDistanceCm = 0;
     bool m_expectPageStreamComplete = false;
     bool m_deferGrblStream = false;
+    bool m_pageLocalGrblStream = false;
     bool m_waitingMachineIdleAfterPage = false;
     QString m_pendingGrblSlice;
     PathPageMap m_pathPageMap;

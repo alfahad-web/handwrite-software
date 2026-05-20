@@ -53,6 +53,22 @@ QString GcodeController::gcodeForPageRange(int startPage, int endPageExclusive) 
     return parts.join(QLatin1Char('\n'));
 }
 
+bool GcodeController::regeneratePage(int pageIndex) {
+    if (!m_writer || !m_writer->settings()) {
+        setGeneratedGcode(QStringLiteral("; No document\n"));
+        setGcodeStale(true);
+        return false;
+    }
+
+    const PathBuildResult path = PathBuilder::buildFromController(m_writer);
+    const int clampedPage = qMax(0, pageIndex);
+    const QString pageGcode =
+        GcodeGenerator::generateSinglePage(path, clampedPage, m_writer->settings());
+    setGeneratedGcode(pageGcode);
+    setGcodeStale(false);
+    return !pageGcode.startsWith(QLatin1String("; No strokes on page"));
+}
+
 void GcodeController::copyToClipboard() {
     if (QClipboard *cb = QGuiApplication::clipboard())
         cb->setText(m_generatedGcode);

@@ -261,6 +261,9 @@ void WriterController::advanceRunToPage(int page) {
     emit runStartPageChanged();
     emit runPathChanged();
     emit runArmVisualsChanged();
+
+    if (m_gcode)
+        m_gcode->regeneratePage(clamped);
 }
 
 void WriterController::startRun() {
@@ -275,14 +278,20 @@ void WriterController::startRun() {
     emit runPathChanged();
 
     m_deferGrblStream = false;
+    m_pageLocalGrblStream = false;
     m_pendingGrblSlice.clear();
     if (m_grbl->connected()) {
-        if (m_gcode->gcodeStale())
-            m_gcode->regenerate();
-        m_pendingGrblSlice = m_gcode->gcodeForPageRange(m_executingPage, m_executingPage + 1);
+        if (!m_gcode->regeneratePage(m_executingPage)) {
+            m_grbl->logMessage(QStringLiteral("No strokes on selected page."));
+            return;
+        }
+        m_pendingGrblSlice = m_gcode->generatedGcode();
         m_deferGrblStream = true;
+        m_pageLocalGrblStream = true;
         m_expectPageStreamComplete = true;
     } else {
+        if (m_gcode)
+            m_gcode->regeneratePage(m_executingPage);
         m_expectPageStreamComplete = false;
         m_grbl->logMessage(QStringLiteral("Not connected — preview only (no CNC stream)."));
     }
@@ -302,8 +311,10 @@ void WriterController::onMachineIdleAfterPageStream() {
 void WriterController::onRunApproachComplete() {
     if (!m_runActive || !m_deferGrblStream) return;
     m_deferGrblStream = false;
-    if (m_grbl->connected() && !m_pendingGrblSlice.isEmpty())
+    if (m_grbl->connected() && !m_pendingGrblSlice.isEmpty()) {
+        m_pageLocalGrblStream = true;
         m_grbl->streamProgram(m_pendingGrblSlice);
+    }
     m_pendingGrblSlice.clear();
 }
 
@@ -311,6 +322,7 @@ void WriterController::finishPageRun() {
     if (!m_runActive) return;
     m_waitingMachineIdleAfterPage = false;
     m_deferGrblStream = false;
+    m_pageLocalGrblStream = false;
     m_pendingGrblSlice.clear();
     const int nextPage = m_executingPage + 1;
     m_expectPageStreamComplete = false;
@@ -330,6 +342,8 @@ void WriterController::finishPageRun() {
         emit runStartPageChanged();
         emit runPathChanged();
         emit runArmVisualsChanged();
+        if (m_gcode)
+            m_gcode->regeneratePage(nextPage);
         if (m_grbl->connected())
             m_grbl->logMessage(
                 QStringLiteral("Page %1 done — pen up, at home. Advance/Run for page %2.")
@@ -373,6 +387,7 @@ void WriterController::stopRunInternal(bool clearArm, bool abortGrbl) {
     m_expectPageStreamComplete = false;
     m_waitingMachineIdleAfterPage = false;
     m_deferGrblStream = false;
+    m_pageLocalGrblStream = false;
     m_pendingGrblSlice.clear();
     if (m_grbl->streaming() || m_grbl->connected()) {
         if (abortGrbl)

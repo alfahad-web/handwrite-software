@@ -63,6 +63,9 @@ private:
     void drawRunProgressAlongPath(QPainter *painter, double pathFrom, double pathTo, double s) const;
     QPointF pagePlotOriginCm(int page) const;
     QPointF layoutCmFromMachineMm(double mmX, double mmY) const;
+    QPointF cncLayoutCm() const;
+    int activePageForCncCoords() const;
+    bool shouldDrawTip() const;
     QPointF pointAtPathDistance(double distCm) const;
     double pathDistanceForLayoutPoint(const QPointF &layoutCm) const;
     double pageEndInkDistanceCm(int page) const;

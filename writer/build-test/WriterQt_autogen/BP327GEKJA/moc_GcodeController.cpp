@@ -51,6 +51,8 @@ template <> constexpr inline auto GcodeController::qt_create_metaobjectdata<qt_m
         "gcodeForPageRange",
         "startPage",
         "endPageExclusive",
+        "regeneratePage",
+        "pageIndex",
         "generatedGcode",
         "gcodeStale",
         "pageCount"
@@ -77,14 +79,18 @@ template <> constexpr inline auto GcodeController::qt_create_metaobjectdata<qt_m
         QtMocHelpers::MethodData<QString(int, int) const>(10, 2, QMC::AccessPublic, QMetaType::QString, {{
             { QMetaType::Int, 11 }, { QMetaType::Int, 12 },
         }}),
+        // Method 'regeneratePage'
+        QtMocHelpers::MethodData<bool(int)>(13, 2, QMC::AccessPublic, QMetaType::Bool, {{
+            { QMetaType::Int, 14 },
+        }}),
     };
     QtMocHelpers::UintData qt_properties {
         // property 'generatedGcode'
-        QtMocHelpers::PropertyData<QString>(13, QMetaType::QString, QMC::DefaultPropertyFlags | QMC::Writable, 0),
+        QtMocHelpers::PropertyData<QString>(15, QMetaType::QString, QMC::DefaultPropertyFlags | QMC::Writable, 0),
         // property 'gcodeStale'
-        QtMocHelpers::PropertyData<bool>(14, QMetaType::Bool, QMC::DefaultPropertyFlags, 1),
+        QtMocHelpers::PropertyData<bool>(16, QMetaType::Bool, QMC::DefaultPropertyFlags, 1),
         // property 'pageCount'
-        QtMocHelpers::PropertyData<int>(15, QMetaType::Int, QMC::DefaultPropertyFlags, 2),
+        QtMocHelpers::PropertyData<int>(17, QMetaType::Int, QMC::DefaultPropertyFlags, 2),
     };
     QtMocHelpers::UintData qt_enums {
     };
@@ -116,6 +122,8 @@ void GcodeController::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int 
         case 7: _t->copyToClipboard(); break;
         case 8: { QString _r = _t->gcodeForPageRange((*reinterpret_cast<std::add_pointer_t<int>>(_a[1])),(*reinterpret_cast<std::add_pointer_t<int>>(_a[2])));
             if (_a[0]) *reinterpret_cast<QString*>(_a[0]) = std::move(_r); }  break;
+        case 9: { bool _r = _t->regeneratePage((*reinterpret_cast<std::add_pointer_t<int>>(_a[1])));
+            if (_a[0]) *reinterpret_cast<bool*>(_a[0]) = std::move(_r); }  break;
         default: ;
         }
     }
@@ -164,14 +172,14 @@ int GcodeController::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 9)
+        if (_id < 10)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 9;
+        _id -= 10;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 9)
+        if (_id < 10)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 9;
+        _id -= 10;
     }
     if (_c == QMetaObject::ReadProperty || _c == QMetaObject::WriteProperty
             || _c == QMetaObject::ResetProperty || _c == QMetaObject::BindableProperty

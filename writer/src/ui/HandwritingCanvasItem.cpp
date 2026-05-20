@@ -295,9 +295,30 @@ QPointF HandwritingCanvasItem::layoutCmFromMachineMm(double mmX, double mmY) con
     return QPointF(mmY / 10.0, mmX / 10.0);
 }
 
+int HandwritingCanvasItem::activePageForCncCoords() const {
+    if (!m_ctrl) return 0;
+    if (m_ctrl->runActive()) return m_ctrl->executingPage();
+    if (m_ctrl->runArmed()) return m_ctrl->runStartPage();
+    if (m_ctrl->pageLocalMachineCoords()) return m_ctrl->executingPage();
+    return 0;
+}
+
+QPointF HandwritingCanvasItem::cncLayoutCm() const {
+    if (!m_ctrl || !m_ctrl->grbl()->positionKnown()) return QPointF();
+
+    const QPointF localCm = layoutCmFromMachineMm(m_ctrl->grbl()->posX(), m_ctrl->grbl()->posY());
+    // Handwriting preview uses page-local CNC coordinates with page plot-origin offset.
+    return pagePlotOriginCm(activePageForCncCoords()) + localCm;
+}
+
 bool HandwritingCanvasItem::useLiveCncTip() const {
     return m_ctrl && m_ctrl->grbl()->connected() && m_ctrl->grbl()->positionKnown()
            && m_ctrl->viewMode() == QLatin1String("handwriting");
+}
+
+bool HandwritingCanvasItem::shouldDrawTip() const {
+    if (!m_ctrl) return false;
+    return m_approachActive || m_ctrl->runArmed() || m_ctrl->runActive() || useLiveCncTip();
 }
 
 double HandwritingCanvasItem::pathDistanceForLayoutPoint(const QPointF &layoutCm) const {
@@ -357,7 +378,7 @@ void HandwritingCanvasItem::syncRedTrailFromLivePosition() {
     if (!m_ctrl || !m_runStaticValid || m_runRedPixmap.isNull() || !useLiveCncTip()) return;
     if (!m_ctrl->runActive() || m_approachActive) return;
 
-    const QPointF tipCm = layoutCmFromMachineMm(m_ctrl->grbl()->posX(), m_ctrl->grbl()->posY());
+    const QPointF tipCm = cncLayoutCm();
     double along = pathDistanceForLayoutPoint(tipCm);
     along = qBound(m_runStartDistanceCm, along, m_runEndDistanceCm);
 
@@ -488,15 +509,15 @@ void HandwritingCanvasItem::startApproachToPathStart(int page) {
 
 QPointF HandwritingCanvasItem::currentTipPositionCm() const {
     if (!m_ctrl) return QPointF();
-    if (m_ctrl->runArmed())
-        return pagePlotOriginCm(m_ctrl->runStartPage());
     if (m_approachActive) {
         const double len = dist(m_approachFromCm, m_approachToCm);
         const double t = len > 1e-9 ? qMin(1.0, m_approachTraveledCm / len) : 1.0;
         return m_approachFromCm + (m_approachToCm - m_approachFromCm) * t;
     }
     if (useLiveCncTip())
-        return layoutCmFromMachineMm(m_ctrl->grbl()->posX(), m_ctrl->grbl()->posY());
+        return cncLayoutCm();
+    if (m_ctrl->runArmed())
+        return pagePlotOriginCm(m_ctrl->runStartPage());
     if (m_ctrl->runActive())
         return pointAtPathDistance(m_runDistance);
     return QPointF();
@@ -871,7 +892,7 @@ void HandwritingCanvasItem::paint(QPainter *painter) {
         painter->drawPixmap(0, 0, m_runRedPixmap);
 
         const QPointF tipCm = currentTipPositionCm();
-        if (!tipCm.isNull()) {
+        if (shouldDrawTip()) {
             if (m_approachActive)
                 drawApproachTravel(painter, m_approachFromCm, tipCm, s);
             drawPurpleTip(painter, tipCm, s);
@@ -889,7 +910,7 @@ void HandwritingCanvasItem::paint(QPainter *painter) {
     paintStaticContent(painter, st, s);
 
     const QPointF liveTip = currentTipPositionCm();
-    if (!liveTip.isNull()) {
+    if (shouldDrawTip()) {
         drawPurpleTip(painter, liveTip, s);
     }
 

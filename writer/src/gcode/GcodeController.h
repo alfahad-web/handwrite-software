@@ -25,6 +25,7 @@ public:
     Q_INVOKABLE void openGcodeFile();
     Q_INVOKABLE void copyToClipboard();
     Q_INVOKABLE QString gcodeForPageRange(int startPage, int endPageExclusive) const;
+    Q_INVOKABLE bool regeneratePage(int pageIndex);
 
     const QVector<int> &pageLineStart() const { return m_pageLineStart; }
 
