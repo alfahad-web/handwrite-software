@@ -745,8 +745,17 @@ ApplicationWindow {
                     Button {
                         text: "Cancel"
                         implicitHeight: 24
-                        enabled: grblConnection.streaming
-                        onClicked: grblConnection.cancelStream()
+                        enabled: writerController.runActive || grblConnection.streaming
+                        onClicked: writerController.stopRun()
+                    }
+                    Button {
+                        text: "Halt"
+                        implicitHeight: 24
+                        enabled: grblConnection.connected && (writerController.runActive || grblConnection.streaming)
+                        onClicked: {
+                            grblConnection.sendRealtimeCommand("!")
+                            writerController.stopRun()
+                        }
                     }
                     Item { Layout.fillWidth: true }
                 }
