@@ -744,7 +744,7 @@ ApplicationWindow {
                             implicitHeight: 32
                             enabled: grblConnection.connected && !grblConnection.streaming
                             ToolTip.visible: hovered
-                            ToolTip.text: "Set current position as origin (G92 X0 Y0 Z0)"
+                            ToolTip.text: "Set current position as origin (G92 X0 Y0 Z30)"
                             onClicked: grblConnection.setWorkOriginHere()
                         }
                     }

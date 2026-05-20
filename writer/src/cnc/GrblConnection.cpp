@@ -190,13 +190,13 @@ void GrblConnection::resetPosition() {
 
 void GrblConnection::applyOriginZero() {
     if (m_mposKnown) {
-        m_wcoX = m_mposX;
-        m_wcoY = m_mposY;
-        m_wcoZ = m_mposZ;
+        m_wcoX = m_mposX - m_pendingOriginX;
+        m_wcoY = m_mposY - m_pendingOriginY;
+        m_wcoZ = m_mposZ - m_pendingOriginZ;
         m_wcoKnown = true;
         m_wcoLockTimer.start();
     }
-    setPosition(0, 0, 0);
+    setPosition(m_pendingOriginX, m_pendingOriginY, m_pendingOriginZ);
 }
 
 namespace {
@@ -213,6 +213,27 @@ bool parseAxisTriplet(const QString &line, const QString &key, double *x, double
     *y = parts[1].toDouble(&okY);
     *z = parts[2].toDouble(&okZ);
     return okX && okY && okZ;
+}
+
+void parseG92Targets(const QString &line, double *x, double *y, double *z) {
+    if (!x || !y || !z) return;
+    double tx = 0.0;
+    double ty = 0.0;
+    double tz = 0.0;
+    const QStringList parts = line.simplified().split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    for (const QString &part : parts) {
+        if (part.size() < 2) continue;
+        bool ok = false;
+        const double value = part.mid(1).toDouble(&ok);
+        if (!ok) continue;
+        const QChar axis = part.at(0).toUpper();
+        if (axis == QLatin1Char('X')) tx = value;
+        else if (axis == QLatin1Char('Y')) ty = value;
+        else if (axis == QLatin1Char('Z')) tz = value;
+    }
+    *x = tx;
+    *y = ty;
+    *z = tz;
 }
 }
 
@@ -273,7 +294,10 @@ void GrblConnection::setWorkOriginHere() {
         return;
     }
     m_pendingOriginZero = true;
-    sendLine(QStringLiteral("G92 X0 Y0 Z0"));
+    m_pendingOriginX = 0.0;
+    m_pendingOriginY = 0.0;
+    m_pendingOriginZ = 30.0;
+    sendLine(QStringLiteral("G92 X0 Y0 Z30"));
 }
 
 bool GrblConnection::writeRaw(const QByteArray &data) {
@@ -468,7 +492,10 @@ void GrblConnection::sendLine(const QString &line) {
     }
 
     const QString stripped = stripComment(trimmed);
-    if (stripped.startsWith(QLatin1String("G92"), Qt::CaseInsensitive)) m_pendingOriginZero = true;
+    if (stripped.startsWith(QLatin1String("G92"), Qt::CaseInsensitive)) {
+        m_pendingOriginZero = true;
+        parseG92Targets(stripped, &m_pendingOriginX, &m_pendingOriginY, &m_pendingOriginZ);
+    }
 
     appendLog(trimmed, false);
     enqueueLine(trimmed);

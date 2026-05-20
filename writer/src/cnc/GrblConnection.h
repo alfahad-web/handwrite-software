@@ -133,6 +133,9 @@ private:
     double m_wcoZ = 0;
     bool m_wcoKnown = false;
     bool m_pendingOriginZero = false;
+    double m_pendingOriginX = 0.0;
+    double m_pendingOriginY = 0.0;
+    double m_pendingOriginZ = 0.0;
     double m_mposX = 0;
     double m_mposY = 0;
     double m_mposZ = 0;
