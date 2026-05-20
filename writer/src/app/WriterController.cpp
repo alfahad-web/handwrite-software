@@ -58,11 +58,26 @@ WriterController::WriterController(QObject *parent) : QObject(parent) {
     });
     connect(m_grbl, &GrblConnection::streamFinished, this, [this](bool success) {
         if (!m_runActive) return;
-        if (success && m_expectPageStreamComplete) {
-            finishPageRun();
+        if (!m_expectPageStreamComplete) {
+            if (!success) stopRunInternal(true, false);
             return;
         }
-        stopRunInternal(true, false);
+        if (!success) {
+            m_waitingMachineIdleAfterPage = false;
+            stopRunInternal(true, false);
+            return;
+        }
+        if (m_grbl->connected()) {
+            m_waitingMachineIdleAfterPage = true;
+            if (m_grbl->machineState() == QLatin1String("Idle"))
+                onMachineIdleAfterPageStream();
+        } else {
+            finishPageRun();
+        }
+    });
+    connect(m_grbl, &GrblConnection::machineStateChanged, this, [this]() {
+        if (m_waitingMachineIdleAfterPage && m_grbl->machineState() == QLatin1String("Idle"))
+            onMachineIdleAfterPageStream();
     });
     connect(this, &WriterController::layoutInvalidated, this, [this]() {
         clearRunArm();
@@ -259,12 +274,14 @@ void WriterController::startRun() {
     m_runEndDistanceCm = pageEndDistance(m_executingPage);
     emit runPathChanged();
 
+    m_deferGrblStream = false;
+    m_pendingGrblSlice.clear();
     if (m_grbl->connected()) {
         if (m_gcode->gcodeStale())
             m_gcode->regenerate();
-        const QString slice = m_gcode->gcodeForPageRange(m_executingPage, m_executingPage + 1);
+        m_pendingGrblSlice = m_gcode->gcodeForPageRange(m_executingPage, m_executingPage + 1);
+        m_deferGrblStream = true;
         m_expectPageStreamComplete = true;
-        m_grbl->streamProgram(slice);
     } else {
         m_expectPageStreamComplete = false;
         m_grbl->logMessage(QStringLiteral("Not connected — preview only (no CNC stream)."));
@@ -276,8 +293,25 @@ void WriterController::startRun() {
     emit runActiveChanged();
 }
 
+void WriterController::onMachineIdleAfterPageStream() {
+    if (!m_waitingMachineIdleAfterPage || !m_runActive) return;
+    m_waitingMachineIdleAfterPage = false;
+    finishPageRun();
+}
+
+void WriterController::onRunApproachComplete() {
+    if (!m_runActive || !m_deferGrblStream) return;
+    m_deferGrblStream = false;
+    if (m_grbl->connected() && !m_pendingGrblSlice.isEmpty())
+        m_grbl->streamProgram(m_pendingGrblSlice);
+    m_pendingGrblSlice.clear();
+}
+
 void WriterController::finishPageRun() {
     if (!m_runActive) return;
+    m_waitingMachineIdleAfterPage = false;
+    m_deferGrblStream = false;
+    m_pendingGrblSlice.clear();
     const int nextPage = m_executingPage + 1;
     m_expectPageStreamComplete = false;
 
@@ -296,8 +330,15 @@ void WriterController::finishPageRun() {
         emit runStartPageChanged();
         emit runPathChanged();
         emit runArmVisualsChanged();
+        if (m_grbl->connected())
+            m_grbl->logMessage(
+                QStringLiteral("Page %1 done — pen up, at home. Advance/Run for page %2.")
+                    .arg(m_executingPage)
+                    .arg(nextPage));
     } else {
         clearRunArm();
+        if (m_grbl->connected())
+            m_grbl->logMessage(QStringLiteral("All pages complete — pen up, at home."));
     }
 }
 
@@ -319,6 +360,10 @@ void WriterController::stopRun() {
     stopRunInternal(true, true);
 }
 
+void WriterController::stopRunPreserveCnc() {
+    stopRunInternal(true, false);
+}
+
 void WriterController::stopRunInternal(bool clearArm, bool abortGrbl) {
     if (!m_runActive && !m_grbl->streaming()) {
         if (clearArm) clearRunArm();
@@ -326,6 +371,9 @@ void WriterController::stopRunInternal(bool clearArm, bool abortGrbl) {
     }
 
     m_expectPageStreamComplete = false;
+    m_waitingMachineIdleAfterPage = false;
+    m_deferGrblStream = false;
+    m_pendingGrblSlice.clear();
     if (m_grbl->streaming() || m_grbl->connected()) {
         if (abortGrbl)
             m_grbl->abortStreamAndRecover();

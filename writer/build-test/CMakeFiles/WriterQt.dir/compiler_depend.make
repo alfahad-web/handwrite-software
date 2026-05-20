@@ -1942,6 +1942,8 @@ CMakeFiles/WriterQt.dir/src/app/WriterController.cpp.o: /mnt/shared/handwrite-so
   /mnt/shared/handwrite-software/writer/src/cnc/GrblConnection.h \
   /mnt/shared/handwrite-software/writer/src/font/FontLoader.h \
   /mnt/shared/handwrite-software/writer/src/gcode/GcodeController.h \
+  /mnt/shared/handwrite-software/writer/src/gcode/PathBuilder.h \
+  /mnt/shared/handwrite-software/writer/src/layout/LayoutEngine.h \
   /mnt/shared/handwrite-software/writer/src/services/WriterProjectService.h \
   /usr/include/alloca.h \
   /usr/include/asm-generic/bitsperlong.h \
@@ -5716,6 +5718,8 @@ CMakeFiles/WriterQt.dir/src/services/WriterProjectService.cpp.o: /mnt/shared/han
   /mnt/shared/handwrite-software/writer/src/cnc/GrblConnection.h \
   /mnt/shared/handwrite-software/writer/src/font/FontLoader.h \
   /mnt/shared/handwrite-software/writer/src/gcode/GcodeController.h \
+  /mnt/shared/handwrite-software/writer/src/gcode/PathBuilder.h \
+  /mnt/shared/handwrite-software/writer/src/layout/LayoutEngine.h \
   /mnt/shared/handwrite-software/writer/src/services/WriterProjectService.h \
   /usr/include/alloca.h \
   /usr/include/asm-generic/bitsperlong.h \

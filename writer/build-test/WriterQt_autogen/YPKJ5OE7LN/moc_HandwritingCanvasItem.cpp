@@ -46,6 +46,7 @@ template <> constexpr inline auto HandwritingCanvasItem::qt_create_metaobjectdat
         "runPreparationFinished",
         "onInvalidated",
         "onRunTick",
+        "onLiveCncPositionChanged",
         "controller",
         "WriterController*",
         "glyphDragActive"
@@ -64,12 +65,14 @@ template <> constexpr inline auto HandwritingCanvasItem::qt_create_metaobjectdat
         QtMocHelpers::SlotData<void()>(6, 2, QMC::AccessPrivate, QMetaType::Void),
         // Slot 'onRunTick'
         QtMocHelpers::SlotData<void()>(7, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'onLiveCncPositionChanged'
+        QtMocHelpers::SlotData<void()>(8, 2, QMC::AccessPrivate, QMetaType::Void),
     };
     QtMocHelpers::UintData qt_properties {
         // property 'controller'
-        QtMocHelpers::PropertyData<WriterController*>(8, 0x80000000 | 9, QMC::DefaultPropertyFlags | QMC::Writable | QMC::EnumOrFlag | QMC::StdCppSet, 0),
+        QtMocHelpers::PropertyData<WriterController*>(9, 0x80000000 | 10, QMC::DefaultPropertyFlags | QMC::Writable | QMC::EnumOrFlag | QMC::StdCppSet, 0),
         // property 'glyphDragActive'
-        QtMocHelpers::PropertyData<bool>(10, QMetaType::Bool, QMC::DefaultPropertyFlags, 1),
+        QtMocHelpers::PropertyData<bool>(11, QMetaType::Bool, QMC::DefaultPropertyFlags, 1),
     };
     QtMocHelpers::UintData qt_enums {
     };
@@ -97,6 +100,7 @@ void HandwritingCanvasItem::qt_static_metacall(QObject *_o, QMetaObject::Call _c
         case 3: _t->runPreparationFinished(); break;
         case 4: _t->onInvalidated(); break;
         case 5: _t->onRunTick(); break;
+        case 6: _t->onLiveCncPositionChanged(); break;
         default: ;
         }
     }
@@ -146,14 +150,14 @@ int HandwritingCanvasItem::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 6)
+        if (_id < 7)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 6;
+        _id -= 7;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 6)
+        if (_id < 7)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 6;
+        _id -= 7;
     }
     if (_c == QMetaObject::ReadProperty || _c == QMetaObject::WriteProperty
             || _c == QMetaObject::ResetProperty || _c == QMetaObject::BindableProperty

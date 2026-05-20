@@ -38,33 +38,19 @@ void GcodeController::regenerate() {
 }
 
 QString GcodeController::gcodeForPageRange(int startPage, int endPageExclusive) const {
-    if (m_generatedGcode.isEmpty() || m_pageCount <= 0 || m_pageLineStart.isEmpty())
-        return m_generatedGcode;
+    if (!m_writer || !m_writer->settings()) return m_generatedGcode;
 
-    const QStringList allLines = m_generatedGcode.split(QLatin1Char('\n'), Qt::KeepEmptyParts);
-    if (allLines.isEmpty()) return m_generatedGcode;
+    const int start = qMax(0, startPage);
+    const int endEx = qMax(start + 1, endPageExclusive);
+    const PathBuildResult path = PathBuilder::buildFromController(m_writer);
+    const AppSettings *st = m_writer->settings();
 
-    const int start = qBound(0, startPage, m_pageCount - 1);
-    const int endEx = qBound(start + 1, endPageExclusive, m_pageCount);
+    QStringList parts;
+    for (int p = start; p < endEx; ++p)
+        parts.append(GcodeGenerator::generateSinglePage(path, p, st));
 
-    int lineFrom = 0;
-    if (start > 0 && start < m_pageLineStart.size() && m_pageLineStart[start] >= 0)
-        lineFrom = m_pageLineStart[start];
-    else if (start == 0)
-        lineFrom = 0;
-
-    int lineTo = allLines.size();
-    if (endEx < m_pageCount && endEx < m_pageLineStart.size() && m_pageLineStart[endEx] >= 0)
-        lineTo = m_pageLineStart[endEx];
-
-    lineFrom = qBound(0, lineFrom, allLines.size());
-    lineTo = qBound(lineFrom, lineTo, allLines.size());
-
-    QStringList slice;
-    for (int i = lineFrom; i < lineTo; ++i)
-        slice.append(allLines[i]);
-
-    return slice.join(QLatin1Char('\n')) + QLatin1Char('\n');
+    if (parts.isEmpty()) return QStringLiteral("; No page G-code\n");
+    return parts.join(QLatin1Char('\n'));
 }
 
 void GcodeController::copyToClipboard() {

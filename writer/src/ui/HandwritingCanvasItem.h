@@ -45,6 +45,7 @@ protected:
 private slots:
     void onInvalidated();
     void onRunTick();
+    void onLiveCncPositionChanged();
 
 private:
     QHash<int, QPointF> forcedAnchorsForLayout() const;
@@ -60,6 +61,16 @@ private:
     void clearRunCaches();
     void paintStaticContent(QPainter *painter, const AppSettings *st, double s) const;
     void drawRunProgressAlongPath(QPainter *painter, double pathFrom, double pathTo, double s) const;
+    QPointF pagePlotOriginCm(int page) const;
+    QPointF layoutCmFromMachineMm(double mmX, double mmY) const;
+    QPointF pointAtPathDistance(double distCm) const;
+    double pathDistanceForLayoutPoint(const QPointF &layoutCm) const;
+    void syncRedTrailFromLivePosition();
+    bool useLiveCncTip() const;
+    void drawPurpleTip(QPainter *painter, const QPointF &cm, double s) const;
+    void drawApproachTravel(QPainter *painter, const QPointF &fromCm, const QPointF &toCm, double s) const;
+    void startApproachToPathStart(int page);
+    QPointF currentTipPositionCm() const;
     void prepareRunSimulationAfterUi();
     void prepareRunOverlayAt(double progressDistanceCm);
     void onRunArmVisualsChanged();
@@ -85,9 +96,16 @@ private:
     double m_runDistance = 0;
     double m_runLastPaintedDist = 0;
 
+    bool m_approachActive = false;
+    QPointF m_approachFromCm;
+    QPointF m_approachToCm;
+    double m_approachTraveledCm = 0;
+    int m_tipPage = 0;
+
     QPixmap m_runStaticPixmap;
     QPixmap m_runRedPixmap;
     bool m_runStaticValid = false;
 
     QElapsedTimer m_runElapsed;
+    QElapsedTimer m_redTrailThrottle;
 };

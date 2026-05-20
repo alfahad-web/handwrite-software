@@ -32,6 +32,7 @@ class WriterController : public QObject {
     Q_PROPERTY(int pageCount READ pageCount NOTIFY pageCountChanged)
     Q_PROPERTY(double runStartDistanceCm READ runStartDistanceCm NOTIFY runPathChanged)
     Q_PROPERTY(double runEndDistanceCm READ runEndDistanceCm NOTIFY runPathChanged)
+    Q_PROPERTY(int executingPage READ executingPage NOTIFY runPathChanged)
     Q_PROPERTY(bool canUndo READ canUndo NOTIFY historyChanged)
     Q_PROPERTY(bool canRedo READ canRedo NOTIFY historyChanged)
 
@@ -62,6 +63,7 @@ public:
     int pageCount() const { return m_pathPageMap.pageCount; }
     double runStartDistanceCm() const { return m_runStartDistanceCm; }
     double runEndDistanceCm() const { return m_runEndDistanceCm; }
+    int executingPage() const { return m_executingPage; }
     const PathPageMap &pathPageMap() const { return m_pathPageMap; }
 
     bool canUndo() const { return !m_undoStack.isEmpty(); }
@@ -80,10 +82,12 @@ public:
     Q_INVOKABLE void pauseRun();
     Q_INVOKABLE void resumeRun();
     Q_INVOKABLE void stopRun();
+    Q_INVOKABLE void stopRunPreserveCnc();
     Q_INVOKABLE void advanceRunToPage(int page);
     Q_INVOKABLE void clearRunArm();
     Q_INVOKABLE void refreshPageMap();
     Q_INVOKABLE void finishPageRun();
+    Q_INVOKABLE void onRunApproachComplete();
 
     Q_INVOKABLE void notifyLineHeightCollision(bool exceeds);
     Q_INVOKABLE bool generateGcode();
@@ -163,6 +167,7 @@ private:
     double pageStartDistance(int page) const;
     double pageEndDistance(int page) const;
     void stopRunInternal(bool clearArm, bool abortGrbl);
+    void onMachineIdleAfterPageStream();
 
     DocumentModel *m_document = nullptr;
     AppSettings *m_settings = nullptr;
@@ -184,6 +189,9 @@ private:
     double m_runStartDistanceCm = 0;
     double m_runEndDistanceCm = 0;
     bool m_expectPageStreamComplete = false;
+    bool m_deferGrblStream = false;
+    bool m_waitingMachineIdleAfterPage = false;
+    QString m_pendingGrblSlice;
     PathPageMap m_pathPageMap;
     bool m_wasLineHeightExceeding = false;
     bool m_documentDirty = false;

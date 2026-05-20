@@ -58,7 +58,12 @@ void drawPolylinePortionCm(
 void HandwritingCanvasItem::geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry) {
     QQuickPaintedItem::geometryChange(newGeometry, oldGeometry);
     if (!qFuzzyCompare(newGeometry.width(), oldGeometry.width())) {
-        if (m_ctrl && m_ctrl->runActive()) m_ctrl->stopRun();
+        if (m_ctrl && m_ctrl->runActive()) {
+            if (m_ctrl->grbl()->connected())
+                m_ctrl->stopRunPreserveCnc();
+            else
+                m_ctrl->stopRun();
+        }
         m_layoutDirty = true;
         clearRunCaches();
         update();
@@ -106,21 +111,17 @@ void HandwritingCanvasItem::setController(WriterController *c) {
             }
         });
         connect(m_ctrl, &WriterController::runArmVisualsChanged, this, &HandwritingCanvasItem::onRunArmVisualsChanged);
-        connect(m_ctrl->grbl(), &GrblConnection::streamProgressChanged, this, [this]() {
-            if (!m_ctrl || !m_ctrl->runActive() || !m_ctrl->grbl()->connected()
-                || m_runEndDistanceCm <= m_runStartDistanceCm + 1e-9)
-                return;
-            const double pageLen = m_runEndDistanceCm - m_runStartDistanceCm;
-            m_runDistance = m_runStartDistanceCm + m_ctrl->grbl()->streamProgress() * pageLen;
-            if (m_runDistance > m_runEndDistanceCm) m_runDistance = m_runEndDistanceCm;
-            update();
-        });
+        connect(m_ctrl->grbl(), &GrblConnection::positionChanged, this,
+                &HandwritingCanvasItem::onLiveCncPositionChanged);
         connect(m_ctrl, &WriterController::runPausedChanged, this, [this]() {
             if (!m_ctrl || !m_ctrl->runActive()) return;
             if (m_ctrl->runPaused()) {
                 m_runTimer.stop();
             } else {
-                if (m_runStaticValid && m_runDistance < m_runEndDistanceCm - 1e-9) {
+                const bool needsTimer = m_approachActive
+                        || (!m_ctrl->grbl()->connected() && m_runStaticValid
+                            && m_runDistance < m_runEndDistanceCm - 1e-9);
+                if (needsTimer) {
                     m_runElapsed.restart();
                     m_runTimer.start();
                 }
@@ -141,6 +142,8 @@ void HandwritingCanvasItem::clearRunCaches() {
     m_runSegLenCm.clear();
     m_runSegments.clear();
     m_runTotalCm = 0;
+    m_approachActive = false;
+    m_approachTraveledCm = 0;
 }
 
 void HandwritingCanvasItem::setDragDocIndex(int idx) {
@@ -207,7 +210,12 @@ void HandwritingCanvasItem::rebuildLayout() {
 
 void HandwritingCanvasItem::onInvalidated() {
     if (m_ctrl && m_selectedDocIndex >= m_ctrl->document()->text().size()) m_selectedDocIndex = -1;
-    if (m_ctrl && m_ctrl->runActive()) m_ctrl->stopRun();
+    if (m_ctrl && m_ctrl->runActive()) {
+        if (m_ctrl->grbl()->connected())
+            m_ctrl->stopRunPreserveCnc();
+        else
+            m_ctrl->stopRun();
+    }
     m_layoutDirty = true;
     clearRunCaches();
     update();
@@ -274,6 +282,201 @@ void HandwritingCanvasItem::drawRunProgressAlongPath(QPainter *painter, double p
         if (pathTo <= segEnd + 1e-12) break;
     }
     painter->restore();
+}
+
+QPointF HandwritingCanvasItem::pagePlotOriginCm(int page) const {
+    if (!m_ctrl || !m_ctrl->settings()) return QPointF();
+    const AppSettings *st = m_ctrl->settings();
+    return QPointF(0, page * st->pageHeightCm() + st->verticalGapCm());
+}
+
+QPointF HandwritingCanvasItem::layoutCmFromMachineMm(double mmX, double mmY) const {
+    // Inverse of GcodeGenerator layoutCmToMachineMm: GRBL X = layout Y, GRBL Y = layout X.
+    return QPointF(mmY / 10.0, mmX / 10.0);
+}
+
+bool HandwritingCanvasItem::useLiveCncTip() const {
+    return m_ctrl && m_ctrl->grbl()->connected() && m_ctrl->grbl()->positionKnown()
+           && m_ctrl->viewMode() == QLatin1String("handwriting");
+}
+
+double HandwritingCanvasItem::pathDistanceForLayoutPoint(const QPointF &layoutCm) const {
+    if (m_runSegments.isEmpty()) return 0;
+
+    double bestDist2 = 1e300;
+    double bestAlong = 0;
+
+    for (int si = 0; si < m_runSegments.size(); ++si) {
+        const double segStart = m_runSegCumStartCm.at(si);
+        const double segLen = m_runSegLenCm.at(si);
+        const QVector<QPointF> &pts = m_runSegments.at(si).pointsCm;
+        if (pts.size() < 2 || segLen <= 1e-12) continue;
+
+        if (m_runSegments.at(si).travel) {
+            const QPointF a = pts.at(0);
+            const QPointF b = pts.at(1);
+            const QPointF ab = b - a;
+            const double abLen2 = QPointF::dotProduct(ab, ab);
+            double t = 0;
+            if (abLen2 > 1e-12)
+                t = qBound(0.0, QPointF::dotProduct(layoutCm - a, ab) / abLen2, 1.0);
+            const QPointF closest = a + ab * t;
+            const double d = dist(layoutCm, closest);
+            const double d2 = d * d;
+            if (d2 < bestDist2) {
+                bestDist2 = d2;
+                bestAlong = segStart + t * segLen;
+            }
+            continue;
+        }
+
+        double pos = 0;
+        for (int i = 1; i < pts.size(); ++i) {
+            const QPointF a = pts.at(i - 1);
+            const QPointF b = pts.at(i);
+            const QPointF ab = b - a;
+            const double sl = dist(a, b);
+            if (sl < 1e-12) continue;
+            const double abLen2 = sl * sl;
+            const double t = qBound(0.0, QPointF::dotProduct(layoutCm - a, ab) / abLen2, 1.0);
+            const QPointF closest = a + ab * t;
+            const double d = dist(layoutCm, closest);
+            const double d2 = d * d;
+            if (d2 < bestDist2) {
+                bestDist2 = d2;
+                bestAlong = segStart + pos + t * sl;
+            }
+            pos += sl;
+        }
+    }
+
+    return bestAlong;
+}
+
+void HandwritingCanvasItem::syncRedTrailFromLivePosition() {
+    if (!m_ctrl || !m_runStaticValid || m_runRedPixmap.isNull() || !useLiveCncTip()) return;
+    if (!m_ctrl->runActive() || m_approachActive) return;
+
+    const QPointF tipCm = layoutCmFromMachineMm(m_ctrl->grbl()->posX(), m_ctrl->grbl()->posY());
+    double along = pathDistanceForLayoutPoint(tipCm);
+    along = qBound(m_runStartDistanceCm, along, m_runEndDistanceCm);
+
+    constexpr double kCatchUpCm = 0.35;
+    const double gap = along - m_runLastPaintedDist;
+
+    if (along + 0.08 < m_runLastPaintedDist) {
+        m_runLastPaintedDist = qMax(m_runStartDistanceCm, along - 0.02);
+        m_runDistance = along;
+        return;
+    }
+
+    if (gap <= 0.02) return;
+
+    // Preview behind CNC: draw the whole gap in one step (no frame-by-frame catch-up lag).
+    if (gap < kCatchUpCm) {
+        if (m_redTrailThrottle.isValid() && m_redTrailThrottle.elapsed() < 50)
+            return;
+        m_redTrailThrottle.restart();
+    }
+
+    m_runDistance = along;
+    QPainter rp(&m_runRedPixmap);
+    rp.setRenderHint(QPainter::Antialiasing, true);
+    drawRunProgressAlongPath(&rp, m_runLastPaintedDist, m_runDistance, pxPerCm());
+    rp.end();
+    m_runLastPaintedDist = m_runDistance;
+}
+
+void HandwritingCanvasItem::onLiveCncPositionChanged() {
+    if (!useLiveCncTip()) return;
+    syncRedTrailFromLivePosition();
+    update();
+}
+
+QPointF HandwritingCanvasItem::pointAtPathDistance(double distCm) const {
+    if (m_runSegments.isEmpty()) return QPointF();
+    if (distCm <= 1e-12) {
+        const QVector<QPointF> &pts = m_runSegments.first().pointsCm;
+        return pts.isEmpty() ? QPointF() : pts.first();
+    }
+
+    for (int si = 0; si < m_runSegments.size(); ++si) {
+        const double segStart = m_runSegCumStartCm.at(si);
+        const double segLen = m_runSegLenCm.at(si);
+        const double segEnd = segStart + segLen;
+        if (distCm > segEnd + 1e-12) continue;
+
+        const double u = qBound(0.0, distCm - segStart, segLen);
+        const QVector<QPointF> &pts = m_runSegments.at(si).pointsCm;
+        if (pts.size() < 2) return pts.isEmpty() ? QPointF() : pts.first();
+
+        if (m_runSegments.at(si).travel) {
+            const double t = segLen > 1e-12 ? u / segLen : 0;
+            return pts.at(0) + (pts.at(1) - pts.at(0)) * t;
+        }
+
+        double pos = 0;
+        for (int i = 1; i < pts.size(); ++i) {
+            const double sl = dist(pts.at(i - 1), pts.at(i));
+            if (sl < 1e-12) continue;
+            if (pos + sl >= u - 1e-12) {
+                const double t = (u - pos) / sl;
+                return pts.at(i - 1) + (pts.at(i) - pts.at(i - 1)) * t;
+            }
+            pos += sl;
+        }
+        return pts.last();
+    }
+
+    const QVector<QPointF> &pts = m_runSegments.last().pointsCm;
+    return pts.isEmpty() ? QPointF() : pts.last();
+}
+
+void HandwritingCanvasItem::drawPurpleTip(QPainter *painter, const QPointF &cm, double s) const {
+    painter->save();
+    painter->translate(contentOffsetX(), 0);
+    painter->setPen(QPen(QColor("#6d28d9"), 2));
+    painter->setBrush(QColor("#a855f7"));
+    const QPointF px = cm * s;
+    painter->drawEllipse(px, 7, 7);
+    painter->restore();
+}
+
+void HandwritingCanvasItem::drawApproachTravel(QPainter *painter, const QPointF &fromCm,
+                                               const QPointF &toCm, double s) const {
+    painter->save();
+    painter->translate(contentOffsetX(), 0);
+    QPen pen(QColor("#a855f7"), 1.2, Qt::DashLine);
+    pen.setCapStyle(Qt::RoundCap);
+    painter->setPen(pen);
+    painter->setBrush(Qt::NoBrush);
+    painter->drawLine(fromCm * s, toCm * s);
+    painter->restore();
+}
+
+void HandwritingCanvasItem::startApproachToPathStart(int page) {
+    m_tipPage = page;
+    m_approachFromCm = pagePlotOriginCm(page);
+    m_approachToCm = pointAtPathDistance(m_runStartDistanceCm);
+    const double len = dist(m_approachFromCm, m_approachToCm);
+    m_approachActive = len > 1e-6;
+    m_approachTraveledCm = 0;
+}
+
+QPointF HandwritingCanvasItem::currentTipPositionCm() const {
+    if (!m_ctrl) return QPointF();
+    if (m_ctrl->runArmed())
+        return pagePlotOriginCm(m_ctrl->runStartPage());
+    if (m_approachActive) {
+        const double len = dist(m_approachFromCm, m_approachToCm);
+        const double t = len > 1e-9 ? qMin(1.0, m_approachTraveledCm / len) : 1.0;
+        return m_approachFromCm + (m_approachToCm - m_approachFromCm) * t;
+    }
+    if (useLiveCncTip())
+        return layoutCmFromMachineMm(m_ctrl->grbl()->posX(), m_ctrl->grbl()->posY());
+    if (m_ctrl->runActive())
+        return pointAtPathDistance(m_runDistance);
+    return QPointF();
 }
 
 void HandwritingCanvasItem::paintStaticContent(QPainter *painter, const AppSettings *st, double s) const {
@@ -352,6 +555,9 @@ void HandwritingCanvasItem::paintStaticContent(QPainter *painter, const AppSetti
 
 void HandwritingCanvasItem::onRunArmVisualsChanged() {
     if (!m_ctrl || !m_ctrl->runArmed()) return;
+    m_tipPage = m_ctrl->runStartPage();
+    m_approachActive = false;
+    m_approachTraveledCm = 0;
     prepareRunOverlayAt(m_ctrl->runStartDistanceCm());
 }
 
@@ -393,6 +599,7 @@ void HandwritingCanvasItem::prepareRunOverlayAt(double progressDistanceCm) {
     m_runStaticValid = true;
     m_runDistance = qBound(0.0, progressDistanceCm, m_runTotalCm);
     m_runLastPaintedDist = 0;
+    m_approachActive = false;
 
     if (m_runDistance > 1e-9) {
         QPainter rp(&m_runRedPixmap);
@@ -430,7 +637,7 @@ void HandwritingCanvasItem::prepareRunSimulationAfterUi() {
 
     m_runDistance = m_runStartDistanceCm;
     m_runLastPaintedDist = m_runStartDistanceCm;
-    m_runElapsed.restart();
+    startApproachToPathStart(m_ctrl->executingPage());
 
     emit runPreparationFinished();
     if (!m_ctrl || !m_ctrl->runActive()) {
@@ -441,7 +648,14 @@ void HandwritingCanvasItem::prepareRunSimulationAfterUi() {
         update();
         return;
     }
-    if (!m_ctrl->grbl()->connected()) {
+
+    if (!m_approachActive) {
+        m_ctrl->onRunApproachComplete();
+        if (!m_ctrl->grbl()->connected()) {
+            m_runElapsed.restart();
+            m_runTimer.start();
+        }
+    } else {
         m_runElapsed.restart();
         m_runTimer.start();
     }
@@ -450,14 +664,48 @@ void HandwritingCanvasItem::prepareRunSimulationAfterUi() {
 
 void HandwritingCanvasItem::onRunTick() {
     if (!m_ctrl || !m_ctrl->settings() || !m_ctrl->runActive() || m_ctrl->runPaused()) return;
-    if (m_runEndDistanceCm <= m_runStartDistanceCm + 1e-9) {
-        m_ctrl->stopRun();
-        return;
-    }
+
     const qint64 ns = m_runElapsed.nsecsElapsed();
     m_runElapsed.restart();
     const double dt = qBound(0.0, ns / 1e9, 0.25);
     const double v = m_ctrl->settings()->feedRateCmPerS();
+
+    if (m_ctrl->grbl()->connected()) {
+        if (m_approachActive) {
+            const double len = dist(m_approachFromCm, m_approachToCm);
+            m_approachTraveledCm += v * dt;
+            if (m_approachTraveledCm >= len - 1e-9) {
+                m_approachTraveledCm = len;
+                m_approachActive = false;
+                m_ctrl->onRunApproachComplete();
+                m_runTimer.stop();
+            }
+            update();
+        }
+        return;
+    }
+
+    if (m_approachActive) {
+        const double len = dist(m_approachFromCm, m_approachToCm);
+        m_approachTraveledCm += v * dt;
+        if (m_approachTraveledCm >= len - 1e-9) {
+            m_approachTraveledCm = len;
+            m_approachActive = false;
+            m_ctrl->onRunApproachComplete();
+            if (m_ctrl->grbl()->connected())
+                m_runTimer.stop();
+            else
+                m_runElapsed.restart();
+        }
+        update();
+        return;
+    }
+
+    if (m_runEndDistanceCm <= m_runStartDistanceCm + 1e-9) {
+        m_ctrl->finishPageRun();
+        return;
+    }
+
     m_runDistance += v * dt;
     if (m_runDistance >= m_runEndDistanceCm - 1e-9) {
         m_runDistance = m_runEndDistanceCm;
@@ -565,7 +813,9 @@ void HandwritingCanvasItem::paint(QPainter *painter) {
         painter->fillRect(boundingRect(), QColor("#f4f4f5"));
         painter->drawPixmap(0, 0, m_runStaticPixmap);
 
-        if (m_runDistance > m_runLastPaintedDist + 1e-9 && !m_runRedPixmap.isNull()) {
+        if (useLiveCncTip())
+            syncRedTrailFromLivePosition();
+        else if (m_runDistance > m_runLastPaintedDist + 1e-9 && !m_runRedPixmap.isNull()) {
             QPainter rp(&m_runRedPixmap);
             rp.setRenderHint(QPainter::Antialiasing, true);
             drawRunProgressAlongPath(&rp, m_runLastPaintedDist, m_runDistance, s);
@@ -573,6 +823,13 @@ void HandwritingCanvasItem::paint(QPainter *painter) {
             m_runLastPaintedDist = m_runDistance;
         }
         painter->drawPixmap(0, 0, m_runRedPixmap);
+
+        const QPointF tipCm = currentTipPositionCm();
+        if (!tipCm.isNull()) {
+            if (m_approachActive)
+                drawApproachTravel(painter, m_approachFromCm, tipCm, s);
+            drawPurpleTip(painter, tipCm, s);
+        }
         return;
     }
 
@@ -584,6 +841,11 @@ void HandwritingCanvasItem::paint(QPainter *painter) {
     }
 
     paintStaticContent(painter, st, s);
+
+    const QPointF liveTip = currentTipPositionCm();
+    if (!liveTip.isNull()) {
+        drawPurpleTip(painter, liveTip, s);
+    }
 
     if (!m_ctrl->runActive()) return;
     if (m_runSegCumStartCm.isEmpty()) return;

@@ -66,11 +66,13 @@ template <> constexpr inline auto WriterController::qt_create_metaobjectdata<qt_
         "pauseRun",
         "resumeRun",
         "stopRun",
+        "stopRunPreserveCnc",
         "advanceRunToPage",
         "page",
         "clearRunArm",
         "refreshPageMap",
         "finishPageRun",
+        "onRunApproachComplete",
         "notifyLineHeightCollision",
         "exceeds",
         "generateGcode",
@@ -103,6 +105,7 @@ template <> constexpr inline auto WriterController::qt_create_metaobjectdata<qt_
         "pageCount",
         "runStartDistanceCm",
         "runEndDistanceCm",
+        "executingPage",
         "canUndo",
         "canRedo"
     };
@@ -160,80 +163,86 @@ template <> constexpr inline auto WriterController::qt_create_metaobjectdata<qt_
         QtMocHelpers::MethodData<void()>(26, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'stopRun'
         QtMocHelpers::MethodData<void()>(27, 2, QMC::AccessPublic, QMetaType::Void),
+        // Method 'stopRunPreserveCnc'
+        QtMocHelpers::MethodData<void()>(28, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'advanceRunToPage'
-        QtMocHelpers::MethodData<void(int)>(28, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::Int, 29 },
+        QtMocHelpers::MethodData<void(int)>(29, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::Int, 30 },
         }}),
         // Method 'clearRunArm'
-        QtMocHelpers::MethodData<void()>(30, 2, QMC::AccessPublic, QMetaType::Void),
-        // Method 'refreshPageMap'
         QtMocHelpers::MethodData<void()>(31, 2, QMC::AccessPublic, QMetaType::Void),
-        // Method 'finishPageRun'
+        // Method 'refreshPageMap'
         QtMocHelpers::MethodData<void()>(32, 2, QMC::AccessPublic, QMetaType::Void),
+        // Method 'finishPageRun'
+        QtMocHelpers::MethodData<void()>(33, 2, QMC::AccessPublic, QMetaType::Void),
+        // Method 'onRunApproachComplete'
+        QtMocHelpers::MethodData<void()>(34, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'notifyLineHeightCollision'
-        QtMocHelpers::MethodData<void(bool)>(33, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::Bool, 34 },
+        QtMocHelpers::MethodData<void(bool)>(35, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::Bool, 36 },
         }}),
         // Method 'generateGcode'
-        QtMocHelpers::MethodData<bool()>(35, 2, QMC::AccessPublic, QMetaType::Bool),
-        // Method 'pushUndoSnapshot'
-        QtMocHelpers::MethodData<void()>(36, 2, QMC::AccessPublic, QMetaType::Void),
-        // Method 'undo'
         QtMocHelpers::MethodData<bool()>(37, 2, QMC::AccessPublic, QMetaType::Bool),
+        // Method 'pushUndoSnapshot'
+        QtMocHelpers::MethodData<void()>(38, 2, QMC::AccessPublic, QMetaType::Void),
+        // Method 'undo'
+        QtMocHelpers::MethodData<bool()>(39, 2, QMC::AccessPublic, QMetaType::Bool),
         // Method 'redo'
-        QtMocHelpers::MethodData<bool()>(38, 2, QMC::AccessPublic, QMetaType::Bool),
+        QtMocHelpers::MethodData<bool()>(40, 2, QMC::AccessPublic, QMetaType::Bool),
         // Method 'newWriterProject'
-        QtMocHelpers::MethodData<void()>(39, 2, QMC::AccessPublic, QMetaType::Void),
-        // Method 'openWriterProject'
-        QtMocHelpers::MethodData<void()>(40, 2, QMC::AccessPublic, QMetaType::Void),
-        // Method 'saveWriterProject'
         QtMocHelpers::MethodData<void()>(41, 2, QMC::AccessPublic, QMetaType::Void),
-        // Method 'saveWriterProjectAs'
+        // Method 'openWriterProject'
         QtMocHelpers::MethodData<void()>(42, 2, QMC::AccessPublic, QMetaType::Void),
+        // Method 'saveWriterProject'
+        QtMocHelpers::MethodData<void()>(43, 2, QMC::AccessPublic, QMetaType::Void),
+        // Method 'saveWriterProjectAs'
+        QtMocHelpers::MethodData<void()>(44, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'loadWriterProjectFromPath'
-        QtMocHelpers::MethodData<bool(const QString &)>(43, 2, QMC::AccessPublic, QMetaType::Bool, {{
+        QtMocHelpers::MethodData<bool(const QString &)>(45, 2, QMC::AccessPublic, QMetaType::Bool, {{
             { QMetaType::QString, 18 },
         }}),
     };
     QtMocHelpers::UintData qt_properties {
         // property 'viewMode'
-        QtMocHelpers::PropertyData<QString>(44, QMetaType::QString, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 0),
+        QtMocHelpers::PropertyData<QString>(46, QMetaType::QString, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 0),
         // property 'fontFolderPath'
-        QtMocHelpers::PropertyData<QString>(45, QMetaType::QString, QMC::DefaultPropertyFlags, 1),
+        QtMocHelpers::PropertyData<QString>(47, QMetaType::QString, QMC::DefaultPropertyFlags, 1),
         // property 'fontStatus'
-        QtMocHelpers::PropertyData<QString>(46, QMetaType::QString, QMC::DefaultPropertyFlags, 2),
+        QtMocHelpers::PropertyData<QString>(48, QMetaType::QString, QMC::DefaultPropertyFlags, 2),
         // property 'projectFilePath'
-        QtMocHelpers::PropertyData<QString>(47, QMetaType::QString, QMC::DefaultPropertyFlags, 3),
+        QtMocHelpers::PropertyData<QString>(49, QMetaType::QString, QMC::DefaultPropertyFlags, 3),
         // property 'documentDirty'
-        QtMocHelpers::PropertyData<bool>(48, QMetaType::Bool, QMC::DefaultPropertyFlags, 4),
+        QtMocHelpers::PropertyData<bool>(50, QMetaType::Bool, QMC::DefaultPropertyFlags, 4),
         // property 'document'
-        QtMocHelpers::PropertyData<DocumentModel*>(49, 0x80000000 | 50, QMC::DefaultPropertyFlags | QMC::EnumOrFlag | QMC::Constant),
+        QtMocHelpers::PropertyData<DocumentModel*>(51, 0x80000000 | 52, QMC::DefaultPropertyFlags | QMC::EnumOrFlag | QMC::Constant),
         // property 'settings'
-        QtMocHelpers::PropertyData<AppSettings*>(51, 0x80000000 | 52, QMC::DefaultPropertyFlags | QMC::EnumOrFlag | QMC::Constant),
+        QtMocHelpers::PropertyData<AppSettings*>(53, 0x80000000 | 54, QMC::DefaultPropertyFlags | QMC::EnumOrFlag | QMC::Constant),
         // property 'gcode'
-        QtMocHelpers::PropertyData<GcodeController*>(53, 0x80000000 | 54, QMC::DefaultPropertyFlags | QMC::EnumOrFlag | QMC::Constant),
+        QtMocHelpers::PropertyData<GcodeController*>(55, 0x80000000 | 56, QMC::DefaultPropertyFlags | QMC::EnumOrFlag | QMC::Constant),
         // property 'grbl'
-        QtMocHelpers::PropertyData<GrblConnection*>(55, 0x80000000 | 56, QMC::DefaultPropertyFlags | QMC::EnumOrFlag | QMC::Constant),
+        QtMocHelpers::PropertyData<GrblConnection*>(57, 0x80000000 | 58, QMC::DefaultPropertyFlags | QMC::EnumOrFlag | QMC::Constant),
         // property 'settingsOpen'
-        QtMocHelpers::PropertyData<bool>(57, QMetaType::Bool, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 6),
+        QtMocHelpers::PropertyData<bool>(59, QMetaType::Bool, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 6),
         // property 'runActive'
-        QtMocHelpers::PropertyData<bool>(58, QMetaType::Bool, QMC::DefaultPropertyFlags, 7),
+        QtMocHelpers::PropertyData<bool>(60, QMetaType::Bool, QMC::DefaultPropertyFlags, 7),
         // property 'runPaused'
-        QtMocHelpers::PropertyData<bool>(59, QMetaType::Bool, QMC::DefaultPropertyFlags, 8),
+        QtMocHelpers::PropertyData<bool>(61, QMetaType::Bool, QMC::DefaultPropertyFlags, 8),
         // property 'runArmed'
-        QtMocHelpers::PropertyData<bool>(60, QMetaType::Bool, QMC::DefaultPropertyFlags, 9),
+        QtMocHelpers::PropertyData<bool>(62, QMetaType::Bool, QMC::DefaultPropertyFlags, 9),
         // property 'runStartPage'
-        QtMocHelpers::PropertyData<int>(61, QMetaType::Int, QMC::DefaultPropertyFlags, 10),
+        QtMocHelpers::PropertyData<int>(63, QMetaType::Int, QMC::DefaultPropertyFlags, 10),
         // property 'pageCount'
-        QtMocHelpers::PropertyData<int>(62, QMetaType::Int, QMC::DefaultPropertyFlags, 11),
+        QtMocHelpers::PropertyData<int>(64, QMetaType::Int, QMC::DefaultPropertyFlags, 11),
         // property 'runStartDistanceCm'
-        QtMocHelpers::PropertyData<double>(63, QMetaType::Double, QMC::DefaultPropertyFlags, 12),
+        QtMocHelpers::PropertyData<double>(65, QMetaType::Double, QMC::DefaultPropertyFlags, 12),
         // property 'runEndDistanceCm'
-        QtMocHelpers::PropertyData<double>(64, QMetaType::Double, QMC::DefaultPropertyFlags, 12),
+        QtMocHelpers::PropertyData<double>(66, QMetaType::Double, QMC::DefaultPropertyFlags, 12),
+        // property 'executingPage'
+        QtMocHelpers::PropertyData<int>(67, QMetaType::Int, QMC::DefaultPropertyFlags, 12),
         // property 'canUndo'
-        QtMocHelpers::PropertyData<bool>(65, QMetaType::Bool, QMC::DefaultPropertyFlags, 17),
+        QtMocHelpers::PropertyData<bool>(68, QMetaType::Bool, QMC::DefaultPropertyFlags, 17),
         // property 'canRedo'
-        QtMocHelpers::PropertyData<bool>(66, QMetaType::Bool, QMC::DefaultPropertyFlags, 17),
+        QtMocHelpers::PropertyData<bool>(69, QMetaType::Bool, QMC::DefaultPropertyFlags, 17),
     };
     QtMocHelpers::UintData qt_enums {
     };
@@ -279,23 +288,25 @@ void WriterController::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int
         case 21: _t->pauseRun(); break;
         case 22: _t->resumeRun(); break;
         case 23: _t->stopRun(); break;
-        case 24: _t->advanceRunToPage((*reinterpret_cast<std::add_pointer_t<int>>(_a[1]))); break;
-        case 25: _t->clearRunArm(); break;
-        case 26: _t->refreshPageMap(); break;
-        case 27: _t->finishPageRun(); break;
-        case 28: _t->notifyLineHeightCollision((*reinterpret_cast<std::add_pointer_t<bool>>(_a[1]))); break;
-        case 29: { bool _r = _t->generateGcode();
+        case 24: _t->stopRunPreserveCnc(); break;
+        case 25: _t->advanceRunToPage((*reinterpret_cast<std::add_pointer_t<int>>(_a[1]))); break;
+        case 26: _t->clearRunArm(); break;
+        case 27: _t->refreshPageMap(); break;
+        case 28: _t->finishPageRun(); break;
+        case 29: _t->onRunApproachComplete(); break;
+        case 30: _t->notifyLineHeightCollision((*reinterpret_cast<std::add_pointer_t<bool>>(_a[1]))); break;
+        case 31: { bool _r = _t->generateGcode();
             if (_a[0]) *reinterpret_cast<bool*>(_a[0]) = std::move(_r); }  break;
-        case 30: _t->pushUndoSnapshot(); break;
-        case 31: { bool _r = _t->undo();
+        case 32: _t->pushUndoSnapshot(); break;
+        case 33: { bool _r = _t->undo();
             if (_a[0]) *reinterpret_cast<bool*>(_a[0]) = std::move(_r); }  break;
-        case 32: { bool _r = _t->redo();
+        case 34: { bool _r = _t->redo();
             if (_a[0]) *reinterpret_cast<bool*>(_a[0]) = std::move(_r); }  break;
-        case 33: _t->newWriterProject(); break;
-        case 34: _t->openWriterProject(); break;
-        case 35: _t->saveWriterProject(); break;
-        case 36: _t->saveWriterProjectAs(); break;
-        case 37: { bool _r = _t->loadWriterProjectFromPath((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])));
+        case 35: _t->newWriterProject(); break;
+        case 36: _t->openWriterProject(); break;
+        case 37: _t->saveWriterProject(); break;
+        case 38: _t->saveWriterProjectAs(); break;
+        case 39: { bool _r = _t->loadWriterProjectFromPath((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])));
             if (_a[0]) *reinterpret_cast<bool*>(_a[0]) = std::move(_r); }  break;
         default: ;
         }
@@ -371,8 +382,9 @@ void WriterController::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int
         case 14: *reinterpret_cast<int*>(_v) = _t->pageCount(); break;
         case 15: *reinterpret_cast<double*>(_v) = _t->runStartDistanceCm(); break;
         case 16: *reinterpret_cast<double*>(_v) = _t->runEndDistanceCm(); break;
-        case 17: *reinterpret_cast<bool*>(_v) = _t->canUndo(); break;
-        case 18: *reinterpret_cast<bool*>(_v) = _t->canRedo(); break;
+        case 17: *reinterpret_cast<int*>(_v) = _t->executingPage(); break;
+        case 18: *reinterpret_cast<bool*>(_v) = _t->canUndo(); break;
+        case 19: *reinterpret_cast<bool*>(_v) = _t->canRedo(); break;
         default: break;
         }
     }
@@ -405,20 +417,20 @@ int WriterController::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 38)
+        if (_id < 40)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 38;
+        _id -= 40;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 38)
+        if (_id < 40)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 38;
+        _id -= 40;
     }
     if (_c == QMetaObject::ReadProperty || _c == QMetaObject::WriteProperty
             || _c == QMetaObject::ResetProperty || _c == QMetaObject::BindableProperty
             || _c == QMetaObject::RegisterPropertyMetaType) {
         qt_static_metacall(this, _c, _id, _a);
-        _id -= 19;
+        _id -= 20;
     }
     return _id;
 }

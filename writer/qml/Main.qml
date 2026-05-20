@@ -220,9 +220,13 @@ ApplicationWindow {
     }
 
     header: ToolBar {
-        RowLayout {
-            anchors.fill: parent
+        padding: 8
+        contentItem: Flow {
+            id: toolbarFlow
+            width: parent.width
             spacing: 8
+            flow: Flow.LeftToRight
+
             Button {
                 id: fileButton
                 text: root.writerProjectFileName.length > 0 ? root.writerProjectFileName : "File"
@@ -311,8 +315,7 @@ ApplicationWindow {
             ToolSeparator {}
             ComboBox {
                 id: toolbarPortCombo
-                Layout.minimumWidth: 200
-                Layout.preferredWidth: 300
+                implicitWidth: 280
                 model: grblConnection.availablePorts
                 enabled: grblConnection.serialAvailable && !grblConnection.connected
                          && !grblConnection.streaming
@@ -443,19 +446,20 @@ ApplicationWindow {
                 stepSize: 1
                 editable: true
                 wheelEnabled: true
+                implicitWidth: 84
                 value: Math.round(writerController.settings.joinDistMm * 10)
                 onValueModified: writerController.settings.joinDistMm = value / 10.0
-                Layout.preferredWidth: 84
             }
             Label {
                 text: writerController.documentDirty ? "(unsaved changes)" : "Saved"
                 color: writerController.documentDirty ? "#ca8a04" : "#3f3f46"
             }
-            Item { Layout.fillWidth: true }
             Label {
+                width: Math.min(360, toolbarFlow.width > 0 ? toolbarFlow.width : 360)
                 text: writerController.fontStatus
-                elide: Text.ElideRight
-                Layout.maximumWidth: 360
+                wrapMode: Text.Wrap
+                color: "#3f3f46"
+                font.pixelSize: 11
             }
         }
     }
