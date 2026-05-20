@@ -42,11 +42,107 @@ QString GcodeGenerator::generate(const PathBuildResult &path, const AppSettings 
     lines << QStringLiteral("; Units: mm, absolute positioning");
     lines << QStringLiteral("G21");
     lines << QStringLiteral("G90");
-    lines << QStringLiteral("G0 X0 Y0");
     lines << QStringLiteral("G0 Z%1").arg(fmtMm(penUpZ));
+    lines << QStringLiteral("G0 X0 Y0");
     lines << QStringLiteral("F%1").arg(feed);
 
     bool hasMotion = false;
+    bool penIsDown = false;
+    bool hasPos = false;
+    QPointF currentPosMm;
+    const double joinDistMm = qMax(0.0, settings->joinDistMm());
+    const double xErrorMm = qMax(0.0, settings->xErrorMm());
+    const double yErrorMm = qMax(0.0, settings->yErrorMm());
+    const double axisEpsMm = 1e-6;
+    double pendingCompX = 0.0;
+    double pendingCompY = 0.0;
+    int lastDirX = 0;
+    int lastDirY = 0;
+
+    auto samePoint = [](const QPointF &a, const QPointF &b) {
+        return QLineF(a, b).length() <= 1e-6;
+    };
+    auto dirFromDelta = [&](double d) {
+        if (d > axisEpsMm) return 1;
+        if (d < -axisEpsMm) return -1;
+        return 0;
+    };
+    auto preloadHalfError = [&]() {
+        pendingCompX = qMax(pendingCompX, xErrorMm * 0.5);
+        pendingCompY = qMax(pendingCompY, yErrorMm * 0.5);
+    };
+    auto applyReversalComp = [&](const QPointF &nominalToMm) {
+        if (!hasPos) return nominalToMm;
+        QPointF correctedToMm = nominalToMm;
+
+        int dirX = dirFromDelta(nominalToMm.x() - currentPosMm.x());
+        if (dirX != 0) {
+            if (lastDirX != 0 && dirX != lastDirX && pendingCompX > axisEpsMm) {
+                correctedToMm.setX(correctedToMm.x() + dirX * pendingCompX);
+                pendingCompX = 0.0;
+                dirX = dirFromDelta(correctedToMm.x() - currentPosMm.x());
+            }
+            if (dirX != 0) lastDirX = dirX;
+        }
+
+        int dirY = dirFromDelta(nominalToMm.y() - currentPosMm.y());
+        if (dirY != 0) {
+            if (lastDirY != 0 && dirY != lastDirY && pendingCompY > axisEpsMm) {
+                correctedToMm.setY(correctedToMm.y() + dirY * pendingCompY);
+                pendingCompY = 0.0;
+                dirY = dirFromDelta(correctedToMm.y() - currentPosMm.y());
+            }
+            if (dirY != 0) lastDirY = dirY;
+        }
+
+        return correctedToMm;
+    };
+    auto ensurePenUp = [&]() {
+        if (!penIsDown) return;
+        if (hasPos && (pendingCompX > axisEpsMm || pendingCompY > axisEpsMm)) {
+            QPointF settlePos = currentPosMm;
+            if (pendingCompX > axisEpsMm && lastDirX != 0)
+                settlePos.setX(settlePos.x() + lastDirX * pendingCompX);
+            if (pendingCompY > axisEpsMm && lastDirY != 0)
+                settlePos.setY(settlePos.y() + lastDirY * pendingCompY);
+            if (!samePoint(currentPosMm, settlePos)) {
+                lines << xyLine("G1", settlePos.x(), settlePos.y());
+                currentPosMm = settlePos;
+                hasMotion = true;
+            }
+            pendingCompX = 0.0;
+            pendingCompY = 0.0;
+        }
+        lines << QStringLiteral("G0 Z%1").arg(fmtMm(penUpZ));
+        penIsDown = false;
+    };
+    auto ensurePenDown = [&]() {
+        if (penIsDown) return;
+        lines << QStringLiteral("G0 Z%1").arg(fmtMm(penDownZ));
+        penIsDown = true;
+        preloadHalfError();
+    };
+    auto moveRapid = [&](const QPointF &toMm) {
+        if (hasPos && samePoint(currentPosMm, toMm)) return;
+        ensurePenUp();
+        const QPointF correctedToMm = applyReversalComp(toMm);
+        if (hasPos && samePoint(currentPosMm, correctedToMm)) return;
+        lines << xyLine("G0", correctedToMm.x(), correctedToMm.y());
+        currentPosMm = correctedToMm;
+        hasPos = true;
+        hasMotion = true;
+    };
+    auto moveDraw = [&](const QPointF &toMm) {
+        if (hasPos && samePoint(currentPosMm, toMm)) return;
+        ensurePenDown();
+        const QPointF correctedToMm = applyReversalComp(toMm);
+        if (hasPos && samePoint(currentPosMm, correctedToMm)) return;
+        lines << xyLine("G1", correctedToMm.x(), correctedToMm.y());
+        currentPosMm = correctedToMm;
+        hasPos = true;
+        hasMotion = true;
+    };
+
     for (const PathSegment &seg : path.segments) {
         if (segmentLengthCm(seg) <= 1e-9) continue;
         const QVector<QPointF> &pts = seg.pointsCm;
@@ -55,20 +151,29 @@ QString GcodeGenerator::generate(const PathBuildResult &path, const AppSettings 
         if (seg.travel) {
             const QPointF p0 = layoutCmToMachineMm(pts[0]);
             const QPointF p1 = layoutCmToMachineMm(pts[1]);
-            lines << QStringLiteral("G0 Z%1").arg(fmtMm(penUpZ));
-            lines << xyLine("G0", p0.x(), p0.y());
-            lines << xyLine("G0", p1.x(), p1.y());
-            hasMotion = true;
+            const double travelLenMm = QLineF(p0, p1).length();
+            const bool isJoinMove = travelLenMm <= joinDistMm + 1e-6;
+            if (isJoinMove) {
+                if (!hasPos || !samePoint(currentPosMm, p0)) moveRapid(p0);
+                moveDraw(p1);
+            } else {
+                moveRapid(p0);
+                moveRapid(p1);
+            }
         } else {
             const QPointF p0 = layoutCmToMachineMm(pts[0]);
-            lines << QStringLiteral("G0 Z%1").arg(fmtMm(penUpZ));
-            lines << xyLine("G0", p0.x(), p0.y());
-            lines << QStringLiteral("G0 Z%1").arg(fmtMm(penDownZ));
+            if (!hasPos) {
+                moveRapid(p0);
+            } else if (!samePoint(currentPosMm, p0)) {
+                const double gapMm = QLineF(currentPosMm, p0).length();
+                if (gapMm <= joinDistMm + 1e-6) moveDraw(p0);
+                else moveRapid(p0);
+            }
+            ensurePenDown();
             for (int i = 1; i < pts.size(); ++i) {
                 const QPointF p = layoutCmToMachineMm(pts[i]);
-                lines << xyLine("G1", p.x(), p.y());
+                moveDraw(p);
             }
-            hasMotion = true;
         }
     }
 
@@ -76,7 +181,7 @@ QString GcodeGenerator::generate(const PathBuildResult &path, const AppSettings 
         return QStringLiteral("; No drawable strokes\n");
     }
 
-    lines << QStringLiteral("G0 Z%1").arg(fmtMm(penUpZ));
+    ensurePenUp();
     lines << QStringLiteral("G0 X0 Y0");
     return lines.join(QLatin1Char('\n')) + QLatin1Char('\n');
 }

@@ -103,6 +103,22 @@ void AppSettings::setJoinDistMm(double v) {
     emit anyChanged();
 }
 
+void AppSettings::setXErrorMm(double v) {
+    if (!std::isfinite(v) || v < 0) v = 0;
+    if (qFuzzyCompare(m_xErrorMm, v)) return;
+    m_xErrorMm = v;
+    emit xErrorMmChanged();
+    emit anyChanged();
+}
+
+void AppSettings::setYErrorMm(double v) {
+    if (!std::isfinite(v) || v < 0) v = 0;
+    if (qFuzzyCompare(m_yErrorMm, v)) return;
+    m_yErrorMm = v;
+    emit yErrorMmChanged();
+    emit anyChanged();
+}
+
 void AppSettings::setPenUpZ(double v) {
     if (!std::isfinite(v)) v = 30.0;
     if (qFuzzyCompare(m_penUpZ, v)) return;
@@ -141,6 +157,8 @@ void AppSettings::load() {
     setLineHeightCm(s.value("lineHeightCm", m_lineHeightCm).toDouble());
     setFontUnitToCm(s.value("fontUnitToCm", m_fontUnitToCm).toDouble());
     setJoinDistMm(s.value("joinDistMm", m_joinDistMm).toDouble());
+    setXErrorMm(s.value("xErrorMm", m_xErrorMm).toDouble());
+    setYErrorMm(s.value("yErrorMm", m_yErrorMm).toDouble());
     setPenUpZ(s.value("penUpZ", m_penUpZ).toDouble());
     setPenDownZ(s.value("penDownZ", m_penDownZ).toDouble());
     setPreviewDisplayScale(s.value("previewDisplayScale", m_previewDisplayScale).toDouble());
@@ -161,6 +179,8 @@ void AppSettings::save() {
     s.setValue("lineHeightCm", m_lineHeightCm);
     s.setValue("fontUnitToCm", m_fontUnitToCm);
     s.setValue("joinDistMm", m_joinDistMm);
+    s.setValue("xErrorMm", m_xErrorMm);
+    s.setValue("yErrorMm", m_yErrorMm);
     s.setValue("penUpZ", m_penUpZ);
     s.setValue("penDownZ", m_penDownZ);
     s.setValue("previewDisplayScale", m_previewDisplayScale);

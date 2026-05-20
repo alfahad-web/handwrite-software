@@ -15,6 +15,8 @@ class AppSettings : public QObject {
     Q_PROPERTY(double lineHeightCm READ lineHeightCm WRITE setLineHeightCm NOTIFY lineHeightCmChanged)
     Q_PROPERTY(double fontUnitToCm READ fontUnitToCm WRITE setFontUnitToCm NOTIFY fontUnitToCmChanged)
     Q_PROPERTY(double joinDistMm READ joinDistMm WRITE setJoinDistMm NOTIFY joinDistMmChanged)
+    Q_PROPERTY(double xErrorMm READ xErrorMm WRITE setXErrorMm NOTIFY xErrorMmChanged)
+    Q_PROPERTY(double yErrorMm READ yErrorMm WRITE setYErrorMm NOTIFY yErrorMmChanged)
     Q_PROPERTY(double penUpZ READ penUpZ WRITE setPenUpZ NOTIFY penUpZChanged)
     Q_PROPERTY(double penDownZ READ penDownZ WRITE setPenDownZ NOTIFY penDownZChanged)
     Q_PROPERTY(double feedRateMmPerMin READ feedRateMmPerMin NOTIFY feedRateMmPerMinChanged)
@@ -56,6 +58,12 @@ public:
     double joinDistMm() const { return m_joinDistMm; }
     void setJoinDistMm(double v);
 
+    double xErrorMm() const { return m_xErrorMm; }
+    void setXErrorMm(double v);
+
+    double yErrorMm() const { return m_yErrorMm; }
+    void setYErrorMm(double v);
+
     double penUpZ() const { return m_penUpZ; }
     void setPenUpZ(double v);
 
@@ -82,6 +90,8 @@ signals:
     void lineHeightCmChanged();
     void fontUnitToCmChanged();
     void joinDistMmChanged();
+    void xErrorMmChanged();
+    void yErrorMmChanged();
     void penUpZChanged();
     void penDownZChanged();
     void feedRateMmPerMinChanged();
@@ -100,6 +110,8 @@ private:
     double m_lineHeightCm = 0.45;
     double m_fontUnitToCm = 0.0001;
     double m_joinDistMm = 0.0;
+    double m_xErrorMm = 0.0;
+    double m_yErrorMm = 0.0;
     double m_penUpZ = 30.0;
     double m_penDownZ = -5.0;
     double m_previewDisplayScale = 1.0;

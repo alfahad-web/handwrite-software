@@ -1052,6 +1052,28 @@ ApplicationWindow {
                     onValueModified: writerController.settings.joinDistMm = value / 10.0
                 }
 
+                Label { text: "X error compensation (mm)"; font.bold: true; color: root.settingsTitleColor }
+                SpinBox {
+                    from: 0
+                    to: 200
+                    stepSize: 1
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.xErrorMm * 10)
+                    onValueModified: writerController.settings.xErrorMm = value / 10.0
+                }
+
+                Label { text: "Y error compensation (mm)"; font.bold: true; color: root.settingsTitleColor }
+                SpinBox {
+                    from: 0
+                    to: 200
+                    stepSize: 1
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.yErrorMm * 10)
+                    onValueModified: writerController.settings.yErrorMm = value / 10.0
+                }
+
                 Label { text: "CNC / pen"; font.bold: true; color: root.settingsTitleColor }
                 Label { text: "Pen up Z (mm)"; color: root.settingsTitleColor }
                 SpinBox {

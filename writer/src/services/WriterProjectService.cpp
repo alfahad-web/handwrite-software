@@ -25,6 +25,8 @@ QJsonObject settingsToJson(const AppSettings *st) {
     o.insert(QStringLiteral("lineHeightCm"), st->lineHeightCm());
     o.insert(QStringLiteral("fontUnitToCm"), st->fontUnitToCm());
     o.insert(QStringLiteral("joinDistMm"), st->joinDistMm());
+    o.insert(QStringLiteral("xErrorMm"), st->xErrorMm());
+    o.insert(QStringLiteral("yErrorMm"), st->yErrorMm());
     o.insert(QStringLiteral("penUpZ"), st->penUpZ());
     o.insert(QStringLiteral("penDownZ"), st->penDownZ());
     o.insert(QStringLiteral("previewDisplayScale"), st->previewDisplayScale());
@@ -43,6 +45,8 @@ void applySettingsFromJson(AppSettings *st, const QJsonObject &o) {
     if (o.contains(QStringLiteral("lineHeightCm"))) st->setLineHeightCm(o.value(QStringLiteral("lineHeightCm")).toDouble());
     if (o.contains(QStringLiteral("fontUnitToCm"))) st->setFontUnitToCm(o.value(QStringLiteral("fontUnitToCm")).toDouble());
     if (o.contains(QStringLiteral("joinDistMm"))) st->setJoinDistMm(o.value(QStringLiteral("joinDistMm")).toDouble());
+    if (o.contains(QStringLiteral("xErrorMm"))) st->setXErrorMm(o.value(QStringLiteral("xErrorMm")).toDouble());
+    if (o.contains(QStringLiteral("yErrorMm"))) st->setYErrorMm(o.value(QStringLiteral("yErrorMm")).toDouble());
     if (o.contains(QStringLiteral("penUpZ"))) st->setPenUpZ(o.value(QStringLiteral("penUpZ")).toDouble());
     if (o.contains(QStringLiteral("penDownZ"))) st->setPenDownZ(o.value(QStringLiteral("penDownZ")).toDouble());
     if (o.contains(QStringLiteral("previewDisplayScale"))) st->setPreviewDisplayScale(o.value(QStringLiteral("previewDisplayScale")).toDouble());

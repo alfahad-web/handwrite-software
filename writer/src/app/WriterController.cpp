@@ -248,6 +248,8 @@ void WriterController::resetToEmptyProject(bool resetSettingsToDefaults) {
         m_settings->setLineHeightCm(0.45);
         m_settings->setFontUnitToCm(0.0001);
         m_settings->setJoinDistMm(0.0);
+        m_settings->setXErrorMm(0.0);
+        m_settings->setYErrorMm(0.0);
         m_settings->setPenUpZ(30.0);
         m_settings->setPenDownZ(-5.0);
         m_settings->setPreviewDisplayScale(1.0);
