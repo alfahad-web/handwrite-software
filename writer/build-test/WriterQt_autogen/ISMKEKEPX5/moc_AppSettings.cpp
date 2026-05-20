@@ -51,7 +51,11 @@ template <> constexpr inline auto AppSettings::qt_create_metaobjectdata<qt_meta_
         "lineHeightCmChanged",
         "fontUnitToCmChanged",
         "joinDistMmChanged",
+        "backlashYStartMmChanged",
+        "backlashYEndMmChanged",
+        "xErrorNearMmChanged",
         "xErrorMmChanged",
+        "yErrorNearMmChanged",
         "yErrorMmChanged",
         "penUpZChanged",
         "penDownZChanged",
@@ -72,7 +76,11 @@ template <> constexpr inline auto AppSettings::qt_create_metaobjectdata<qt_meta_
         "lineHeightCm",
         "fontUnitToCm",
         "joinDistMm",
+        "backlashYStartMm",
+        "backlashYEndMm",
+        "xErrorNearMm",
         "xErrorMm",
+        "yErrorNearMm",
         "yErrorMm",
         "penUpZ",
         "penDownZ",
@@ -103,62 +111,78 @@ template <> constexpr inline auto AppSettings::qt_create_metaobjectdata<qt_meta_
         QtMocHelpers::SignalData<void()>(11, 2, QMC::AccessPublic, QMetaType::Void),
         // Signal 'joinDistMmChanged'
         QtMocHelpers::SignalData<void()>(12, 2, QMC::AccessPublic, QMetaType::Void),
-        // Signal 'xErrorMmChanged'
+        // Signal 'backlashYStartMmChanged'
         QtMocHelpers::SignalData<void()>(13, 2, QMC::AccessPublic, QMetaType::Void),
-        // Signal 'yErrorMmChanged'
+        // Signal 'backlashYEndMmChanged'
         QtMocHelpers::SignalData<void()>(14, 2, QMC::AccessPublic, QMetaType::Void),
-        // Signal 'penUpZChanged'
+        // Signal 'xErrorNearMmChanged'
         QtMocHelpers::SignalData<void()>(15, 2, QMC::AccessPublic, QMetaType::Void),
-        // Signal 'penDownZChanged'
+        // Signal 'xErrorMmChanged'
         QtMocHelpers::SignalData<void()>(16, 2, QMC::AccessPublic, QMetaType::Void),
-        // Signal 'feedRateMmPerMinChanged'
+        // Signal 'yErrorNearMmChanged'
         QtMocHelpers::SignalData<void()>(17, 2, QMC::AccessPublic, QMetaType::Void),
-        // Signal 'previewDisplayScaleChanged'
+        // Signal 'yErrorMmChanged'
         QtMocHelpers::SignalData<void()>(18, 2, QMC::AccessPublic, QMetaType::Void),
-        // Signal 'anyChanged'
+        // Signal 'penUpZChanged'
         QtMocHelpers::SignalData<void()>(19, 2, QMC::AccessPublic, QMetaType::Void),
-        // Signal 'aboutToChange'
+        // Signal 'penDownZChanged'
         QtMocHelpers::SignalData<void()>(20, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'feedRateMmPerMinChanged'
+        QtMocHelpers::SignalData<void()>(21, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'previewDisplayScaleChanged'
+        QtMocHelpers::SignalData<void()>(22, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'anyChanged'
+        QtMocHelpers::SignalData<void()>(23, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'aboutToChange'
+        QtMocHelpers::SignalData<void()>(24, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'load'
-        QtMocHelpers::MethodData<void()>(21, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(25, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'save'
-        QtMocHelpers::MethodData<void()>(22, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(26, 2, QMC::AccessPublic, QMetaType::Void),
     };
     QtMocHelpers::UintData qt_properties {
         // property 'feedRateCmPerS'
-        QtMocHelpers::PropertyData<double>(23, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 0),
+        QtMocHelpers::PropertyData<double>(27, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 0),
         // property 'pageWidthCm'
-        QtMocHelpers::PropertyData<double>(24, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 1),
+        QtMocHelpers::PropertyData<double>(28, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 1),
         // property 'pageHeightCm'
-        QtMocHelpers::PropertyData<double>(25, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 2),
+        QtMocHelpers::PropertyData<double>(29, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 2),
         // property 'leftMarginCm'
-        QtMocHelpers::PropertyData<double>(26, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 3),
+        QtMocHelpers::PropertyData<double>(30, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 3),
         // property 'rightMarginCm'
-        QtMocHelpers::PropertyData<double>(27, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 4),
+        QtMocHelpers::PropertyData<double>(31, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 4),
         // property 'verticalGapCm'
-        QtMocHelpers::PropertyData<double>(28, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 5),
+        QtMocHelpers::PropertyData<double>(32, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 5),
         // property 'hxCm'
-        QtMocHelpers::PropertyData<double>(29, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 6),
+        QtMocHelpers::PropertyData<double>(33, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 6),
         // property 'hyCm'
-        QtMocHelpers::PropertyData<double>(30, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 7),
+        QtMocHelpers::PropertyData<double>(34, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 7),
         // property 'lineHeightCm'
-        QtMocHelpers::PropertyData<double>(31, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 8),
+        QtMocHelpers::PropertyData<double>(35, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 8),
         // property 'fontUnitToCm'
-        QtMocHelpers::PropertyData<double>(32, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 9),
+        QtMocHelpers::PropertyData<double>(36, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 9),
         // property 'joinDistMm'
-        QtMocHelpers::PropertyData<double>(33, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 10),
+        QtMocHelpers::PropertyData<double>(37, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 10),
+        // property 'backlashYStartMm'
+        QtMocHelpers::PropertyData<double>(38, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 11),
+        // property 'backlashYEndMm'
+        QtMocHelpers::PropertyData<double>(39, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 12),
+        // property 'xErrorNearMm'
+        QtMocHelpers::PropertyData<double>(40, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 13),
         // property 'xErrorMm'
-        QtMocHelpers::PropertyData<double>(34, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 11),
+        QtMocHelpers::PropertyData<double>(41, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 14),
+        // property 'yErrorNearMm'
+        QtMocHelpers::PropertyData<double>(42, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 15),
         // property 'yErrorMm'
-        QtMocHelpers::PropertyData<double>(35, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 12),
+        QtMocHelpers::PropertyData<double>(43, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 16),
         // property 'penUpZ'
-        QtMocHelpers::PropertyData<double>(36, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 13),
+        QtMocHelpers::PropertyData<double>(44, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 17),
         // property 'penDownZ'
-        QtMocHelpers::PropertyData<double>(37, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 14),
+        QtMocHelpers::PropertyData<double>(45, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 18),
         // property 'feedRateMmPerMin'
-        QtMocHelpers::PropertyData<double>(38, QMetaType::Double, QMC::DefaultPropertyFlags, 15),
+        QtMocHelpers::PropertyData<double>(46, QMetaType::Double, QMC::DefaultPropertyFlags, 19),
         // property 'previewDisplayScale'
-        QtMocHelpers::PropertyData<double>(39, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 16),
+        QtMocHelpers::PropertyData<double>(47, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 20),
     };
     QtMocHelpers::UintData qt_enums {
     };
@@ -191,16 +215,20 @@ void AppSettings::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id,
         case 8: _t->lineHeightCmChanged(); break;
         case 9: _t->fontUnitToCmChanged(); break;
         case 10: _t->joinDistMmChanged(); break;
-        case 11: _t->xErrorMmChanged(); break;
-        case 12: _t->yErrorMmChanged(); break;
-        case 13: _t->penUpZChanged(); break;
-        case 14: _t->penDownZChanged(); break;
-        case 15: _t->feedRateMmPerMinChanged(); break;
-        case 16: _t->previewDisplayScaleChanged(); break;
-        case 17: _t->anyChanged(); break;
-        case 18: _t->aboutToChange(); break;
-        case 19: _t->load(); break;
-        case 20: _t->save(); break;
+        case 11: _t->backlashYStartMmChanged(); break;
+        case 12: _t->backlashYEndMmChanged(); break;
+        case 13: _t->xErrorNearMmChanged(); break;
+        case 14: _t->xErrorMmChanged(); break;
+        case 15: _t->yErrorNearMmChanged(); break;
+        case 16: _t->yErrorMmChanged(); break;
+        case 17: _t->penUpZChanged(); break;
+        case 18: _t->penDownZChanged(); break;
+        case 19: _t->feedRateMmPerMinChanged(); break;
+        case 20: _t->previewDisplayScaleChanged(); break;
+        case 21: _t->anyChanged(); break;
+        case 22: _t->aboutToChange(); break;
+        case 23: _t->load(); break;
+        case 24: _t->save(); break;
         default: ;
         }
     }
@@ -227,21 +255,29 @@ void AppSettings::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id,
             return;
         if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::joinDistMmChanged, 10))
             return;
-        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::xErrorMmChanged, 11))
+        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::backlashYStartMmChanged, 11))
             return;
-        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::yErrorMmChanged, 12))
+        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::backlashYEndMmChanged, 12))
             return;
-        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::penUpZChanged, 13))
+        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::xErrorNearMmChanged, 13))
             return;
-        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::penDownZChanged, 14))
+        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::xErrorMmChanged, 14))
             return;
-        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::feedRateMmPerMinChanged, 15))
+        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::yErrorNearMmChanged, 15))
             return;
-        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::previewDisplayScaleChanged, 16))
+        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::yErrorMmChanged, 16))
             return;
-        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::anyChanged, 17))
+        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::penUpZChanged, 17))
             return;
-        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::aboutToChange, 18))
+        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::penDownZChanged, 18))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::feedRateMmPerMinChanged, 19))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::previewDisplayScaleChanged, 20))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::anyChanged, 21))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::aboutToChange, 22))
             return;
     }
     if (_c == QMetaObject::ReadProperty) {
@@ -258,12 +294,16 @@ void AppSettings::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id,
         case 8: *reinterpret_cast<double*>(_v) = _t->lineHeightCm(); break;
         case 9: *reinterpret_cast<double*>(_v) = _t->fontUnitToCm(); break;
         case 10: *reinterpret_cast<double*>(_v) = _t->joinDistMm(); break;
-        case 11: *reinterpret_cast<double*>(_v) = _t->xErrorMm(); break;
-        case 12: *reinterpret_cast<double*>(_v) = _t->yErrorMm(); break;
-        case 13: *reinterpret_cast<double*>(_v) = _t->penUpZ(); break;
-        case 14: *reinterpret_cast<double*>(_v) = _t->penDownZ(); break;
-        case 15: *reinterpret_cast<double*>(_v) = _t->feedRateMmPerMin(); break;
-        case 16: *reinterpret_cast<double*>(_v) = _t->previewDisplayScale(); break;
+        case 11: *reinterpret_cast<double*>(_v) = _t->backlashYStartMm(); break;
+        case 12: *reinterpret_cast<double*>(_v) = _t->backlashYEndMm(); break;
+        case 13: *reinterpret_cast<double*>(_v) = _t->xErrorNearMm(); break;
+        case 14: *reinterpret_cast<double*>(_v) = _t->xErrorMm(); break;
+        case 15: *reinterpret_cast<double*>(_v) = _t->yErrorNearMm(); break;
+        case 16: *reinterpret_cast<double*>(_v) = _t->yErrorMm(); break;
+        case 17: *reinterpret_cast<double*>(_v) = _t->penUpZ(); break;
+        case 18: *reinterpret_cast<double*>(_v) = _t->penDownZ(); break;
+        case 19: *reinterpret_cast<double*>(_v) = _t->feedRateMmPerMin(); break;
+        case 20: *reinterpret_cast<double*>(_v) = _t->previewDisplayScale(); break;
         default: break;
         }
     }
@@ -281,11 +321,15 @@ void AppSettings::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id,
         case 8: _t->setLineHeightCm(*reinterpret_cast<double*>(_v)); break;
         case 9: _t->setFontUnitToCm(*reinterpret_cast<double*>(_v)); break;
         case 10: _t->setJoinDistMm(*reinterpret_cast<double*>(_v)); break;
-        case 11: _t->setXErrorMm(*reinterpret_cast<double*>(_v)); break;
-        case 12: _t->setYErrorMm(*reinterpret_cast<double*>(_v)); break;
-        case 13: _t->setPenUpZ(*reinterpret_cast<double*>(_v)); break;
-        case 14: _t->setPenDownZ(*reinterpret_cast<double*>(_v)); break;
-        case 16: _t->setPreviewDisplayScale(*reinterpret_cast<double*>(_v)); break;
+        case 11: _t->setBacklashYStartMm(*reinterpret_cast<double*>(_v)); break;
+        case 12: _t->setBacklashYEndMm(*reinterpret_cast<double*>(_v)); break;
+        case 13: _t->setXErrorNearMm(*reinterpret_cast<double*>(_v)); break;
+        case 14: _t->setXErrorMm(*reinterpret_cast<double*>(_v)); break;
+        case 15: _t->setYErrorNearMm(*reinterpret_cast<double*>(_v)); break;
+        case 16: _t->setYErrorMm(*reinterpret_cast<double*>(_v)); break;
+        case 17: _t->setPenUpZ(*reinterpret_cast<double*>(_v)); break;
+        case 18: _t->setPenDownZ(*reinterpret_cast<double*>(_v)); break;
+        case 20: _t->setPreviewDisplayScale(*reinterpret_cast<double*>(_v)); break;
         default: break;
         }
     }
@@ -310,20 +354,20 @@ int AppSettings::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 21)
+        if (_id < 25)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 21;
+        _id -= 25;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 21)
+        if (_id < 25)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 21;
+        _id -= 25;
     }
     if (_c == QMetaObject::ReadProperty || _c == QMetaObject::WriteProperty
             || _c == QMetaObject::ResetProperty || _c == QMetaObject::BindableProperty
             || _c == QMetaObject::RegisterPropertyMetaType) {
         qt_static_metacall(this, _c, _id, _a);
-        _id -= 17;
+        _id -= 21;
     }
     return _id;
 }
@@ -395,50 +439,74 @@ void AppSettings::joinDistMmChanged()
 }
 
 // SIGNAL 11
-void AppSettings::xErrorMmChanged()
+void AppSettings::backlashYStartMmChanged()
 {
     QMetaObject::activate(this, &staticMetaObject, 11, nullptr);
 }
 
 // SIGNAL 12
-void AppSettings::yErrorMmChanged()
+void AppSettings::backlashYEndMmChanged()
 {
     QMetaObject::activate(this, &staticMetaObject, 12, nullptr);
 }
 
 // SIGNAL 13
-void AppSettings::penUpZChanged()
+void AppSettings::xErrorNearMmChanged()
 {
     QMetaObject::activate(this, &staticMetaObject, 13, nullptr);
 }
 
 // SIGNAL 14
-void AppSettings::penDownZChanged()
+void AppSettings::xErrorMmChanged()
 {
     QMetaObject::activate(this, &staticMetaObject, 14, nullptr);
 }
 
 // SIGNAL 15
-void AppSettings::feedRateMmPerMinChanged()
+void AppSettings::yErrorNearMmChanged()
 {
     QMetaObject::activate(this, &staticMetaObject, 15, nullptr);
 }
 
 // SIGNAL 16
-void AppSettings::previewDisplayScaleChanged()
+void AppSettings::yErrorMmChanged()
 {
     QMetaObject::activate(this, &staticMetaObject, 16, nullptr);
 }
 
 // SIGNAL 17
-void AppSettings::anyChanged()
+void AppSettings::penUpZChanged()
 {
     QMetaObject::activate(this, &staticMetaObject, 17, nullptr);
 }
 
 // SIGNAL 18
-void AppSettings::aboutToChange()
+void AppSettings::penDownZChanged()
 {
     QMetaObject::activate(this, &staticMetaObject, 18, nullptr);
+}
+
+// SIGNAL 19
+void AppSettings::feedRateMmPerMinChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 19, nullptr);
+}
+
+// SIGNAL 20
+void AppSettings::previewDisplayScaleChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 20, nullptr);
+}
+
+// SIGNAL 21
+void AppSettings::anyChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 21, nullptr);
+}
+
+// SIGNAL 22
+void AppSettings::aboutToChange()
+{
+    QMetaObject::activate(this, &staticMetaObject, 22, nullptr);
 }
 QT_WARNING_POP

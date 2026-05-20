@@ -15,7 +15,11 @@ class AppSettings : public QObject {
     Q_PROPERTY(double lineHeightCm READ lineHeightCm WRITE setLineHeightCm NOTIFY lineHeightCmChanged)
     Q_PROPERTY(double fontUnitToCm READ fontUnitToCm WRITE setFontUnitToCm NOTIFY fontUnitToCmChanged)
     Q_PROPERTY(double joinDistMm READ joinDistMm WRITE setJoinDistMm NOTIFY joinDistMmChanged)
+    Q_PROPERTY(double backlashYStartMm READ backlashYStartMm WRITE setBacklashYStartMm NOTIFY backlashYStartMmChanged)
+    Q_PROPERTY(double backlashYEndMm READ backlashYEndMm WRITE setBacklashYEndMm NOTIFY backlashYEndMmChanged)
+    Q_PROPERTY(double xErrorNearMm READ xErrorNearMm WRITE setXErrorNearMm NOTIFY xErrorNearMmChanged)
     Q_PROPERTY(double xErrorMm READ xErrorMm WRITE setXErrorMm NOTIFY xErrorMmChanged)
+    Q_PROPERTY(double yErrorNearMm READ yErrorNearMm WRITE setYErrorNearMm NOTIFY yErrorNearMmChanged)
     Q_PROPERTY(double yErrorMm READ yErrorMm WRITE setYErrorMm NOTIFY yErrorMmChanged)
     Q_PROPERTY(double penUpZ READ penUpZ WRITE setPenUpZ NOTIFY penUpZChanged)
     Q_PROPERTY(double penDownZ READ penDownZ WRITE setPenDownZ NOTIFY penDownZChanged)
@@ -58,8 +62,20 @@ public:
     double joinDistMm() const { return m_joinDistMm; }
     void setJoinDistMm(double v);
 
+    double backlashYStartMm() const { return m_backlashYStartMm; }
+    void setBacklashYStartMm(double v);
+
+    double backlashYEndMm() const { return m_backlashYEndMm; }
+    void setBacklashYEndMm(double v);
+
+    double xErrorNearMm() const { return m_xErrorNearMm; }
+    void setXErrorNearMm(double v);
+
     double xErrorMm() const { return m_xErrorMm; }
     void setXErrorMm(double v);
+
+    double yErrorNearMm() const { return m_yErrorNearMm; }
+    void setYErrorNearMm(double v);
 
     double yErrorMm() const { return m_yErrorMm; }
     void setYErrorMm(double v);
@@ -90,7 +106,11 @@ signals:
     void lineHeightCmChanged();
     void fontUnitToCmChanged();
     void joinDistMmChanged();
+    void backlashYStartMmChanged();
+    void backlashYEndMmChanged();
+    void xErrorNearMmChanged();
     void xErrorMmChanged();
+    void yErrorNearMmChanged();
     void yErrorMmChanged();
     void penUpZChanged();
     void penDownZChanged();
@@ -111,7 +131,11 @@ private:
     double m_lineHeightCm = 0.45;
     double m_fontUnitToCm = 0.0001;
     double m_joinDistMm = 0.0;
+    double m_backlashYStartMm = 0.0;
+    double m_backlashYEndMm = 297.0;
+    double m_xErrorNearMm = 0.0;
     double m_xErrorMm = 0.0;
+    double m_yErrorNearMm = 0.0;
     double m_yErrorMm = 0.0;
     double m_penUpZ = 30.0;
     double m_penDownZ = -5.0;

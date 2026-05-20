@@ -145,7 +145,11 @@ private:
         double lineHeightCm = 0.45;
         double fontUnitToCm = 0.0001;
         double joinDistMm = 0.0;
+        double backlashYStartMm = 0.0;
+        double backlashYEndMm = 297.0;
+        double xErrorNearMm = 0.0;
         double xErrorMm = 0.0;
+        double yErrorNearMm = 0.0;
         double yErrorMm = 0.0;
         double penUpZ = 30.0;
         double penDownZ = -5.0;

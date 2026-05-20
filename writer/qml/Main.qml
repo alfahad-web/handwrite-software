@@ -1173,7 +1173,45 @@ ApplicationWindow {
                     onValueModified: writerController.settings.joinDistMm = value / 10.0
                 }
 
-                Label { text: "X error compensation (mm)"; font.bold: true; color: root.settingsTitleColor }
+                Label { text: "Backlash interpolation over machine Y"; font.bold: true; color: root.settingsTitleColor }
+                Label {
+                    text: "Near/far errors are interpolated by |Y| between start and end. SpinBox values use entered/10 mm."
+                    wrapMode: Text.Wrap
+                    Layout.fillWidth: true
+                    color: "#3f3f46"
+                    font.pixelSize: 11
+                }
+                Label { text: "Y start for far-backlash ramp (mm)"; color: root.settingsTitleColor }
+                SpinBox {
+                    from: 0
+                    to: 10000
+                    stepSize: 1
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.backlashYStartMm * 10)
+                    onValueModified: writerController.settings.backlashYStartMm = value / 10.0
+                }
+                Label { text: "Y end for far-backlash ramp (mm)"; color: root.settingsTitleColor }
+                SpinBox {
+                    from: 0
+                    to: 10000
+                    stepSize: 1
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.backlashYEndMm * 10)
+                    onValueModified: writerController.settings.backlashYEndMm = value / 10.0
+                }
+                Label { text: "X error near (mm, actual = entered/10)"; color: root.settingsTitleColor }
+                SpinBox {
+                    from: 0
+                    to: 200
+                    stepSize: 1
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.xErrorNearMm * 10)
+                    onValueModified: writerController.settings.xErrorNearMm = value / 10.0
+                }
+                Label { text: "X error far (mm, actual = entered/10)"; font.bold: true; color: root.settingsTitleColor }
                 SpinBox {
                     from: 0
                     to: 200
@@ -1184,7 +1222,17 @@ ApplicationWindow {
                     onValueModified: writerController.settings.xErrorMm = value / 10.0
                 }
 
-                Label { text: "Y error compensation (mm)"; font.bold: true; color: root.settingsTitleColor }
+                Label { text: "Y error near (mm, actual = entered/10)"; color: root.settingsTitleColor }
+                SpinBox {
+                    from: 0
+                    to: 200
+                    stepSize: 1
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.yErrorNearMm * 10)
+                    onValueModified: writerController.settings.yErrorNearMm = value / 10.0
+                }
+                Label { text: "Y error far (mm, actual = entered/10)"; font.bold: true; color: root.settingsTitleColor }
                 SpinBox {
                     from: 0
                     to: 200

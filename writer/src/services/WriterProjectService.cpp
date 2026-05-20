@@ -25,7 +25,11 @@ QJsonObject settingsToJson(const AppSettings *st) {
     o.insert(QStringLiteral("lineHeightCm"), st->lineHeightCm());
     o.insert(QStringLiteral("fontUnitToCm"), st->fontUnitToCm());
     o.insert(QStringLiteral("joinDistMm"), st->joinDistMm());
+    o.insert(QStringLiteral("backlashYStartMm"), st->backlashYStartMm());
+    o.insert(QStringLiteral("backlashYEndMm"), st->backlashYEndMm());
+    o.insert(QStringLiteral("xErrorNearMm"), st->xErrorNearMm());
     o.insert(QStringLiteral("xErrorMm"), st->xErrorMm());
+    o.insert(QStringLiteral("yErrorNearMm"), st->yErrorNearMm());
     o.insert(QStringLiteral("yErrorMm"), st->yErrorMm());
     o.insert(QStringLiteral("penUpZ"), st->penUpZ());
     o.insert(QStringLiteral("penDownZ"), st->penDownZ());
@@ -45,7 +49,11 @@ void applySettingsFromJson(AppSettings *st, const QJsonObject &o) {
     if (o.contains(QStringLiteral("lineHeightCm"))) st->setLineHeightCm(o.value(QStringLiteral("lineHeightCm")).toDouble());
     if (o.contains(QStringLiteral("fontUnitToCm"))) st->setFontUnitToCm(o.value(QStringLiteral("fontUnitToCm")).toDouble());
     if (o.contains(QStringLiteral("joinDistMm"))) st->setJoinDistMm(o.value(QStringLiteral("joinDistMm")).toDouble());
+    if (o.contains(QStringLiteral("backlashYStartMm"))) st->setBacklashYStartMm(o.value(QStringLiteral("backlashYStartMm")).toDouble());
+    if (o.contains(QStringLiteral("backlashYEndMm"))) st->setBacklashYEndMm(o.value(QStringLiteral("backlashYEndMm")).toDouble());
+    if (o.contains(QStringLiteral("xErrorNearMm"))) st->setXErrorNearMm(o.value(QStringLiteral("xErrorNearMm")).toDouble());
     if (o.contains(QStringLiteral("xErrorMm"))) st->setXErrorMm(o.value(QStringLiteral("xErrorMm")).toDouble());
+    if (o.contains(QStringLiteral("yErrorNearMm"))) st->setYErrorNearMm(o.value(QStringLiteral("yErrorNearMm")).toDouble());
     if (o.contains(QStringLiteral("yErrorMm"))) st->setYErrorMm(o.value(QStringLiteral("yErrorMm")).toDouble());
     if (o.contains(QStringLiteral("penUpZ"))) st->setPenUpZ(o.value(QStringLiteral("penUpZ")).toDouble());
     if (o.contains(QStringLiteral("penDownZ"))) st->setPenDownZ(o.value(QStringLiteral("penDownZ")).toDouble());

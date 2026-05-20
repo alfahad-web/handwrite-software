@@ -34,6 +34,18 @@ int maxPageInPath(const PathBuildResult &path) {
         last = qMax(last, seg.pageIndex);
     return last;
 }
+
+double interpolateByY(double absYmm, double yStartMm, double yEndMm, double nearValue, double farValue) {
+    const double span = yEndMm - yStartMm;
+    double t = 0.0;
+    if (span > 1e-9) {
+        t = (absYmm - yStartMm) / span;
+    } else {
+        t = absYmm >= yEndMm ? 1.0 : 0.0;
+    }
+    t = qBound(0.0, t, 1.0);
+    return nearValue + (farValue - nearValue) * t;
+}
 }
 
 QString GcodeGenerator::generate(const PathBuildResult &path, const AppSettings *settings) {
@@ -72,8 +84,12 @@ GcodeGenerateResult GcodeGenerator::generateWithPageLines(const PathBuildResult 
     bool hasPos = false;
     QPointF currentPosMm;
     const double joinDistMm = qMax(0.0, settings->joinDistMm());
-    const double xErrorMm = qMax(0.0, settings->xErrorMm());
-    const double yErrorMm = qMax(0.0, settings->yErrorMm());
+    const double yStartMm = qMax(0.0, settings->backlashYStartMm());
+    const double yEndMm = qMax(0.0, settings->backlashYEndMm());
+    const double xErrorNearMm = qMax(0.0, settings->xErrorNearMm());
+    const double xErrorFarMm = qMax(0.0, settings->xErrorMm());
+    const double yErrorNearMm = qMax(0.0, settings->yErrorNearMm());
+    const double yErrorFarMm = qMax(0.0, settings->yErrorMm());
     const double axisEpsMm = 1e-6;
     double pendingCompX = 0.0;
     double pendingCompY = 0.0;
@@ -88,22 +104,42 @@ GcodeGenerateResult GcodeGenerator::generateWithPageLines(const PathBuildResult 
         if (d < -axisEpsMm) return -1;
         return 0;
     };
+    auto effectiveErrorMm = [&](double absYmm) {
+        const double effX = qMax(0.0, interpolateByY(absYmm, yStartMm, yEndMm, xErrorNearMm, xErrorFarMm));
+        const double effY = qMax(0.0, interpolateByY(absYmm, yStartMm, yEndMm, yErrorNearMm, yErrorFarMm));
+        return QPointF(effX, effY);
+    };
+    auto currentEffectiveError = [&]() {
+        const double absYmm = hasPos ? qAbs(currentPosMm.y()) : 0.0;
+        return effectiveErrorMm(absYmm);
+    };
     auto preloadHalfError = [&]() {
-        pendingCompX = qMax(pendingCompX, xErrorMm * 0.5);
-        pendingCompY = qMax(pendingCompY, yErrorMm * 0.5);
+        const QPointF eff = currentEffectiveError();
+        pendingCompX = qMax(pendingCompX, eff.x() * 0.5);
+        pendingCompY = qMax(pendingCompY, eff.y() * 0.5);
     };
     auto applyReversalComp = [&](const QPointF &nominalToMm) {
         if (!hasPos) return nominalToMm;
         QPointF correctedToMm = nominalToMm;
+        const double absYmm = qAbs((currentPosMm.y() + nominalToMm.y()) * 0.5);
+        const QPointF eff = effectiveErrorMm(absYmm);
+        const double effX = eff.x();
+        const double effY = eff.y();
+        pendingCompX = qMin(pendingCompX, effX);
+        pendingCompY = qMin(pendingCompY, effY);
 
         int dirX = dirFromDelta(nominalToMm.x() - currentPosMm.x());
         if (dirX != 0) {
             if (lastDirX != 0 && dirX != lastDirX && pendingCompX > axisEpsMm) {
                 correctedToMm.setX(correctedToMm.x() + dirX * pendingCompX);
                 pendingCompX = 0.0;
-                dirX = dirFromDelta(correctedToMm.x() - currentPosMm.x());
             }
-            if (dirX != 0) lastDirX = dirX;
+            const double movedX = correctedToMm.x() - currentPosMm.x();
+            dirX = dirFromDelta(movedX);
+            if (dirX != 0) {
+                lastDirX = dirX;
+                pendingCompX = qMin(effX, pendingCompX + qAbs(movedX));
+            }
         }
 
         int dirY = dirFromDelta(nominalToMm.y() - currentPosMm.y());
@@ -111,29 +147,19 @@ GcodeGenerateResult GcodeGenerator::generateWithPageLines(const PathBuildResult 
             if (lastDirY != 0 && dirY != lastDirY && pendingCompY > axisEpsMm) {
                 correctedToMm.setY(correctedToMm.y() + dirY * pendingCompY);
                 pendingCompY = 0.0;
-                dirY = dirFromDelta(correctedToMm.y() - currentPosMm.y());
             }
-            if (dirY != 0) lastDirY = dirY;
+            const double movedY = correctedToMm.y() - currentPosMm.y();
+            dirY = dirFromDelta(movedY);
+            if (dirY != 0) {
+                lastDirY = dirY;
+                pendingCompY = qMin(effY, pendingCompY + qAbs(movedY));
+            }
         }
 
         return correctedToMm;
     };
     auto ensurePenUp = [&]() {
         if (!penIsDown) return;
-        if (hasPos && (pendingCompX > axisEpsMm || pendingCompY > axisEpsMm)) {
-            QPointF settlePos = currentPosMm;
-            if (pendingCompX > axisEpsMm && lastDirX != 0)
-                settlePos.setX(settlePos.x() + lastDirX * pendingCompX);
-            if (pendingCompY > axisEpsMm && lastDirY != 0)
-                settlePos.setY(settlePos.y() + lastDirY * pendingCompY);
-            if (!samePoint(currentPosMm, settlePos)) {
-                lines << xyLine("G1", settlePos.x(), settlePos.y());
-                currentPosMm = settlePos;
-                hasMotion = true;
-            }
-            pendingCompX = 0.0;
-            pendingCompY = 0.0;
-        }
         lines << QStringLiteral("G0 Z%1").arg(fmtMm(penUpZ));
         penIsDown = false;
     };

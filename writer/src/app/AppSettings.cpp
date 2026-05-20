@@ -114,12 +114,48 @@ void AppSettings::setJoinDistMm(double v) {
     emit anyChanged();
 }
 
+void AppSettings::setBacklashYStartMm(double v) {
+    if (!std::isfinite(v) || v < 0) v = 0;
+    if (qFuzzyCompare(m_backlashYStartMm, v)) return;
+    emit aboutToChange();
+    m_backlashYStartMm = v;
+    emit backlashYStartMmChanged();
+    emit anyChanged();
+}
+
+void AppSettings::setBacklashYEndMm(double v) {
+    if (!std::isfinite(v) || v < 0) v = 0;
+    if (qFuzzyCompare(m_backlashYEndMm, v)) return;
+    emit aboutToChange();
+    m_backlashYEndMm = v;
+    emit backlashYEndMmChanged();
+    emit anyChanged();
+}
+
+void AppSettings::setXErrorNearMm(double v) {
+    if (!std::isfinite(v) || v < 0) v = 0;
+    if (qFuzzyCompare(m_xErrorNearMm, v)) return;
+    emit aboutToChange();
+    m_xErrorNearMm = v;
+    emit xErrorNearMmChanged();
+    emit anyChanged();
+}
+
 void AppSettings::setXErrorMm(double v) {
     if (!std::isfinite(v) || v < 0) v = 0;
     if (qFuzzyCompare(m_xErrorMm, v)) return;
     emit aboutToChange();
     m_xErrorMm = v;
     emit xErrorMmChanged();
+    emit anyChanged();
+}
+
+void AppSettings::setYErrorNearMm(double v) {
+    if (!std::isfinite(v) || v < 0) v = 0;
+    if (qFuzzyCompare(m_yErrorNearMm, v)) return;
+    emit aboutToChange();
+    m_yErrorNearMm = v;
+    emit yErrorNearMmChanged();
     emit anyChanged();
 }
 
@@ -174,7 +210,11 @@ void AppSettings::load() {
     setLineHeightCm(s.value("lineHeightCm", m_lineHeightCm).toDouble());
     setFontUnitToCm(s.value("fontUnitToCm", m_fontUnitToCm).toDouble());
     setJoinDistMm(s.value("joinDistMm", m_joinDistMm).toDouble());
+    setBacklashYStartMm(s.value("backlashYStartMm", m_backlashYStartMm).toDouble());
+    setBacklashYEndMm(s.value("backlashYEndMm", m_backlashYEndMm).toDouble());
+    setXErrorNearMm(s.value("xErrorNearMm", m_xErrorNearMm).toDouble());
     setXErrorMm(s.value("xErrorMm", m_xErrorMm).toDouble());
+    setYErrorNearMm(s.value("yErrorNearMm", m_yErrorNearMm).toDouble());
     setYErrorMm(s.value("yErrorMm", m_yErrorMm).toDouble());
     setPenUpZ(s.value("penUpZ", m_penUpZ).toDouble());
     setPenDownZ(s.value("penDownZ", m_penDownZ).toDouble());
@@ -196,7 +236,11 @@ void AppSettings::save() {
     s.setValue("lineHeightCm", m_lineHeightCm);
     s.setValue("fontUnitToCm", m_fontUnitToCm);
     s.setValue("joinDistMm", m_joinDistMm);
+    s.setValue("backlashYStartMm", m_backlashYStartMm);
+    s.setValue("backlashYEndMm", m_backlashYEndMm);
+    s.setValue("xErrorNearMm", m_xErrorNearMm);
     s.setValue("xErrorMm", m_xErrorMm);
+    s.setValue("yErrorNearMm", m_yErrorNearMm);
     s.setValue("yErrorMm", m_yErrorMm);
     s.setValue("penUpZ", m_penUpZ);
     s.setValue("penDownZ", m_penDownZ);

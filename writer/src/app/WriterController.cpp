@@ -448,7 +448,11 @@ void WriterController::resetToEmptyProject(bool resetSettingsToDefaults) {
         m_settings->setLineHeightCm(0.45);
         m_settings->setFontUnitToCm(0.0001);
         m_settings->setJoinDistMm(0.0);
+        m_settings->setBacklashYStartMm(0.0);
+        m_settings->setBacklashYEndMm(297.0);
+        m_settings->setXErrorNearMm(0.0);
         m_settings->setXErrorMm(0.0);
+        m_settings->setYErrorNearMm(0.0);
         m_settings->setYErrorMm(0.0);
         m_settings->setPenUpZ(30.0);
         m_settings->setPenDownZ(-5.0);
@@ -484,7 +488,11 @@ WriterController::HistoryState WriterController::makeHistoryState() const {
         s.lineHeightCm = m_settings->lineHeightCm();
         s.fontUnitToCm = m_settings->fontUnitToCm();
         s.joinDistMm = m_settings->joinDistMm();
+        s.backlashYStartMm = m_settings->backlashYStartMm();
+        s.backlashYEndMm = m_settings->backlashYEndMm();
+        s.xErrorNearMm = m_settings->xErrorNearMm();
         s.xErrorMm = m_settings->xErrorMm();
+        s.yErrorNearMm = m_settings->yErrorNearMm();
         s.yErrorMm = m_settings->yErrorMm();
         s.penUpZ = m_settings->penUpZ();
         s.penDownZ = m_settings->penDownZ();
@@ -506,7 +514,11 @@ void WriterController::applySettingsSnapshot(const HistoryState &state) {
     m_settings->setLineHeightCm(state.lineHeightCm);
     m_settings->setFontUnitToCm(state.fontUnitToCm);
     m_settings->setJoinDistMm(state.joinDistMm);
+    m_settings->setBacklashYStartMm(state.backlashYStartMm);
+    m_settings->setBacklashYEndMm(state.backlashYEndMm);
+    m_settings->setXErrorNearMm(state.xErrorNearMm);
     m_settings->setXErrorMm(state.xErrorMm);
+    m_settings->setYErrorNearMm(state.yErrorNearMm);
     m_settings->setYErrorMm(state.yErrorMm);
     m_settings->setPenUpZ(state.penUpZ);
     m_settings->setPenDownZ(state.penDownZ);
