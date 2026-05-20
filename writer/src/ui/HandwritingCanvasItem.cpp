@@ -142,7 +142,10 @@ double HandwritingCanvasItem::pxPerCm() const {
     if (!m_ctrl || !m_ctrl->settings()) return 40.0;
     const double w = width();
     if (w < 4) return 40.0;
-    return (w / m_ctrl->settings()->pageWidthCm()) * m_ctrl->settings()->previewDisplayScale();
+    // Page width fills the canvas; kPreviewCmFit calibrates on-screen size to plotted output.
+    static constexpr double kPreviewCmFit = 0.5;
+    return (w / m_ctrl->settings()->pageWidthCm())
+           * m_ctrl->settings()->previewDisplayScale() * kPreviewCmFit;
 }
 
 QPointF HandwritingCanvasItem::cmFromPixel(const QPointF &px) const {

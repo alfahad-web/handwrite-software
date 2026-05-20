@@ -755,18 +755,37 @@ ApplicationWindow {
                     id: consoleLogScroll
                     Layout.fillWidth: true
                     Layout.preferredHeight: 120
+                    Layout.bottomMargin: 2
                     clip: true
+                    ScrollBar.vertical: ScrollBar {
+                        policy: ScrollBar.AsNeeded
+                    }
+
                     TextArea {
                         id: consoleLog
                         width: consoleLogScroll.availableWidth
-                        implicitHeight: Math.max(contentHeight, consoleLogScroll.availableHeight)
+                        implicitHeight: contentHeight + topPadding + bottomPadding
                         readOnly: true
                         wrapMode: TextArea.Wrap
                         selectByMouse: true
+                        topPadding: 6
+                        bottomPadding: 10
                         font.family: "monospace"
                         font.pixelSize: 10
                         text: grblConnection.consoleLog
-                        onTextChanged: cursorPosition = length
+                        onTextChanged: consoleLog.scrollToEnd()
+                        function scrollToEnd() {
+                            cursorPosition = length
+                            Qt.callLater(function () {
+                                ensureVisible(length, 1)
+                            })
+                        }
+                        Connections {
+                            target: grblConnection
+                            function onConsoleLogChanged() {
+                                consoleLog.scrollToEnd()
+                            }
+                        }
                         background: Rectangle {
                             color: "#18181b"
                             radius: 4
@@ -980,7 +999,7 @@ ApplicationWindow {
 
                 Label { text: "Screen preview scale"; font.bold: true; color: root.settingsTitleColor }
                 Label {
-                    text: "Display-only multiplier for the handwriting preview (does not change G-code or plotted size). Use below 1.0 if on-screen text looks larger than on paper."
+                    text: "Display-only multiplier on top of the built-in preview fit (does not change G-code). Default 100% ≈ half of page-fill; increase if preview still looks too small."
                     wrapMode: Text.Wrap
                     Layout.fillWidth: true
                     color: "#3f3f46"
@@ -1034,25 +1053,25 @@ ApplicationWindow {
                 }
 
                 Label { text: "CNC / pen"; font.bold: true; color: root.settingsTitleColor }
-                Label { text: "Pen up Z"; color: root.settingsTitleColor }
+                Label { text: "Pen up Z (mm)"; color: root.settingsTitleColor }
                 SpinBox {
                     from: -1000
                     to: 1000
                     stepSize: 1
                     editable: true
                     wheelEnabled: true
-                    value: Math.round(writerController.settings.penUpZ * 10)
-                    onValueModified: writerController.settings.penUpZ = value / 10.0
+                    value: Math.round(writerController.settings.penUpZ)
+                    onValueModified: writerController.settings.penUpZ = value
                 }
-                Label { text: "Pen down Z"; color: root.settingsTitleColor }
+                Label { text: "Pen down Z (mm)"; color: root.settingsTitleColor }
                 SpinBox {
                     from: -1000
                     to: 1000
                     stepSize: 1
                     editable: true
                     wheelEnabled: true
-                    value: Math.round(writerController.settings.penDownZ * 10)
-                    onValueModified: writerController.settings.penDownZ = value / 10.0
+                    value: Math.round(writerController.settings.penDownZ)
+                    onValueModified: writerController.settings.penDownZ = value
                 }
 
                 } // Plotter section
