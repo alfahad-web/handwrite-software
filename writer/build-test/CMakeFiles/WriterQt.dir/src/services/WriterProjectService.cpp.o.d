@@ -326,6 +326,8 @@ CMakeFiles/WriterQt.dir/src/services/WriterProjectService.cpp.o: \
  /usr/include/qt6/QtCore/qrect.h /usr/include/qt6/QtCore/qmargins.h \
  /usr/include/qt6/QtCore/qsize.h \
  /mnt/shared/handwrite-software/writer/src/gcode/GcodeController.h \
+ /mnt/shared/handwrite-software/writer/src/gcode/PathBuilder.h \
+ /mnt/shared/handwrite-software/writer/src/layout/LayoutEngine.h \
  /usr/include/qt6/QtCore/QFile /usr/include/qt6/QtCore/qfile.h \
  /usr/include/qt6/QtCore/qfiledevice.h \
  /usr/include/qt6/QtCore/qiodevice.h /usr/include/qt6/QtCore/qspan.h \

@@ -303,13 +303,13 @@ CMakeFiles/WriterQt.dir/src/gcode/GcodeController.cpp.o: \
  /usr/include/qt6/QtCore/qbindingstorage.h /usr/include/c++/16.1.1/chrono \
  /usr/include/c++/16.1.1/bits/chrono.h /usr/include/c++/16.1.1/ratio \
  /usr/include/c++/16.1.1/ctime /usr/include/qt6/QtCore/QString \
+ /usr/include/qt6/QtCore/QVector /usr/include/qt6/QtCore/qvector.h \
  /mnt/shared/handwrite-software/writer/src/gcode/GcodeGenerator.h \
  /mnt/shared/handwrite-software/writer/src/gcode/PathBuilder.h \
  /usr/include/qt6/QtCore/QPointF /usr/include/qt6/QtCore/qpoint.h \
  /usr/include/qt6/QtCore/qcheckedint_impl.h \
  /usr/include/qt6/QtCore/q23utility.h \
- /usr/include/qt6/QtCore/q20utility.h /usr/include/qt6/QtCore/QVector \
- /usr/include/qt6/QtCore/qvector.h \
+ /usr/include/qt6/QtCore/q20utility.h \
  /mnt/shared/handwrite-software/writer/src/layout/LayoutEngine.h \
  /usr/include/qt6/QtCore/QChar /usr/include/qt6/QtCore/QHash \
  /usr/include/qt6/QtCore/qhash.h /usr/include/qt6/QtCore/QRectF \

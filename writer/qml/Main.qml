@@ -412,6 +412,16 @@ ApplicationWindow {
                 }
             }
             Button {
+                text: "Configure Run"
+                enabled: !writerController.runActive
+                onClicked: {
+                    writerController.refreshPageMap()
+                    configureRunPageSpin.value = writerController.runArmed
+                            ? writerController.runStartPage : 0
+                    configureRunDialog.open()
+                }
+            }
+            Button {
                 text: !writerController.runActive ? "Run"
                       : (writerController.runPaused ? "Resume" : "Pause")
                 onClicked: {
@@ -755,6 +765,15 @@ ApplicationWindow {
                     font.pixelSize: 11
                 }
 
+                Label {
+                    visible: grblConnection.connected
+                             && grblConnection.machineState !== "Idle"
+                             && grblConnection.machineState !== "Run"
+                    text: "GRBL state: " + grblConnection.machineState
+                    color: grblConnection.machineState === "Alarm" ? "#dc2626" : "#ca8a04"
+                    font.pixelSize: 11
+                }
+
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 4
@@ -840,6 +859,7 @@ ApplicationWindow {
                         selectByMouse: true
                         focusPolicy: Qt.StrongFocus
                         enabled: grblConnection.connected && !grblConnection.streaming
+                                 && !grblConnection.commandBlocked
                         Keys.onPressed: function(event) {
                             if (event.key === Qt.Key_Up) {
                                 text = grblConnection.commandHistoryOlder(text)
@@ -869,6 +889,7 @@ ApplicationWindow {
                         text: "Send"
                         implicitHeight: 32
                         enabled: grblConnection.connected && !grblConnection.streaming
+                                 && !grblConnection.commandBlocked
                         onClicked: {
                             if (consoleInput.text.trim().length > 0) {
                                 grblConnection.sendUserCommand(consoleInput.text)
@@ -876,6 +897,60 @@ ApplicationWindow {
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+
+    Dialog {
+        id: configureRunDialog
+        title: "Configure Run"
+        modal: true
+        anchors.centerIn: parent
+        standardButtons: Dialog.Close
+
+        ColumnLayout {
+            spacing: 12
+            width: Math.max(implicitWidth, 320)
+
+            Label {
+                text: "Set the starting page. Earlier pages appear as already written (red trail). Press Run to execute from this page."
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+                color: "#3f3f46"
+                font.pixelSize: 12
+            }
+
+            RowLayout {
+                spacing: 8
+                Label {
+                    text: "Page number"
+                    color: "#3f3f46"
+                }
+                SpinBox {
+                    id: configureRunPageSpin
+                    from: 0
+                    to: Math.max(0, writerController.pageCount - 1)
+                    value: 0
+                    editable: true
+                    wheelEnabled: true
+                }
+                Label {
+                    text: writerController.pageCount > 0
+                          ? ("of " + (writerController.pageCount - 1))
+                          : "(no pages)"
+                    color: "#71717a"
+                    font.pixelSize: 11
+                }
+            }
+
+            Button {
+                text: "Advance"
+                Layout.alignment: Qt.AlignRight
+                enabled: writerController.pageCount > 0
+                onClicked: {
+                    writerController.advanceRunToPage(configureRunPageSpin.value)
+                    configureRunDialog.close()
                 }
             }
         }

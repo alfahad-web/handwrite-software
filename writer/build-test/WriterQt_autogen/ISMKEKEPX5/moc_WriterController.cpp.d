@@ -5,6 +5,8 @@
   /mnt/shared/handwrite-software/writer/src/cnc/GrblConnection.h \
   /mnt/shared/handwrite-software/writer/src/font/FontLoader.h \
   /mnt/shared/handwrite-software/writer/src/gcode/GcodeController.h \
+  /mnt/shared/handwrite-software/writer/src/gcode/PathBuilder.h \
+  /mnt/shared/handwrite-software/writer/src/layout/LayoutEngine.h \
   /usr/include/alloca.h \
   /usr/include/asm-generic/bitsperlong.h \
   /usr/include/asm-generic/errno-base.h \

@@ -14,7 +14,6 @@ QString xyLine(const char *cmd, double xMm, double yMm) {
     return QStringLiteral("%1 X%2 Y%3").arg(QLatin1String(cmd), fmtMm(xMm), fmtMm(yMm));
 }
 
-// App layout uses +X right, +Y down (cm). This machine expects GRBL X = layout Y, GRBL Y = layout X.
 QPointF layoutCmToMachineMm(const QPointF &pCm) {
     return QPointF(pCm.y() * 10.0, pCm.x() * 10.0);
 }
@@ -28,10 +27,26 @@ double segmentLengthCm(const PathSegment &seg) {
         len += QLineF(pts[i - 1], pts[i]).length();
     return len;
 }
+
+int maxPageInPath(const PathBuildResult &path) {
+    int last = 0;
+    for (const PathSegment &seg : path.segments)
+        last = qMax(last, seg.pageIndex);
+    return last;
+}
 }
 
 QString GcodeGenerator::generate(const PathBuildResult &path, const AppSettings *settings) {
-    if (!settings) return QStringLiteral("; No settings\n");
+    return generateWithPageLines(path, settings).gcode;
+}
+
+GcodeGenerateResult GcodeGenerator::generateWithPageLines(const PathBuildResult &path,
+                                                          const AppSettings *settings) {
+    GcodeGenerateResult out;
+    if (!settings) {
+        out.gcode = QStringLiteral("; No settings\n");
+        return out;
+    }
 
     const double penUpZ = settings->penUpZ();
     const double penDownZ = settings->penDownZ();
@@ -45,6 +60,12 @@ QString GcodeGenerator::generate(const PathBuildResult &path, const AppSettings 
     lines << QStringLiteral("G0 Z%1").arg(fmtMm(penUpZ));
     lines << QStringLiteral("G0 X0 Y0");
     lines << QStringLiteral("F%1").arg(feed);
+
+    const int pageCount = qMax(1, maxPageInPath(path) + 1);
+    out.pageCount = pageCount;
+    out.pageLineStart.resize(pageCount);
+    for (int i = 0; i < pageCount; ++i)
+        out.pageLineStart[i] = -1;
 
     bool hasMotion = false;
     bool penIsDown = false;
@@ -143,10 +164,20 @@ QString GcodeGenerator::generate(const PathBuildResult &path, const AppSettings 
         hasMotion = true;
     };
 
+    auto markPageStart = [&](int pageIndex) {
+        if (pageIndex < 0 || pageIndex >= pageCount) return;
+        if (out.pageLineStart[pageIndex] >= 0) return;
+        out.pageLineStart[pageIndex] = lines.size();
+        lines << QStringLiteral("; PAGE %1").arg(pageIndex);
+    };
+
     for (const PathSegment &seg : path.segments) {
         if (segmentLengthCm(seg) <= 1e-9) continue;
         const QVector<QPointF> &pts = seg.pointsCm;
         if (pts.size() < 2) continue;
+
+        if (!seg.travel)
+            markPageStart(seg.pageIndex);
 
         if (seg.travel) {
             const QPointF p0 = layoutCmToMachineMm(pts[0]);
@@ -178,10 +209,24 @@ QString GcodeGenerator::generate(const PathBuildResult &path, const AppSettings 
     }
 
     if (!hasMotion) {
-        return QStringLiteral("; No drawable strokes\n");
+        out.gcode = QStringLiteral("; No drawable strokes\n");
+        return out;
     }
 
     ensurePenUp();
     lines << QStringLiteral("G0 X0 Y0");
-    return lines.join(QLatin1Char('\n')) + QLatin1Char('\n');
+
+    if (out.pageLineStart[0] < 0)
+        out.pageLineStart[0] = 7;
+
+    int lastKnown = out.pageLineStart[0];
+    for (int p = 1; p < pageCount; ++p) {
+        if (out.pageLineStart[p] < 0)
+            out.pageLineStart[p] = lastKnown;
+        else
+            lastKnown = out.pageLineStart[p];
+    }
+
+    out.gcode = lines.join(QLatin1Char('\n')) + QLatin1Char('\n');
+    return out;
 }

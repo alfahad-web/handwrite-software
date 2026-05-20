@@ -42,13 +42,18 @@ template <> constexpr inline auto GcodeController::qt_create_metaobjectdata<qt_m
         "generatedGcodeChanged",
         "",
         "gcodeStaleChanged",
+        "pageLineMapChanged",
         "onLayoutInvalidated",
         "regenerate",
         "saveGcodeFile",
         "openGcodeFile",
         "copyToClipboard",
+        "gcodeForPageRange",
+        "startPage",
+        "endPageExclusive",
         "generatedGcode",
-        "gcodeStale"
+        "gcodeStale",
+        "pageCount"
     };
 
     QtMocHelpers::UintData qt_methods {
@@ -56,22 +61,30 @@ template <> constexpr inline auto GcodeController::qt_create_metaobjectdata<qt_m
         QtMocHelpers::SignalData<void()>(1, 2, QMC::AccessPublic, QMetaType::Void),
         // Signal 'gcodeStaleChanged'
         QtMocHelpers::SignalData<void()>(3, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'pageLineMapChanged'
+        QtMocHelpers::SignalData<void()>(4, 2, QMC::AccessPublic, QMetaType::Void),
         // Slot 'onLayoutInvalidated'
-        QtMocHelpers::SlotData<void()>(4, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::SlotData<void()>(5, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'regenerate'
-        QtMocHelpers::MethodData<void()>(5, 2, QMC::AccessPublic, QMetaType::Void),
-        // Method 'saveGcodeFile'
         QtMocHelpers::MethodData<void()>(6, 2, QMC::AccessPublic, QMetaType::Void),
-        // Method 'openGcodeFile'
+        // Method 'saveGcodeFile'
         QtMocHelpers::MethodData<void()>(7, 2, QMC::AccessPublic, QMetaType::Void),
-        // Method 'copyToClipboard'
+        // Method 'openGcodeFile'
         QtMocHelpers::MethodData<void()>(8, 2, QMC::AccessPublic, QMetaType::Void),
+        // Method 'copyToClipboard'
+        QtMocHelpers::MethodData<void()>(9, 2, QMC::AccessPublic, QMetaType::Void),
+        // Method 'gcodeForPageRange'
+        QtMocHelpers::MethodData<QString(int, int) const>(10, 2, QMC::AccessPublic, QMetaType::QString, {{
+            { QMetaType::Int, 11 }, { QMetaType::Int, 12 },
+        }}),
     };
     QtMocHelpers::UintData qt_properties {
         // property 'generatedGcode'
-        QtMocHelpers::PropertyData<QString>(9, QMetaType::QString, QMC::DefaultPropertyFlags | QMC::Writable, 0),
+        QtMocHelpers::PropertyData<QString>(13, QMetaType::QString, QMC::DefaultPropertyFlags | QMC::Writable, 0),
         // property 'gcodeStale'
-        QtMocHelpers::PropertyData<bool>(10, QMetaType::Bool, QMC::DefaultPropertyFlags, 1),
+        QtMocHelpers::PropertyData<bool>(14, QMetaType::Bool, QMC::DefaultPropertyFlags, 1),
+        // property 'pageCount'
+        QtMocHelpers::PropertyData<int>(15, QMetaType::Int, QMC::DefaultPropertyFlags, 2),
     };
     QtMocHelpers::UintData qt_enums {
     };
@@ -95,11 +108,14 @@ void GcodeController::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int 
         switch (_id) {
         case 0: _t->generatedGcodeChanged(); break;
         case 1: _t->gcodeStaleChanged(); break;
-        case 2: _t->onLayoutInvalidated(); break;
-        case 3: _t->regenerate(); break;
-        case 4: _t->saveGcodeFile(); break;
-        case 5: _t->openGcodeFile(); break;
-        case 6: _t->copyToClipboard(); break;
+        case 2: _t->pageLineMapChanged(); break;
+        case 3: _t->onLayoutInvalidated(); break;
+        case 4: _t->regenerate(); break;
+        case 5: _t->saveGcodeFile(); break;
+        case 6: _t->openGcodeFile(); break;
+        case 7: _t->copyToClipboard(); break;
+        case 8: { QString _r = _t->gcodeForPageRange((*reinterpret_cast<std::add_pointer_t<int>>(_a[1])),(*reinterpret_cast<std::add_pointer_t<int>>(_a[2])));
+            if (_a[0]) *reinterpret_cast<QString*>(_a[0]) = std::move(_r); }  break;
         default: ;
         }
     }
@@ -108,12 +124,15 @@ void GcodeController::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int 
             return;
         if (QtMocHelpers::indexOfMethod<void (GcodeController::*)()>(_a, &GcodeController::gcodeStaleChanged, 1))
             return;
+        if (QtMocHelpers::indexOfMethod<void (GcodeController::*)()>(_a, &GcodeController::pageLineMapChanged, 2))
+            return;
     }
     if (_c == QMetaObject::ReadProperty) {
         void *_v = _a[0];
         switch (_id) {
         case 0: *reinterpret_cast<QString*>(_v) = _t->generatedGcode(); break;
         case 1: *reinterpret_cast<bool*>(_v) = _t->gcodeStale(); break;
+        case 2: *reinterpret_cast<int*>(_v) = _t->pageCount(); break;
         default: break;
         }
     }
@@ -145,20 +164,20 @@ int GcodeController::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 7)
+        if (_id < 9)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 7;
+        _id -= 9;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 7)
+        if (_id < 9)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 7;
+        _id -= 9;
     }
     if (_c == QMetaObject::ReadProperty || _c == QMetaObject::WriteProperty
             || _c == QMetaObject::ResetProperty || _c == QMetaObject::BindableProperty
             || _c == QMetaObject::RegisterPropertyMetaType) {
         qt_static_metacall(this, _c, _id, _a);
-        _id -= 2;
+        _id -= 3;
     }
     return _id;
 }
@@ -173,5 +192,11 @@ void GcodeController::generatedGcodeChanged()
 void GcodeController::gcodeStaleChanged()
 {
     QMetaObject::activate(this, &staticMetaObject, 1, nullptr);
+}
+
+// SIGNAL 2
+void GcodeController::pageLineMapChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 2, nullptr);
 }
 QT_WARNING_POP

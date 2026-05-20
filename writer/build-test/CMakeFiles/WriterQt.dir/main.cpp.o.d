@@ -395,6 +395,8 @@ CMakeFiles/WriterQt.dir/main.cpp.o: \
  /mnt/shared/handwrite-software/writer/src/font/FontLoader.h \
  /usr/include/qt6/QtCore/QChar /usr/include/qt6/QtCore/QRectF \
  /mnt/shared/handwrite-software/writer/src/gcode/GcodeController.h \
+ /mnt/shared/handwrite-software/writer/src/gcode/PathBuilder.h \
+ /mnt/shared/handwrite-software/writer/src/layout/LayoutEngine.h \
  /mnt/shared/handwrite-software/writer/src/ui/HandwritingCanvasItem.h \
  /usr/include/qt6/QtGui/QMouseEvent /usr/include/qt6/QtGui/qevent.h \
  /usr/include/qt6/QtCore/qiodevice.h /usr/include/qt6/QtGui/qeventpoint.h \
@@ -418,6 +420,4 @@ CMakeFiles/WriterQt.dir/main.cpp.o: \
  /usr/include/c++/16.1.1/experimental/source_location \
  /usr/include/qt6/QtGui/qfont.h /usr/include/qt6/QtCore/qendian.h \
  /usr/include/qt6/QtGui/qaccessible.h \
- /usr/include/qt6/QtGui/qaccessible_base.h \
- /mnt/shared/handwrite-software/writer/src/gcode/PathBuilder.h \
- /mnt/shared/handwrite-software/writer/src/layout/LayoutEngine.h
+ /usr/include/qt6/QtGui/qaccessible_base.h

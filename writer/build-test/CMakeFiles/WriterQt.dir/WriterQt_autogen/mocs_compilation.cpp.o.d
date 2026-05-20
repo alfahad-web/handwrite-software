@@ -332,6 +332,8 @@ CMakeFiles/WriterQt.dir/WriterQt_autogen/mocs_compilation.cpp.o: \
  /usr/include/qt6/QtCore/qrect.h /usr/include/qt6/QtCore/qmargins.h \
  /usr/include/qt6/QtCore/qsize.h \
  /mnt/shared/handwrite-software/writer/src/gcode/GcodeController.h \
+ /mnt/shared/handwrite-software/writer/src/gcode/PathBuilder.h \
+ /mnt/shared/handwrite-software/writer/src/layout/LayoutEngine.h \
  /mnt/shared/handwrite-software/writer/build-test/WriterQt_autogen/W2KOGDY5AQ/moc_GrblConnection.cpp \
  /mnt/shared/handwrite-software/writer/build-test/WriterQt_autogen/BP327GEKJA/moc_GcodeController.cpp \
  /mnt/shared/handwrite-software/writer/build-test/WriterQt_autogen/YPKJ5OE7LN/moc_HandwritingCanvasItem.cpp \
@@ -416,6 +418,4 @@ CMakeFiles/WriterQt.dir/WriterQt_autogen/mocs_compilation.cpp.o: \
  /usr/include/c++/16.1.1/experimental/source_location \
  /usr/include/qt6/QtGui/qfont.h /usr/include/qt6/QtCore/qendian.h \
  /usr/include/qt6/QtGui/qaccessible.h \
- /usr/include/qt6/QtGui/qaccessible_base.h \
- /mnt/shared/handwrite-software/writer/src/gcode/PathBuilder.h \
- /mnt/shared/handwrite-software/writer/src/layout/LayoutEngine.h
+ /usr/include/qt6/QtGui/qaccessible_base.h

@@ -27,12 +27,44 @@ void GcodeController::regenerate() {
     if (!m_writer) {
         setGeneratedGcode(QStringLiteral("; No document\n"));
         setGcodeStale(true);
+        setPageLineMap({}, 0);
         return;
     }
     const PathBuildResult path = PathBuilder::buildFromController(m_writer);
-    const QString gcode = GcodeGenerator::generate(path, m_writer->settings());
-    setGeneratedGcode(gcode);
+    const GcodeGenerateResult gen = GcodeGenerator::generateWithPageLines(path, m_writer->settings());
+    setGeneratedGcode(gen.gcode);
+    setPageLineMap(gen.pageLineStart, gen.pageCount);
     setGcodeStale(false);
+}
+
+QString GcodeController::gcodeForPageRange(int startPage, int endPageExclusive) const {
+    if (m_generatedGcode.isEmpty() || m_pageCount <= 0 || m_pageLineStart.isEmpty())
+        return m_generatedGcode;
+
+    const QStringList allLines = m_generatedGcode.split(QLatin1Char('\n'), Qt::KeepEmptyParts);
+    if (allLines.isEmpty()) return m_generatedGcode;
+
+    const int start = qBound(0, startPage, m_pageCount - 1);
+    const int endEx = qBound(start + 1, endPageExclusive, m_pageCount);
+
+    int lineFrom = 0;
+    if (start > 0 && start < m_pageLineStart.size() && m_pageLineStart[start] >= 0)
+        lineFrom = m_pageLineStart[start];
+    else if (start == 0)
+        lineFrom = 0;
+
+    int lineTo = allLines.size();
+    if (endEx < m_pageCount && endEx < m_pageLineStart.size() && m_pageLineStart[endEx] >= 0)
+        lineTo = m_pageLineStart[endEx];
+
+    lineFrom = qBound(0, lineFrom, allLines.size());
+    lineTo = qBound(lineFrom, lineTo, allLines.size());
+
+    QStringList slice;
+    for (int i = lineFrom; i < lineTo; ++i)
+        slice.append(allLines[i]);
+
+    return slice.join(QLatin1Char('\n')) + QLatin1Char('\n');
 }
 
 void GcodeController::copyToClipboard() {
@@ -43,6 +75,7 @@ void GcodeController::copyToClipboard() {
 void GcodeController::setGcodeText(const QString &gcode) {
     setGeneratedGcode(gcode);
     setGcodeStale(false);
+    setPageLineMap({}, 0);
 }
 
 void GcodeController::openGcodeFile() {
@@ -83,4 +116,10 @@ void GcodeController::setGcodeStale(bool stale) {
     if (m_gcodeStale == stale) return;
     m_gcodeStale = stale;
     emit gcodeStaleChanged();
+}
+
+void GcodeController::setPageLineMap(const QVector<int> &starts, int pageCount) {
+    m_pageLineStart = starts;
+    m_pageCount = pageCount;
+    emit pageLineMapChanged();
 }

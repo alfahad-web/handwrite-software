@@ -31,6 +31,8 @@ class GrblConnection : public QObject {
     Q_PROPERTY(double posY READ posY NOTIFY positionChanged)
     Q_PROPERTY(double posZ READ posZ NOTIFY positionChanged)
     Q_PROPERTY(bool positionKnown READ positionKnown NOTIFY positionChanged)
+    Q_PROPERTY(QString machineState READ machineState NOTIFY machineStateChanged)
+    Q_PROPERTY(bool commandBlocked READ commandBlocked NOTIFY machineStateChanged)
 
 public:
     explicit GrblConnection(QObject *parent = nullptr);
@@ -49,6 +51,8 @@ public:
     double posY() const { return m_posY; }
     double posZ() const { return m_posZ; }
     bool positionKnown() const { return m_positionKnown; }
+    QString machineState() const { return m_machineState; }
+    bool commandBlocked() const;
 
     Q_INVOKABLE void refreshPorts();
     Q_INVOKABLE bool connectPort();
@@ -60,6 +64,7 @@ public:
     Q_INVOKABLE void resetCommandHistoryBrowse();
     Q_INVOKABLE void streamProgram(const QString &program);
     Q_INVOKABLE void cancelStream();
+    Q_INVOKABLE void abortStreamAndRecover();
     Q_INVOKABLE void clearLog();
     Q_INVOKABLE void logMessage(const QString &msg);
     Q_INVOKABLE void sendRealtimeCommand(const QString &cmd);
@@ -74,6 +79,7 @@ signals:
     void streamProgressChanged();
     void streamFinished(bool success);
     void positionChanged();
+    void machineStateChanged();
 
 private:
     void pushCommandHistory(const QString &line);
@@ -91,6 +97,9 @@ private:
     void finishStream(bool success);
     void trySendNext();
     void processIncomingData();
+    void setMachineState(const QString &state);
+    void clearHostStreamState(bool emitStreamFinished, bool success);
+    void onRecoverTimer();
     bool writeRaw(const QByteArray &data);
     void parseStatusReport(const QString &line);
     void setPosition(double x, double y, double z);
@@ -111,6 +120,9 @@ private:
     int m_streamTotal = 0;
     QTimer m_wakeTimer;
     QTimer m_statusTimer;
+    QTimer m_recoverTimer;
+    QString m_machineState = QStringLiteral("Unknown");
+    bool m_recoverPending = false;
     QByteArray m_readBuffer;
     double m_posX = 0;
     double m_posY = 0;
@@ -152,5 +164,6 @@ private slots:
     double m_posY = 0;
     double m_posZ = 0;
     bool m_positionKnown = false;
+    QString m_machineState = QStringLiteral("Unknown");
 #endif
 };

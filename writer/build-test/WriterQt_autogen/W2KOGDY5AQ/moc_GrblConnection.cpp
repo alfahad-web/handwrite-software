@@ -49,6 +49,7 @@ template <> constexpr inline auto GrblConnection::qt_create_metaobjectdata<qt_me
         "streamFinished",
         "success",
         "positionChanged",
+        "machineStateChanged",
         "onReadyRead",
         "onWakeTimer",
         "refreshPorts",
@@ -64,6 +65,7 @@ template <> constexpr inline auto GrblConnection::qt_create_metaobjectdata<qt_me
         "streamProgram",
         "program",
         "cancelStream",
+        "abortStreamAndRecover",
         "clearLog",
         "logMessage",
         "msg",
@@ -81,7 +83,9 @@ template <> constexpr inline auto GrblConnection::qt_create_metaobjectdata<qt_me
         "posX",
         "posY",
         "posZ",
-        "positionKnown"
+        "positionKnown",
+        "machineState",
+        "commandBlocked"
     };
 
     QtMocHelpers::UintData qt_methods {
@@ -103,76 +107,84 @@ template <> constexpr inline auto GrblConnection::qt_create_metaobjectdata<qt_me
         }}),
         // Signal 'positionChanged'
         QtMocHelpers::SignalData<void()>(10, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'machineStateChanged'
+        QtMocHelpers::SignalData<void()>(11, 2, QMC::AccessPublic, QMetaType::Void),
         // Slot 'onReadyRead'
-        QtMocHelpers::SlotData<void()>(11, 2, QMC::AccessPrivate, QMetaType::Void),
-        // Slot 'onWakeTimer'
         QtMocHelpers::SlotData<void()>(12, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'onWakeTimer'
+        QtMocHelpers::SlotData<void()>(13, 2, QMC::AccessPrivate, QMetaType::Void),
         // Method 'refreshPorts'
-        QtMocHelpers::MethodData<void()>(13, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(14, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'connectPort'
-        QtMocHelpers::MethodData<bool()>(14, 2, QMC::AccessPublic, QMetaType::Bool),
+        QtMocHelpers::MethodData<bool()>(15, 2, QMC::AccessPublic, QMetaType::Bool),
         // Method 'disconnectPort'
-        QtMocHelpers::MethodData<void()>(15, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(16, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'sendLine'
-        QtMocHelpers::MethodData<void(const QString &)>(16, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::QString, 17 },
+        QtMocHelpers::MethodData<void(const QString &)>(17, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 18 },
         }}),
         // Method 'sendUserCommand'
-        QtMocHelpers::MethodData<void(const QString &)>(18, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::QString, 17 },
+        QtMocHelpers::MethodData<void(const QString &)>(19, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 18 },
         }}),
         // Method 'commandHistoryOlder'
-        QtMocHelpers::MethodData<QString(const QString &)>(19, 2, QMC::AccessPublic, QMetaType::QString, {{
-            { QMetaType::QString, 20 },
+        QtMocHelpers::MethodData<QString(const QString &)>(20, 2, QMC::AccessPublic, QMetaType::QString, {{
+            { QMetaType::QString, 21 },
         }}),
         // Method 'commandHistoryNewer'
-        QtMocHelpers::MethodData<QString()>(21, 2, QMC::AccessPublic, QMetaType::QString),
+        QtMocHelpers::MethodData<QString()>(22, 2, QMC::AccessPublic, QMetaType::QString),
         // Method 'resetCommandHistoryBrowse'
-        QtMocHelpers::MethodData<void()>(22, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(23, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'streamProgram'
-        QtMocHelpers::MethodData<void(const QString &)>(23, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::QString, 24 },
+        QtMocHelpers::MethodData<void(const QString &)>(24, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 25 },
         }}),
         // Method 'cancelStream'
-        QtMocHelpers::MethodData<void()>(25, 2, QMC::AccessPublic, QMetaType::Void),
-        // Method 'clearLog'
         QtMocHelpers::MethodData<void()>(26, 2, QMC::AccessPublic, QMetaType::Void),
+        // Method 'abortStreamAndRecover'
+        QtMocHelpers::MethodData<void()>(27, 2, QMC::AccessPublic, QMetaType::Void),
+        // Method 'clearLog'
+        QtMocHelpers::MethodData<void()>(28, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'logMessage'
-        QtMocHelpers::MethodData<void(const QString &)>(27, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::QString, 28 },
-        }}),
-        // Method 'sendRealtimeCommand'
         QtMocHelpers::MethodData<void(const QString &)>(29, 2, QMC::AccessPublic, QMetaType::Void, {{
             { QMetaType::QString, 30 },
         }}),
+        // Method 'sendRealtimeCommand'
+        QtMocHelpers::MethodData<void(const QString &)>(31, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 32 },
+        }}),
         // Method 'setWorkOriginHere'
-        QtMocHelpers::MethodData<void()>(31, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(33, 2, QMC::AccessPublic, QMetaType::Void),
     };
     QtMocHelpers::UintData qt_properties {
         // property 'connected'
-        QtMocHelpers::PropertyData<bool>(32, QMetaType::Bool, QMC::DefaultPropertyFlags, 0),
+        QtMocHelpers::PropertyData<bool>(34, QMetaType::Bool, QMC::DefaultPropertyFlags, 0),
         // property 'consoleLog'
-        QtMocHelpers::PropertyData<QString>(33, QMetaType::QString, QMC::DefaultPropertyFlags, 1),
+        QtMocHelpers::PropertyData<QString>(35, QMetaType::QString, QMC::DefaultPropertyFlags, 1),
         // property 'availablePorts'
-        QtMocHelpers::PropertyData<QStringList>(34, QMetaType::QStringList, QMC::DefaultPropertyFlags, 2),
+        QtMocHelpers::PropertyData<QStringList>(36, QMetaType::QStringList, QMC::DefaultPropertyFlags, 2),
         // property 'portLabels'
-        QtMocHelpers::PropertyData<QStringList>(35, QMetaType::QStringList, QMC::DefaultPropertyFlags, 2),
+        QtMocHelpers::PropertyData<QStringList>(37, QMetaType::QStringList, QMC::DefaultPropertyFlags, 2),
         // property 'portName'
-        QtMocHelpers::PropertyData<QString>(36, QMetaType::QString, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 3),
+        QtMocHelpers::PropertyData<QString>(38, QMetaType::QString, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 3),
         // property 'streaming'
-        QtMocHelpers::PropertyData<bool>(37, QMetaType::Bool, QMC::DefaultPropertyFlags, 4),
+        QtMocHelpers::PropertyData<bool>(39, QMetaType::Bool, QMC::DefaultPropertyFlags, 4),
         // property 'streamProgress'
-        QtMocHelpers::PropertyData<double>(38, QMetaType::Double, QMC::DefaultPropertyFlags, 5),
+        QtMocHelpers::PropertyData<double>(40, QMetaType::Double, QMC::DefaultPropertyFlags, 5),
         // property 'serialAvailable'
-        QtMocHelpers::PropertyData<bool>(39, QMetaType::Bool, QMC::DefaultPropertyFlags | QMC::Constant),
+        QtMocHelpers::PropertyData<bool>(41, QMetaType::Bool, QMC::DefaultPropertyFlags | QMC::Constant),
         // property 'posX'
-        QtMocHelpers::PropertyData<double>(40, QMetaType::Double, QMC::DefaultPropertyFlags, 7),
-        // property 'posY'
-        QtMocHelpers::PropertyData<double>(41, QMetaType::Double, QMC::DefaultPropertyFlags, 7),
-        // property 'posZ'
         QtMocHelpers::PropertyData<double>(42, QMetaType::Double, QMC::DefaultPropertyFlags, 7),
+        // property 'posY'
+        QtMocHelpers::PropertyData<double>(43, QMetaType::Double, QMC::DefaultPropertyFlags, 7),
+        // property 'posZ'
+        QtMocHelpers::PropertyData<double>(44, QMetaType::Double, QMC::DefaultPropertyFlags, 7),
         // property 'positionKnown'
-        QtMocHelpers::PropertyData<bool>(43, QMetaType::Bool, QMC::DefaultPropertyFlags, 7),
+        QtMocHelpers::PropertyData<bool>(45, QMetaType::Bool, QMC::DefaultPropertyFlags, 7),
+        // property 'machineState'
+        QtMocHelpers::PropertyData<QString>(46, QMetaType::QString, QMC::DefaultPropertyFlags, 8),
+        // property 'commandBlocked'
+        QtMocHelpers::PropertyData<bool>(47, QMetaType::Bool, QMC::DefaultPropertyFlags, 8),
     };
     QtMocHelpers::UintData qt_enums {
     };
@@ -202,25 +214,27 @@ void GrblConnection::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _
         case 5: _t->streamProgressChanged(); break;
         case 6: _t->streamFinished((*reinterpret_cast<std::add_pointer_t<bool>>(_a[1]))); break;
         case 7: _t->positionChanged(); break;
-        case 8: _t->onReadyRead(); break;
-        case 9: _t->onWakeTimer(); break;
-        case 10: _t->refreshPorts(); break;
-        case 11: { bool _r = _t->connectPort();
+        case 8: _t->machineStateChanged(); break;
+        case 9: _t->onReadyRead(); break;
+        case 10: _t->onWakeTimer(); break;
+        case 11: _t->refreshPorts(); break;
+        case 12: { bool _r = _t->connectPort();
             if (_a[0]) *reinterpret_cast<bool*>(_a[0]) = std::move(_r); }  break;
-        case 12: _t->disconnectPort(); break;
-        case 13: _t->sendLine((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
-        case 14: _t->sendUserCommand((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
-        case 15: { QString _r = _t->commandHistoryOlder((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])));
+        case 13: _t->disconnectPort(); break;
+        case 14: _t->sendLine((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
+        case 15: _t->sendUserCommand((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
+        case 16: { QString _r = _t->commandHistoryOlder((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])));
             if (_a[0]) *reinterpret_cast<QString*>(_a[0]) = std::move(_r); }  break;
-        case 16: { QString _r = _t->commandHistoryNewer();
+        case 17: { QString _r = _t->commandHistoryNewer();
             if (_a[0]) *reinterpret_cast<QString*>(_a[0]) = std::move(_r); }  break;
-        case 17: _t->resetCommandHistoryBrowse(); break;
-        case 18: _t->streamProgram((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
-        case 19: _t->cancelStream(); break;
-        case 20: _t->clearLog(); break;
-        case 21: _t->logMessage((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
-        case 22: _t->sendRealtimeCommand((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
-        case 23: _t->setWorkOriginHere(); break;
+        case 18: _t->resetCommandHistoryBrowse(); break;
+        case 19: _t->streamProgram((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
+        case 20: _t->cancelStream(); break;
+        case 21: _t->abortStreamAndRecover(); break;
+        case 22: _t->clearLog(); break;
+        case 23: _t->logMessage((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
+        case 24: _t->sendRealtimeCommand((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
+        case 25: _t->setWorkOriginHere(); break;
         default: ;
         }
     }
@@ -241,6 +255,8 @@ void GrblConnection::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _
             return;
         if (QtMocHelpers::indexOfMethod<void (GrblConnection::*)()>(_a, &GrblConnection::positionChanged, 7))
             return;
+        if (QtMocHelpers::indexOfMethod<void (GrblConnection::*)()>(_a, &GrblConnection::machineStateChanged, 8))
+            return;
     }
     if (_c == QMetaObject::ReadProperty) {
         void *_v = _a[0];
@@ -257,6 +273,8 @@ void GrblConnection::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _
         case 9: *reinterpret_cast<double*>(_v) = _t->posY(); break;
         case 10: *reinterpret_cast<double*>(_v) = _t->posZ(); break;
         case 11: *reinterpret_cast<bool*>(_v) = _t->positionKnown(); break;
+        case 12: *reinterpret_cast<QString*>(_v) = _t->machineState(); break;
+        case 13: *reinterpret_cast<bool*>(_v) = _t->commandBlocked(); break;
         default: break;
         }
     }
@@ -288,20 +306,20 @@ int GrblConnection::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 24)
+        if (_id < 26)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 24;
+        _id -= 26;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 24)
+        if (_id < 26)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 24;
+        _id -= 26;
     }
     if (_c == QMetaObject::ReadProperty || _c == QMetaObject::WriteProperty
             || _c == QMetaObject::ResetProperty || _c == QMetaObject::BindableProperty
             || _c == QMetaObject::RegisterPropertyMetaType) {
         qt_static_metacall(this, _c, _id, _a);
-        _id -= 12;
+        _id -= 14;
     }
     return _id;
 }
@@ -352,5 +370,11 @@ void GrblConnection::streamFinished(bool _t1)
 void GrblConnection::positionChanged()
 {
     QMetaObject::activate(this, &staticMetaObject, 7, nullptr);
+}
+
+// SIGNAL 8
+void GrblConnection::machineStateChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 8, nullptr);
 }
 QT_WARNING_POP

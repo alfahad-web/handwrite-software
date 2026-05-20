@@ -2,12 +2,11 @@
 
 #include "cnc/GrblConnection.h"
 #include "gcode/GcodeController.h"
+#include "gcode/PathBuilder.h"
 #include "services/WriterProjectService.h"
 
 #include <QDir>
 #include <QFileDialog>
-
-#include "gcode/GcodeController.h"
 
 namespace {
 constexpr int kMaxUndoSteps = 100;
@@ -57,9 +56,19 @@ WriterController::WriterController(QObject *parent) : QObject(parent) {
         emit layoutInvalidated();
         bumpDirty();
     });
-    connect(m_grbl, &GrblConnection::streamFinished, this, [this](bool) {
-        if (m_runActive) stopRun();
+    connect(m_grbl, &GrblConnection::streamFinished, this, [this](bool success) {
+        if (!m_runActive) return;
+        if (success && m_expectPageStreamComplete) {
+            finishPageRun();
+            return;
+        }
+        stopRunInternal(true, false);
     });
+    connect(this, &WriterController::layoutInvalidated, this, [this]() {
+        clearRunArm();
+        refreshPageMap();
+    });
+    refreshPageMap();
 }
 
 void WriterController::setViewMode(const QString &m) {
@@ -181,16 +190,115 @@ void WriterController::clearAllManualAnchors() {
     bumpDirty();
 }
 
+void WriterController::refreshPageMap() {
+    const PathBuildWithPageMap built = PathBuilder::buildWithPageMapFromController(this);
+    const int oldCount = m_pathPageMap.pageCount;
+    m_pathPageMap = built.pageMap;
+    if (oldCount != m_pathPageMap.pageCount)
+        emit pageCountChanged();
+    emit runPathChanged();
+}
+
+double WriterController::pageStartDistance(int page) const {
+    if (page < 0 || page >= m_pathPageMap.pageStartDistanceCm.size())
+        return 0;
+    return m_pathPageMap.pageStartDistanceCm.at(page);
+}
+
+double WriterController::pageEndDistance(int page) const {
+    if (page + 1 < m_pathPageMap.pageCount)
+        return pageStartDistance(page + 1);
+    return m_pathPageMap.totalLengthCm;
+}
+
+void WriterController::setRunArmed(bool armed) {
+    if (m_runArmed == armed) return;
+    m_runArmed = armed;
+    emit runArmedChanged();
+    if (armed) emit runArmVisualsChanged();
+}
+
+void WriterController::setRunStartPage(int page) {
+    if (m_runStartPage == page) return;
+    m_runStartPage = page;
+    emit runStartPageChanged();
+}
+
+void WriterController::clearRunArm() {
+    if (!m_runArmed && m_runStartPage == 0 && m_runStartDistanceCm <= 1e-9) return;
+    setRunArmed(false);
+    m_runStartPage = 0;
+    m_runStartDistanceCm = 0;
+    m_runEndDistanceCm = 0;
+    emit runStartPageChanged();
+    emit runPathChanged();
+    emit runArmVisualsChanged();
+}
+
+void WriterController::advanceRunToPage(int page) {
+    refreshPageMap();
+    if (m_pathPageMap.pageCount <= 0) return;
+    const int clamped = qBound(0, page, m_pathPageMap.pageCount - 1);
+    m_runStartPage = clamped;
+    m_runStartDistanceCm = pageStartDistance(clamped);
+    m_runEndDistanceCm = pageEndDistance(clamped);
+    setRunArmed(true);
+    emit runStartPageChanged();
+    emit runPathChanged();
+    emit runArmVisualsChanged();
+}
+
 void WriterController::startRun() {
     if (m_runActive) return;
+    refreshPageMap();
+    if (m_pathPageMap.pageCount <= 0 || m_pathPageMap.totalLengthCm <= 1e-9)
+        return;
+
+    m_executingPage = m_runArmed ? m_runStartPage : 0;
+    m_runStartDistanceCm = pageStartDistance(m_executingPage);
+    m_runEndDistanceCm = pageEndDistance(m_executingPage);
+    emit runPathChanged();
+
     if (m_grbl->connected()) {
-        m_grbl->streamProgram(m_gcode->generatedGcode());
+        if (m_gcode->gcodeStale())
+            m_gcode->regenerate();
+        const QString slice = m_gcode->gcodeForPageRange(m_executingPage, m_executingPage + 1);
+        m_expectPageStreamComplete = true;
+        m_grbl->streamProgram(slice);
     } else {
+        m_expectPageStreamComplete = false;
         m_grbl->logMessage(QStringLiteral("Not connected — preview only (no CNC stream)."));
     }
+
+    setRunArmed(false);
     m_runPaused = false;
     m_runActive = true;
     emit runActiveChanged();
+}
+
+void WriterController::finishPageRun() {
+    if (!m_runActive) return;
+    const int nextPage = m_executingPage + 1;
+    m_expectPageStreamComplete = false;
+
+    const bool hadPause = m_runPaused;
+    const bool wasActive = m_runActive;
+    m_runActive = false;
+    m_runPaused = false;
+    if (hadPause) emit runPausedChanged();
+    if (wasActive) emit runActiveChanged();
+
+    if (nextPage < m_pathPageMap.pageCount) {
+        m_runStartPage = nextPage;
+        m_runStartDistanceCm = pageStartDistance(nextPage);
+        m_runEndDistanceCm = pageEndDistance(nextPage);
+        setRunArmed(true);
+        emit runStartPageChanged();
+        emit runPathChanged();
+        emit runArmVisualsChanged();
+    } else {
+        clearRunArm();
+    }
 }
 
 void WriterController::pauseRun() {
@@ -208,14 +316,30 @@ void WriterController::resumeRun() {
 }
 
 void WriterController::stopRun() {
-    if (!m_runActive && !m_grbl->streaming()) return;
-    if (m_grbl->streaming()) m_grbl->cancelStream();
+    stopRunInternal(true, true);
+}
+
+void WriterController::stopRunInternal(bool clearArm, bool abortGrbl) {
+    if (!m_runActive && !m_grbl->streaming()) {
+        if (clearArm) clearRunArm();
+        return;
+    }
+
+    m_expectPageStreamComplete = false;
+    if (m_grbl->streaming() || m_grbl->connected()) {
+        if (abortGrbl)
+            m_grbl->abortStreamAndRecover();
+        else if (m_grbl->streaming())
+            m_grbl->cancelStream();
+    }
+
     const bool hadPause = m_runPaused;
     const bool wasActive = m_runActive;
     m_runActive = false;
     m_runPaused = false;
     if (hadPause) emit runPausedChanged();
     if (wasActive) emit runActiveChanged();
+    if (clearArm) clearRunArm();
 }
 
 void WriterController::notifyLineHeightCollision(bool exceeds) {

@@ -11,6 +11,7 @@
 #include "cnc/GrblConnection.h"
 #include "font/FontLoader.h"
 #include "gcode/GcodeController.h"
+#include "gcode/PathBuilder.h"
 
 class WriterController : public QObject {
     Q_OBJECT
@@ -26,6 +27,11 @@ class WriterController : public QObject {
     Q_PROPERTY(bool settingsOpen READ settingsOpen WRITE setSettingsOpen NOTIFY settingsOpenChanged)
     Q_PROPERTY(bool runActive READ runActive NOTIFY runActiveChanged)
     Q_PROPERTY(bool runPaused READ runPaused NOTIFY runPausedChanged)
+    Q_PROPERTY(bool runArmed READ runArmed NOTIFY runArmedChanged)
+    Q_PROPERTY(int runStartPage READ runStartPage NOTIFY runStartPageChanged)
+    Q_PROPERTY(int pageCount READ pageCount NOTIFY pageCountChanged)
+    Q_PROPERTY(double runStartDistanceCm READ runStartDistanceCm NOTIFY runPathChanged)
+    Q_PROPERTY(double runEndDistanceCm READ runEndDistanceCm NOTIFY runPathChanged)
     Q_PROPERTY(bool canUndo READ canUndo NOTIFY historyChanged)
     Q_PROPERTY(bool canRedo READ canRedo NOTIFY historyChanged)
 
@@ -51,6 +57,12 @@ public:
 
     bool runActive() const { return m_runActive; }
     bool runPaused() const { return m_runPaused; }
+    bool runArmed() const { return m_runArmed; }
+    int runStartPage() const { return m_runStartPage; }
+    int pageCount() const { return m_pathPageMap.pageCount; }
+    double runStartDistanceCm() const { return m_runStartDistanceCm; }
+    double runEndDistanceCm() const { return m_runEndDistanceCm; }
+    const PathPageMap &pathPageMap() const { return m_pathPageMap; }
 
     bool canUndo() const { return !m_undoStack.isEmpty(); }
     bool canRedo() const { return !m_redoStack.isEmpty(); }
@@ -68,6 +80,10 @@ public:
     Q_INVOKABLE void pauseRun();
     Q_INVOKABLE void resumeRun();
     Q_INVOKABLE void stopRun();
+    Q_INVOKABLE void advanceRunToPage(int page);
+    Q_INVOKABLE void clearRunArm();
+    Q_INVOKABLE void refreshPageMap();
+    Q_INVOKABLE void finishPageRun();
 
     Q_INVOKABLE void notifyLineHeightCollision(bool exceeds);
     Q_INVOKABLE bool generateGcode();
@@ -98,6 +114,11 @@ signals:
     void settingsOpenChanged();
     void runActiveChanged();
     void runPausedChanged();
+    void runArmedChanged();
+    void runStartPageChanged();
+    void pageCountChanged();
+    void runPathChanged();
+    void runArmVisualsChanged();
     void lineHeightCollisionWarning();
     void fontFolderMissing(const QString &path);
     void projectIoError(const QString &message);
@@ -137,6 +158,11 @@ private:
     void setDocumentDirty(bool dirty);
     void setProjectFilePath(const QString &path);
     void bumpDirty();
+    void setRunArmed(bool armed);
+    void setRunStartPage(int page);
+    double pageStartDistance(int page) const;
+    double pageEndDistance(int page) const;
+    void stopRunInternal(bool clearArm, bool abortGrbl);
 
     DocumentModel *m_document = nullptr;
     AppSettings *m_settings = nullptr;
@@ -152,6 +178,13 @@ private:
     bool m_settingsOpen = false;
     bool m_runActive = false;
     bool m_runPaused = false;
+    bool m_runArmed = false;
+    int m_runStartPage = 0;
+    int m_executingPage = 0;
+    double m_runStartDistanceCm = 0;
+    double m_runEndDistanceCm = 0;
+    bool m_expectPageStreamComplete = false;
+    PathPageMap m_pathPageMap;
     bool m_wasLineHeightExceeding = false;
     bool m_documentDirty = false;
     bool m_suppressDirty = false;

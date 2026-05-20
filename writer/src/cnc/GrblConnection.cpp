@@ -20,6 +20,10 @@ constexpr const char *kPortKey = "lastSerialPort";
 constexpr int kMaxCommandHistory = 200;
 }
 
+bool GrblConnection::commandBlocked() const {
+    return m_machineState == QLatin1String("Hold") || m_machineState == QLatin1String("Alarm");
+}
+
 bool GrblConnection::serialAvailable() const {
 #ifdef WRITER_HAS_SERIAL
     return true;
@@ -75,6 +79,8 @@ void GrblConnection::resetCommandHistoryBrowse() {
 GrblConnection::GrblConnection(QObject *parent) : QObject(parent) {
     m_wakeTimer.setSingleShot(true);
     connect(&m_wakeTimer, &QTimer::timeout, this, &GrblConnection::onWakeTimer);
+    m_recoverTimer.setSingleShot(true);
+    connect(&m_recoverTimer, &QTimer::timeout, this, &GrblConnection::onRecoverTimer);
     m_statusTimer.setInterval(250);
     connect(&m_statusTimer, &QTimer::timeout, this, [this]() {
         if (m_connected && !m_waking) writeRaw("?");
@@ -210,7 +216,19 @@ bool parseAxisTriplet(const QString &line, const QString &key, double *x, double
 }
 }
 
+void GrblConnection::setMachineState(const QString &state) {
+    if (m_machineState == state) return;
+    m_machineState = state;
+    emit machineStateChanged();
+}
+
 void GrblConnection::parseStatusReport(const QString &line) {
+    if (line.startsWith(QLatin1Char('<')) && line.endsWith(QLatin1Char('>'))) {
+        const int bar = line.indexOf(QLatin1Char('|'));
+        const QString state = bar > 1 ? line.mid(1, bar - 1) : line.mid(1, line.size() - 2);
+        if (!state.isEmpty()) setMachineState(state);
+    }
+
     double x = 0, y = 0, z = 0;
 
     if (parseAxisTriplet(line, QStringLiteral("WPos:"), &x, &y, &z)) {
@@ -435,6 +453,10 @@ void GrblConnection::sendLine(const QString &line) {
         appendLog(QStringLiteral("Still waking GRBL — try again."));
         return;
     }
+    if (commandBlocked()) {
+        appendLog(QStringLiteral("GRBL is %1 — reset or reconnect before sending.").arg(m_machineState));
+        return;
+    }
     const QString trimmed = line.trimmed();
     if (trimmed.isEmpty()) return;
 
@@ -499,8 +521,7 @@ void GrblConnection::streamProgram(const QString &program) {
     trySendNext();
 }
 
-void GrblConnection::cancelStream() {
-    if (!m_streaming && m_sendQueue.isEmpty()) return;
+void GrblConnection::clearHostStreamState(bool emitStreamFinished, bool success) {
     const bool wasStreaming = m_streaming;
     m_streaming = false;
     m_streamLines.clear();
@@ -511,9 +532,50 @@ void GrblConnection::cancelStream() {
     m_waitingOk = false;
     emit streamingChanged();
     emit streamProgressChanged();
-    if (wasStreaming) {
-        appendLog(QStringLiteral("Stream cancelled."));
-        emit streamFinished(false);
+    if (emitStreamFinished && wasStreaming)
+        emit streamFinished(success);
+}
+
+void GrblConnection::cancelStream() {
+    if (!m_streaming && m_sendQueue.isEmpty()) return;
+    clearHostStreamState(true, false);
+    appendLog(QStringLiteral("Stream cancelled."));
+}
+
+void GrblConnection::abortStreamAndRecover() {
+    if (!m_connected) {
+        clearHostStreamState(false, false);
+        return;
+    }
+
+    const bool wasStreaming = m_streaming;
+    const bool hadActivity = wasStreaming || m_waitingOk || !m_sendQueue.isEmpty();
+    if (hadActivity) {
+        writeRaw("!");
+        appendLog(QStringLiteral("[feed hold before recover]"), false);
+    }
+
+    clearHostStreamState(wasStreaming, false);
+    if (wasStreaming)
+        appendLog(QStringLiteral("Stream aborted — recovering GRBL…"));
+
+    m_recoverPending = true;
+    m_recoverTimer.start(hadActivity ? 120 : 0);
+}
+
+void GrblConnection::onRecoverTimer() {
+    if (!m_connected) {
+        m_recoverPending = false;
+        return;
+    }
+    if (m_recoverPending) {
+        const char reset = static_cast<char>(0x18);
+        writeRaw(QByteArray(1, reset));
+        appendLog(QStringLiteral("[soft reset 0x18]"), false);
+        m_recoverPending = false;
+        m_readBuffer.clear();
+        setMachineState(QStringLiteral("Idle"));
+        writeRaw("?");
     }
 }
 
@@ -681,6 +743,10 @@ void GrblConnection::streamProgram(const QString &) {
 }
 
 void GrblConnection::cancelStream() {}
+
+void GrblConnection::abortStreamAndRecover() {
+    cancelStream();
+}
 
 void GrblConnection::clearLog() {
     m_consoleLog.clear();

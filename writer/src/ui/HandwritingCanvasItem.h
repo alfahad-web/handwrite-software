@@ -61,6 +61,8 @@ private:
     void paintStaticContent(QPainter *painter, const AppSettings *st, double s) const;
     void drawRunProgressAlongPath(QPainter *painter, double pathFrom, double pathTo, double s) const;
     void prepareRunSimulationAfterUi();
+    void prepareRunOverlayAt(double progressDistanceCm);
+    void onRunArmVisualsChanged();
     void setDragDocIndex(int idx);
 
     WriterController *m_ctrl = nullptr;
@@ -78,6 +80,8 @@ private:
     QVector<double> m_runSegCumStartCm;
     QVector<double> m_runSegLenCm;
     double m_runTotalCm = 0;
+    double m_runStartDistanceCm = 0;
+    double m_runEndDistanceCm = 0;
     double m_runDistance = 0;
     double m_runLastPaintedDist = 0;
 

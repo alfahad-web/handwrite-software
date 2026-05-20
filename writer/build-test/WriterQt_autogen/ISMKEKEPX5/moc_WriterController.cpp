@@ -49,6 +49,11 @@ template <> constexpr inline auto WriterController::qt_create_metaobjectdata<qt_
         "settingsOpenChanged",
         "runActiveChanged",
         "runPausedChanged",
+        "runArmedChanged",
+        "runStartPageChanged",
+        "pageCountChanged",
+        "runPathChanged",
+        "runArmVisualsChanged",
         "lineHeightCollisionWarning",
         "fontFolderMissing",
         "path",
@@ -61,6 +66,11 @@ template <> constexpr inline auto WriterController::qt_create_metaobjectdata<qt_
         "pauseRun",
         "resumeRun",
         "stopRun",
+        "advanceRunToPage",
+        "page",
+        "clearRunArm",
+        "refreshPageMap",
+        "finishPageRun",
         "notifyLineHeightCollision",
         "exceeds",
         "generateGcode",
@@ -88,6 +98,11 @@ template <> constexpr inline auto WriterController::qt_create_metaobjectdata<qt_
         "settingsOpen",
         "runActive",
         "runPaused",
+        "runArmed",
+        "runStartPage",
+        "pageCount",
+        "runStartDistanceCm",
+        "runEndDistanceCm",
         "canUndo",
         "canRedo"
     };
@@ -111,84 +126,114 @@ template <> constexpr inline auto WriterController::qt_create_metaobjectdata<qt_
         QtMocHelpers::SignalData<void()>(9, 2, QMC::AccessPublic, QMetaType::Void),
         // Signal 'runPausedChanged'
         QtMocHelpers::SignalData<void()>(10, 2, QMC::AccessPublic, QMetaType::Void),
-        // Signal 'lineHeightCollisionWarning'
+        // Signal 'runArmedChanged'
         QtMocHelpers::SignalData<void()>(11, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'runStartPageChanged'
+        QtMocHelpers::SignalData<void()>(12, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'pageCountChanged'
+        QtMocHelpers::SignalData<void()>(13, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'runPathChanged'
+        QtMocHelpers::SignalData<void()>(14, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'runArmVisualsChanged'
+        QtMocHelpers::SignalData<void()>(15, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'lineHeightCollisionWarning'
+        QtMocHelpers::SignalData<void()>(16, 2, QMC::AccessPublic, QMetaType::Void),
         // Signal 'fontFolderMissing'
-        QtMocHelpers::SignalData<void(const QString &)>(12, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::QString, 13 },
+        QtMocHelpers::SignalData<void(const QString &)>(17, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 18 },
         }}),
         // Signal 'projectIoError'
-        QtMocHelpers::SignalData<void(const QString &)>(14, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::QString, 15 },
+        QtMocHelpers::SignalData<void(const QString &)>(19, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 20 },
         }}),
         // Signal 'historyChanged'
-        QtMocHelpers::SignalData<void()>(16, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::SignalData<void()>(21, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'pickFontFolder'
-        QtMocHelpers::MethodData<void()>(17, 2, QMC::AccessPublic, QMetaType::Void),
-        // Method 'reloadFonts'
-        QtMocHelpers::MethodData<void()>(18, 2, QMC::AccessPublic, QMetaType::Void),
-        // Method 'startRun'
-        QtMocHelpers::MethodData<void()>(19, 2, QMC::AccessPublic, QMetaType::Void),
-        // Method 'pauseRun'
-        QtMocHelpers::MethodData<void()>(20, 2, QMC::AccessPublic, QMetaType::Void),
-        // Method 'resumeRun'
-        QtMocHelpers::MethodData<void()>(21, 2, QMC::AccessPublic, QMetaType::Void),
-        // Method 'stopRun'
         QtMocHelpers::MethodData<void()>(22, 2, QMC::AccessPublic, QMetaType::Void),
+        // Method 'reloadFonts'
+        QtMocHelpers::MethodData<void()>(23, 2, QMC::AccessPublic, QMetaType::Void),
+        // Method 'startRun'
+        QtMocHelpers::MethodData<void()>(24, 2, QMC::AccessPublic, QMetaType::Void),
+        // Method 'pauseRun'
+        QtMocHelpers::MethodData<void()>(25, 2, QMC::AccessPublic, QMetaType::Void),
+        // Method 'resumeRun'
+        QtMocHelpers::MethodData<void()>(26, 2, QMC::AccessPublic, QMetaType::Void),
+        // Method 'stopRun'
+        QtMocHelpers::MethodData<void()>(27, 2, QMC::AccessPublic, QMetaType::Void),
+        // Method 'advanceRunToPage'
+        QtMocHelpers::MethodData<void(int)>(28, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::Int, 29 },
+        }}),
+        // Method 'clearRunArm'
+        QtMocHelpers::MethodData<void()>(30, 2, QMC::AccessPublic, QMetaType::Void),
+        // Method 'refreshPageMap'
+        QtMocHelpers::MethodData<void()>(31, 2, QMC::AccessPublic, QMetaType::Void),
+        // Method 'finishPageRun'
+        QtMocHelpers::MethodData<void()>(32, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'notifyLineHeightCollision'
-        QtMocHelpers::MethodData<void(bool)>(23, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::Bool, 24 },
+        QtMocHelpers::MethodData<void(bool)>(33, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::Bool, 34 },
         }}),
         // Method 'generateGcode'
-        QtMocHelpers::MethodData<bool()>(25, 2, QMC::AccessPublic, QMetaType::Bool),
+        QtMocHelpers::MethodData<bool()>(35, 2, QMC::AccessPublic, QMetaType::Bool),
         // Method 'pushUndoSnapshot'
-        QtMocHelpers::MethodData<void()>(26, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(36, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'undo'
-        QtMocHelpers::MethodData<bool()>(27, 2, QMC::AccessPublic, QMetaType::Bool),
+        QtMocHelpers::MethodData<bool()>(37, 2, QMC::AccessPublic, QMetaType::Bool),
         // Method 'redo'
-        QtMocHelpers::MethodData<bool()>(28, 2, QMC::AccessPublic, QMetaType::Bool),
+        QtMocHelpers::MethodData<bool()>(38, 2, QMC::AccessPublic, QMetaType::Bool),
         // Method 'newWriterProject'
-        QtMocHelpers::MethodData<void()>(29, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(39, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'openWriterProject'
-        QtMocHelpers::MethodData<void()>(30, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(40, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'saveWriterProject'
-        QtMocHelpers::MethodData<void()>(31, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(41, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'saveWriterProjectAs'
-        QtMocHelpers::MethodData<void()>(32, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(42, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'loadWriterProjectFromPath'
-        QtMocHelpers::MethodData<bool(const QString &)>(33, 2, QMC::AccessPublic, QMetaType::Bool, {{
-            { QMetaType::QString, 13 },
+        QtMocHelpers::MethodData<bool(const QString &)>(43, 2, QMC::AccessPublic, QMetaType::Bool, {{
+            { QMetaType::QString, 18 },
         }}),
     };
     QtMocHelpers::UintData qt_properties {
         // property 'viewMode'
-        QtMocHelpers::PropertyData<QString>(34, QMetaType::QString, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 0),
+        QtMocHelpers::PropertyData<QString>(44, QMetaType::QString, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 0),
         // property 'fontFolderPath'
-        QtMocHelpers::PropertyData<QString>(35, QMetaType::QString, QMC::DefaultPropertyFlags, 1),
+        QtMocHelpers::PropertyData<QString>(45, QMetaType::QString, QMC::DefaultPropertyFlags, 1),
         // property 'fontStatus'
-        QtMocHelpers::PropertyData<QString>(36, QMetaType::QString, QMC::DefaultPropertyFlags, 2),
+        QtMocHelpers::PropertyData<QString>(46, QMetaType::QString, QMC::DefaultPropertyFlags, 2),
         // property 'projectFilePath'
-        QtMocHelpers::PropertyData<QString>(37, QMetaType::QString, QMC::DefaultPropertyFlags, 3),
+        QtMocHelpers::PropertyData<QString>(47, QMetaType::QString, QMC::DefaultPropertyFlags, 3),
         // property 'documentDirty'
-        QtMocHelpers::PropertyData<bool>(38, QMetaType::Bool, QMC::DefaultPropertyFlags, 4),
+        QtMocHelpers::PropertyData<bool>(48, QMetaType::Bool, QMC::DefaultPropertyFlags, 4),
         // property 'document'
-        QtMocHelpers::PropertyData<DocumentModel*>(39, 0x80000000 | 40, QMC::DefaultPropertyFlags | QMC::EnumOrFlag | QMC::Constant),
+        QtMocHelpers::PropertyData<DocumentModel*>(49, 0x80000000 | 50, QMC::DefaultPropertyFlags | QMC::EnumOrFlag | QMC::Constant),
         // property 'settings'
-        QtMocHelpers::PropertyData<AppSettings*>(41, 0x80000000 | 42, QMC::DefaultPropertyFlags | QMC::EnumOrFlag | QMC::Constant),
+        QtMocHelpers::PropertyData<AppSettings*>(51, 0x80000000 | 52, QMC::DefaultPropertyFlags | QMC::EnumOrFlag | QMC::Constant),
         // property 'gcode'
-        QtMocHelpers::PropertyData<GcodeController*>(43, 0x80000000 | 44, QMC::DefaultPropertyFlags | QMC::EnumOrFlag | QMC::Constant),
+        QtMocHelpers::PropertyData<GcodeController*>(53, 0x80000000 | 54, QMC::DefaultPropertyFlags | QMC::EnumOrFlag | QMC::Constant),
         // property 'grbl'
-        QtMocHelpers::PropertyData<GrblConnection*>(45, 0x80000000 | 46, QMC::DefaultPropertyFlags | QMC::EnumOrFlag | QMC::Constant),
+        QtMocHelpers::PropertyData<GrblConnection*>(55, 0x80000000 | 56, QMC::DefaultPropertyFlags | QMC::EnumOrFlag | QMC::Constant),
         // property 'settingsOpen'
-        QtMocHelpers::PropertyData<bool>(47, QMetaType::Bool, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 6),
+        QtMocHelpers::PropertyData<bool>(57, QMetaType::Bool, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 6),
         // property 'runActive'
-        QtMocHelpers::PropertyData<bool>(48, QMetaType::Bool, QMC::DefaultPropertyFlags, 7),
+        QtMocHelpers::PropertyData<bool>(58, QMetaType::Bool, QMC::DefaultPropertyFlags, 7),
         // property 'runPaused'
-        QtMocHelpers::PropertyData<bool>(49, QMetaType::Bool, QMC::DefaultPropertyFlags, 8),
+        QtMocHelpers::PropertyData<bool>(59, QMetaType::Bool, QMC::DefaultPropertyFlags, 8),
+        // property 'runArmed'
+        QtMocHelpers::PropertyData<bool>(60, QMetaType::Bool, QMC::DefaultPropertyFlags, 9),
+        // property 'runStartPage'
+        QtMocHelpers::PropertyData<int>(61, QMetaType::Int, QMC::DefaultPropertyFlags, 10),
+        // property 'pageCount'
+        QtMocHelpers::PropertyData<int>(62, QMetaType::Int, QMC::DefaultPropertyFlags, 11),
+        // property 'runStartDistanceCm'
+        QtMocHelpers::PropertyData<double>(63, QMetaType::Double, QMC::DefaultPropertyFlags, 12),
+        // property 'runEndDistanceCm'
+        QtMocHelpers::PropertyData<double>(64, QMetaType::Double, QMC::DefaultPropertyFlags, 12),
         // property 'canUndo'
-        QtMocHelpers::PropertyData<bool>(50, QMetaType::Bool, QMC::DefaultPropertyFlags, 12),
+        QtMocHelpers::PropertyData<bool>(65, QMetaType::Bool, QMC::DefaultPropertyFlags, 17),
         // property 'canRedo'
-        QtMocHelpers::PropertyData<bool>(51, QMetaType::Bool, QMC::DefaultPropertyFlags, 12),
+        QtMocHelpers::PropertyData<bool>(66, QMetaType::Bool, QMC::DefaultPropertyFlags, 17),
     };
     QtMocHelpers::UintData qt_enums {
     };
@@ -219,29 +264,38 @@ void WriterController::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int
         case 6: _t->settingsOpenChanged(); break;
         case 7: _t->runActiveChanged(); break;
         case 8: _t->runPausedChanged(); break;
-        case 9: _t->lineHeightCollisionWarning(); break;
-        case 10: _t->fontFolderMissing((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
-        case 11: _t->projectIoError((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
-        case 12: _t->historyChanged(); break;
-        case 13: _t->pickFontFolder(); break;
-        case 14: _t->reloadFonts(); break;
-        case 15: _t->startRun(); break;
-        case 16: _t->pauseRun(); break;
-        case 17: _t->resumeRun(); break;
-        case 18: _t->stopRun(); break;
-        case 19: _t->notifyLineHeightCollision((*reinterpret_cast<std::add_pointer_t<bool>>(_a[1]))); break;
-        case 20: { bool _r = _t->generateGcode();
+        case 9: _t->runArmedChanged(); break;
+        case 10: _t->runStartPageChanged(); break;
+        case 11: _t->pageCountChanged(); break;
+        case 12: _t->runPathChanged(); break;
+        case 13: _t->runArmVisualsChanged(); break;
+        case 14: _t->lineHeightCollisionWarning(); break;
+        case 15: _t->fontFolderMissing((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
+        case 16: _t->projectIoError((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
+        case 17: _t->historyChanged(); break;
+        case 18: _t->pickFontFolder(); break;
+        case 19: _t->reloadFonts(); break;
+        case 20: _t->startRun(); break;
+        case 21: _t->pauseRun(); break;
+        case 22: _t->resumeRun(); break;
+        case 23: _t->stopRun(); break;
+        case 24: _t->advanceRunToPage((*reinterpret_cast<std::add_pointer_t<int>>(_a[1]))); break;
+        case 25: _t->clearRunArm(); break;
+        case 26: _t->refreshPageMap(); break;
+        case 27: _t->finishPageRun(); break;
+        case 28: _t->notifyLineHeightCollision((*reinterpret_cast<std::add_pointer_t<bool>>(_a[1]))); break;
+        case 29: { bool _r = _t->generateGcode();
             if (_a[0]) *reinterpret_cast<bool*>(_a[0]) = std::move(_r); }  break;
-        case 21: _t->pushUndoSnapshot(); break;
-        case 22: { bool _r = _t->undo();
+        case 30: _t->pushUndoSnapshot(); break;
+        case 31: { bool _r = _t->undo();
             if (_a[0]) *reinterpret_cast<bool*>(_a[0]) = std::move(_r); }  break;
-        case 23: { bool _r = _t->redo();
+        case 32: { bool _r = _t->redo();
             if (_a[0]) *reinterpret_cast<bool*>(_a[0]) = std::move(_r); }  break;
-        case 24: _t->newWriterProject(); break;
-        case 25: _t->openWriterProject(); break;
-        case 26: _t->saveWriterProject(); break;
-        case 27: _t->saveWriterProjectAs(); break;
-        case 28: { bool _r = _t->loadWriterProjectFromPath((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])));
+        case 33: _t->newWriterProject(); break;
+        case 34: _t->openWriterProject(); break;
+        case 35: _t->saveWriterProject(); break;
+        case 36: _t->saveWriterProjectAs(); break;
+        case 37: { bool _r = _t->loadWriterProjectFromPath((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])));
             if (_a[0]) *reinterpret_cast<bool*>(_a[0]) = std::move(_r); }  break;
         default: ;
         }
@@ -265,13 +319,23 @@ void WriterController::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int
             return;
         if (QtMocHelpers::indexOfMethod<void (WriterController::*)()>(_a, &WriterController::runPausedChanged, 8))
             return;
-        if (QtMocHelpers::indexOfMethod<void (WriterController::*)()>(_a, &WriterController::lineHeightCollisionWarning, 9))
+        if (QtMocHelpers::indexOfMethod<void (WriterController::*)()>(_a, &WriterController::runArmedChanged, 9))
             return;
-        if (QtMocHelpers::indexOfMethod<void (WriterController::*)(const QString & )>(_a, &WriterController::fontFolderMissing, 10))
+        if (QtMocHelpers::indexOfMethod<void (WriterController::*)()>(_a, &WriterController::runStartPageChanged, 10))
             return;
-        if (QtMocHelpers::indexOfMethod<void (WriterController::*)(const QString & )>(_a, &WriterController::projectIoError, 11))
+        if (QtMocHelpers::indexOfMethod<void (WriterController::*)()>(_a, &WriterController::pageCountChanged, 11))
             return;
-        if (QtMocHelpers::indexOfMethod<void (WriterController::*)()>(_a, &WriterController::historyChanged, 12))
+        if (QtMocHelpers::indexOfMethod<void (WriterController::*)()>(_a, &WriterController::runPathChanged, 12))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (WriterController::*)()>(_a, &WriterController::runArmVisualsChanged, 13))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (WriterController::*)()>(_a, &WriterController::lineHeightCollisionWarning, 14))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (WriterController::*)(const QString & )>(_a, &WriterController::fontFolderMissing, 15))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (WriterController::*)(const QString & )>(_a, &WriterController::projectIoError, 16))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (WriterController::*)()>(_a, &WriterController::historyChanged, 17))
             return;
     }
     if (_c == QMetaObject::RegisterPropertyMetaType) {
@@ -302,8 +366,13 @@ void WriterController::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int
         case 9: *reinterpret_cast<bool*>(_v) = _t->settingsOpen(); break;
         case 10: *reinterpret_cast<bool*>(_v) = _t->runActive(); break;
         case 11: *reinterpret_cast<bool*>(_v) = _t->runPaused(); break;
-        case 12: *reinterpret_cast<bool*>(_v) = _t->canUndo(); break;
-        case 13: *reinterpret_cast<bool*>(_v) = _t->canRedo(); break;
+        case 12: *reinterpret_cast<bool*>(_v) = _t->runArmed(); break;
+        case 13: *reinterpret_cast<int*>(_v) = _t->runStartPage(); break;
+        case 14: *reinterpret_cast<int*>(_v) = _t->pageCount(); break;
+        case 15: *reinterpret_cast<double*>(_v) = _t->runStartDistanceCm(); break;
+        case 16: *reinterpret_cast<double*>(_v) = _t->runEndDistanceCm(); break;
+        case 17: *reinterpret_cast<bool*>(_v) = _t->canUndo(); break;
+        case 18: *reinterpret_cast<bool*>(_v) = _t->canRedo(); break;
         default: break;
         }
     }
@@ -336,20 +405,20 @@ int WriterController::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 29)
+        if (_id < 38)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 29;
+        _id -= 38;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 29)
+        if (_id < 38)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 29;
+        _id -= 38;
     }
     if (_c == QMetaObject::ReadProperty || _c == QMetaObject::WriteProperty
             || _c == QMetaObject::ResetProperty || _c == QMetaObject::BindableProperty
             || _c == QMetaObject::RegisterPropertyMetaType) {
         qt_static_metacall(this, _c, _id, _a);
-        _id -= 14;
+        _id -= 19;
     }
     return _id;
 }
@@ -409,26 +478,56 @@ void WriterController::runPausedChanged()
 }
 
 // SIGNAL 9
-void WriterController::lineHeightCollisionWarning()
+void WriterController::runArmedChanged()
 {
     QMetaObject::activate(this, &staticMetaObject, 9, nullptr);
 }
 
 // SIGNAL 10
-void WriterController::fontFolderMissing(const QString & _t1)
+void WriterController::runStartPageChanged()
 {
-    QMetaObject::activate<void>(this, &staticMetaObject, 10, nullptr, _t1);
+    QMetaObject::activate(this, &staticMetaObject, 10, nullptr);
 }
 
 // SIGNAL 11
-void WriterController::projectIoError(const QString & _t1)
+void WriterController::pageCountChanged()
 {
-    QMetaObject::activate<void>(this, &staticMetaObject, 11, nullptr, _t1);
+    QMetaObject::activate(this, &staticMetaObject, 11, nullptr);
 }
 
 // SIGNAL 12
-void WriterController::historyChanged()
+void WriterController::runPathChanged()
 {
     QMetaObject::activate(this, &staticMetaObject, 12, nullptr);
+}
+
+// SIGNAL 13
+void WriterController::runArmVisualsChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 13, nullptr);
+}
+
+// SIGNAL 14
+void WriterController::lineHeightCollisionWarning()
+{
+    QMetaObject::activate(this, &staticMetaObject, 14, nullptr);
+}
+
+// SIGNAL 15
+void WriterController::fontFolderMissing(const QString & _t1)
+{
+    QMetaObject::activate<void>(this, &staticMetaObject, 15, nullptr, _t1);
+}
+
+// SIGNAL 16
+void WriterController::projectIoError(const QString & _t1)
+{
+    QMetaObject::activate<void>(this, &staticMetaObject, 16, nullptr, _t1);
+}
+
+// SIGNAL 17
+void WriterController::historyChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 17, nullptr);
 }
 QT_WARNING_POP
