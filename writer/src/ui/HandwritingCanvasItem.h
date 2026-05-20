@@ -65,6 +65,8 @@ private:
     QPointF layoutCmFromMachineMm(double mmX, double mmY) const;
     QPointF pointAtPathDistance(double distCm) const;
     double pathDistanceForLayoutPoint(const QPointF &layoutCm) const;
+    double pageEndInkDistanceCm(int page) const;
+    void drawRedTravelLine(QPainter *painter, const QPointF &fromCm, const QPointF &toCm, double s) const;
     void syncRedTrailFromLivePosition();
     bool useLiveCncTip() const;
     void drawPurpleTip(QPainter *painter, const QPointF &cm, double s) const;

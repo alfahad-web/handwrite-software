@@ -442,6 +442,29 @@ void HandwritingCanvasItem::drawPurpleTip(QPainter *painter, const QPointF &cm, 
     painter->restore();
 }
 
+double HandwritingCanvasItem::pageEndInkDistanceCm(int page) const {
+    if (page < 0) return 0;
+    double end = 0;
+    for (int si = 0; si < m_runSegments.size(); ++si) {
+        if (m_runSegments.at(si).travel) continue;
+        if (m_runSegments.at(si).pageIndex != page) continue;
+        const double segEnd = m_runSegCumStartCm.at(si) + m_runSegLenCm.at(si);
+        end = qMax(end, segEnd);
+    }
+    return end;
+}
+
+void HandwritingCanvasItem::drawRedTravelLine(QPainter *painter, const QPointF &fromCm,
+                                              const QPointF &toCm, double s) const {
+    if (QLineF(fromCm, toCm).length() <= 1e-9) return;
+    painter->save();
+    painter->translate(contentOffsetX(), 0);
+    painter->setPen(QPen(QColor("#dc2626"), 1.2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    painter->setBrush(Qt::NoBrush);
+    painter->drawLine(fromCm * s, toCm * s);
+    painter->restore();
+}
+
 void HandwritingCanvasItem::drawApproachTravel(QPainter *painter, const QPointF &fromCm,
                                                const QPointF &toCm, double s) const {
     painter->save();
@@ -597,16 +620,39 @@ void HandwritingCanvasItem::prepareRunOverlayAt(double progressDistanceCm) {
     m_runRedPixmap.fill(Qt::transparent);
 
     m_runStaticValid = true;
-    m_runDistance = qBound(0.0, progressDistanceCm, m_runTotalCm);
     m_runLastPaintedDist = 0;
     m_approachActive = false;
 
-    if (m_runDistance > 1e-9) {
+    const double s = pxPerCm();
+    double pathRedTo = qBound(0.0, progressDistanceCm, m_runTotalCm);
+    QPointF homeFromCm;
+    QPointF homeToCm;
+    bool drawHomeToOrigin = false;
+
+    if (m_ctrl->runArmed()) {
+        const int armedPage = m_ctrl->runStartPage();
+        if (armedPage > 0) {
+            pathRedTo = pageEndInkDistanceCm(armedPage - 1);
+            homeFromCm = pointAtPathDistance(pathRedTo);
+            homeToCm = pagePlotOriginCm(armedPage);
+            drawHomeToOrigin = QLineF(homeFromCm, homeToCm).length() > 1e-6;
+        } else {
+            pathRedTo = 0;
+        }
+        m_runDistance = pathRedTo;
+    } else {
+        m_runDistance = pathRedTo;
+    }
+
+    if (pathRedTo > 1e-9 || drawHomeToOrigin) {
         QPainter rp(&m_runRedPixmap);
         rp.setRenderHint(QPainter::Antialiasing, true);
-        drawRunProgressAlongPath(&rp, 0, m_runDistance, pxPerCm());
+        if (pathRedTo > 1e-9)
+            drawRunProgressAlongPath(&rp, 0, pathRedTo, s);
+        if (drawHomeToOrigin)
+            drawRedTravelLine(&rp, homeFromCm, homeToCm, s);
         rp.end();
-        m_runLastPaintedDist = m_runDistance;
+        m_runLastPaintedDist = pathRedTo;
     }
 
     update();
