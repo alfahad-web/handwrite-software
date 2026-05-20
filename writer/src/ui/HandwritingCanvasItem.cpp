@@ -142,15 +142,18 @@ double HandwritingCanvasItem::pxPerCm() const {
     if (!m_ctrl || !m_ctrl->settings()) return 40.0;
     const double w = width();
     if (w < 4) return 40.0;
-    // Page width fills the canvas; kPreviewCmFit calibrates on-screen size to plotted output.
-    static constexpr double kPreviewCmFit = 0.5;
-    return (w / m_ctrl->settings()->pageWidthCm())
-           * m_ctrl->settings()->previewDisplayScale() * kPreviewCmFit;
+    return (w / m_ctrl->settings()->pageWidthCm()) * m_ctrl->settings()->previewDisplayScale();
+}
+
+double HandwritingCanvasItem::contentOffsetX() const {
+    if (!m_ctrl || !m_ctrl->settings()) return 0.0;
+    const double pagePx = m_ctrl->settings()->pageWidthCm() * pxPerCm();
+    return qMax(0.0, (width() - pagePx) * 0.5);
 }
 
 QPointF HandwritingCanvasItem::cmFromPixel(const QPointF &px) const {
     const double s = pxPerCm();
-    return QPointF(px.x() / s, px.y() / s);
+    return QPointF((px.x() - contentOffsetX()) / s, px.y() / s);
 }
 
 QPointF HandwritingCanvasItem::glyphBottomLeft(const LayoutGlyph &g) const {
@@ -224,6 +227,8 @@ void HandwritingCanvasItem::rebuildRunPath() {
 void HandwritingCanvasItem::drawRunProgressAlongPath(QPainter *painter, double pathFrom, double pathTo, double s) const {
     if (pathTo <= pathFrom + 1e-12 || m_runSegments.isEmpty()) return;
 
+    painter->save();
+    painter->translate(contentOffsetX(), 0);
     painter->setPen(QPen(QColor("#dc2626"), 1.2));
     painter->setBrush(QColor("#dc2626"));
 
@@ -255,9 +260,12 @@ void HandwritingCanvasItem::drawRunProgressAlongPath(QPainter *painter, double p
 
         if (pathTo <= segEnd + 1e-12) break;
     }
+    painter->restore();
 }
 
 void HandwritingCanvasItem::paintStaticContent(QPainter *painter, const AppSettings *st, double s) const {
+    painter->save();
+    painter->translate(contentOffsetX(), 0);
     const double pageW = st->pageWidthCm();
     const double pageH = st->pageHeightCm();
     const double gap = st->verticalGapCm();
@@ -326,6 +334,7 @@ void HandwritingCanvasItem::paintStaticContent(QPainter *painter, const AppSetti
             break;
         }
     }
+    painter->restore();
 }
 
 void HandwritingCanvasItem::prepareRunSimulationAfterUi() {
@@ -458,6 +467,7 @@ void HandwritingCanvasItem::mousePressEvent(QMouseEvent *event) {
         return;
     }
     setDragDocIndex(hit);
+    m_ctrl->pushUndoSnapshot();
     m_pressCm = cmFromPixel(local);
     m_currentDragCm = m_pressCm;
     m_dragGlyphStartCm = QPointF();

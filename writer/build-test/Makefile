@@ -336,6 +336,30 @@ src/cnc/GrblConnection.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/WriterQt.dir/build.make CMakeFiles/WriterQt.dir/src/cnc/GrblConnection.cpp.s
 .PHONY : src/cnc/GrblConnection.cpp.s
 
+src/cnc/SerialPortScan.o: src/cnc/SerialPortScan.cpp.o
+.PHONY : src/cnc/SerialPortScan.o
+
+# target to build an object file
+src/cnc/SerialPortScan.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/WriterQt.dir/build.make CMakeFiles/WriterQt.dir/src/cnc/SerialPortScan.cpp.o
+.PHONY : src/cnc/SerialPortScan.cpp.o
+
+src/cnc/SerialPortScan.i: src/cnc/SerialPortScan.cpp.i
+.PHONY : src/cnc/SerialPortScan.i
+
+# target to preprocess a source file
+src/cnc/SerialPortScan.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/WriterQt.dir/build.make CMakeFiles/WriterQt.dir/src/cnc/SerialPortScan.cpp.i
+.PHONY : src/cnc/SerialPortScan.cpp.i
+
+src/cnc/SerialPortScan.s: src/cnc/SerialPortScan.cpp.s
+.PHONY : src/cnc/SerialPortScan.s
+
+# target to generate assembly for a file
+src/cnc/SerialPortScan.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/WriterQt.dir/build.make CMakeFiles/WriterQt.dir/src/cnc/SerialPortScan.cpp.s
+.PHONY : src/cnc/SerialPortScan.cpp.s
+
 src/font/FontLoader.o: src/font/FontLoader.cpp.o
 .PHONY : src/font/FontLoader.o
 
@@ -537,6 +561,9 @@ help:
 	@echo "... src/cnc/GrblConnection.o"
 	@echo "... src/cnc/GrblConnection.i"
 	@echo "... src/cnc/GrblConnection.s"
+	@echo "... src/cnc/SerialPortScan.o"
+	@echo "... src/cnc/SerialPortScan.i"
+	@echo "... src/cnc/SerialPortScan.s"
 	@echo "... src/font/FontLoader.o"
 	@echo "... src/font/FontLoader.i"
 	@echo "... src/font/FontLoader.s"

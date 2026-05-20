@@ -97,6 +97,7 @@ signals:
     void feedRateMmPerMinChanged();
     void previewDisplayScaleChanged();
     void anyChanged();
+    void aboutToChange();
 
 private:
     double m_feedRateCmPerS = 2.0;

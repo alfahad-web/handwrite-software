@@ -15,6 +15,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/mnt/shared/handwrite-software/writer/src/app/DocumentModel.cpp" "CMakeFiles/WriterQt.dir/src/app/DocumentModel.cpp.o" "gcc" "CMakeFiles/WriterQt.dir/src/app/DocumentModel.cpp.o.d"
   "/mnt/shared/handwrite-software/writer/src/app/WriterController.cpp" "CMakeFiles/WriterQt.dir/src/app/WriterController.cpp.o" "gcc" "CMakeFiles/WriterQt.dir/src/app/WriterController.cpp.o.d"
   "/mnt/shared/handwrite-software/writer/src/cnc/GrblConnection.cpp" "CMakeFiles/WriterQt.dir/src/cnc/GrblConnection.cpp.o" "gcc" "CMakeFiles/WriterQt.dir/src/cnc/GrblConnection.cpp.o.d"
+  "/mnt/shared/handwrite-software/writer/src/cnc/SerialPortScan.cpp" "CMakeFiles/WriterQt.dir/src/cnc/SerialPortScan.cpp.o" "gcc" "CMakeFiles/WriterQt.dir/src/cnc/SerialPortScan.cpp.o.d"
   "/mnt/shared/handwrite-software/writer/src/font/FontLoader.cpp" "CMakeFiles/WriterQt.dir/src/font/FontLoader.cpp.o" "gcc" "CMakeFiles/WriterQt.dir/src/font/FontLoader.cpp.o.d"
   "/mnt/shared/handwrite-software/writer/src/gcode/GcodeController.cpp" "CMakeFiles/WriterQt.dir/src/gcode/GcodeController.cpp.o" "gcc" "CMakeFiles/WriterQt.dir/src/gcode/GcodeController.cpp.o.d"
   "/mnt/shared/handwrite-software/writer/src/gcode/GcodeGenerator.cpp" "CMakeFiles/WriterQt.dir/src/gcode/GcodeGenerator.cpp.o" "gcc" "CMakeFiles/WriterQt.dir/src/gcode/GcodeGenerator.cpp.o.d"

@@ -14,6 +14,7 @@ public:
     void setText(const QString &t);
 
 signals:
+    void textAboutToChange();
     void textChanged();
 
 private:

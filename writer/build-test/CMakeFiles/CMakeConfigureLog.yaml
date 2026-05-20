@@ -9106,3 +9106,45 @@ events:
         - "/usr/lib/cmake/Qt6/3rdparty/extra-cmake-modules/find-modules"
         - "/usr/lib/cmake/Qt6/3rdparty/kwin"
 ...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/Internal/CheckSourceCompiles.cmake:104 (try_compile)"
+      - "/usr/share/cmake/Modules/CheckCXXSourceCompiles.cmake:103 (cmake_check_source_compiles)"
+      - "CMakeLists.txt:35 (check_cxx_source_compiles)"
+    checks:
+      - "Performing Test _writer_qt_serialport_links"
+    directories:
+      source: "/mnt/shared/handwrite-software/writer/build-test/CMakeFiles/CMakeScratch/TryCompile-qcf75S"
+      binary: "/mnt/shared/handwrite-software/writer/build-test/CMakeFiles/CMakeScratch/TryCompile-qcf75S"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_CXX_STDLIB_MODULES_JSON: ""
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/usr/lib/cmake/Qt6;/usr/lib/cmake/Qt6/3rdparty/extra-cmake-modules/find-modules;/usr/lib/cmake/Qt6/3rdparty/kwin"
+    buildResult:
+      variable: "_writer_qt_serialport_links"
+      cached: true
+      stdout: |
+        Change Dir: '/mnt/shared/handwrite-software/writer/build-test/CMakeFiles/CMakeScratch/TryCompile-qcf75S'
+        
+        Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_e1304/fast
+        /usr/bin/make  -f CMakeFiles/cmTC_e1304.dir/build.make CMakeFiles/cmTC_e1304.dir/build
+        make[1]: Entering directory '/mnt/shared/handwrite-software/writer/build-test/CMakeFiles/CMakeScratch/TryCompile-qcf75S'
+        Building CXX object CMakeFiles/cmTC_e1304.dir/src.cxx.o
+        /usr/bin/c++ -DQT_CORE_LIB -DQT_NO_DEBUG -DQT_SERIALPORT_LIB -D_writer_qt_serialport_links -isystem /usr/include/qt6/QtSerialPort -isystem /usr/include/qt6 -isystem /usr/include/qt6/QtCore -isystem /usr/lib/qt6/mkspecs/linux-g++ -std=gnu++17 -mno-direct-extern-access -o CMakeFiles/cmTC_e1304.dir/src.cxx.o -c /mnt/shared/handwrite-software/writer/build-test/CMakeFiles/CMakeScratch/TryCompile-qcf75S/src.cxx
+        Linking CXX executable cmTC_e1304
+        /usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_e1304.dir/link.txt --verbose=1
+        /usr/bin/ld: /usr/lib/libQt6SerialPort.so.6.11.1: undefined reference to `QIODevicePrivate::QIODevicePrivate(QtPrivate_6_11_1)@Qt_6_PRIVATE_API'
+        collect2: error: ld returned 1 exit status
+        /usr/bin/c++ CMakeFiles/cmTC_e1304.dir/src.cxx.o -o cmTC_e1304  /usr/lib/libQt6SerialPort.so.6.11.1 /usr/lib/libQt6Core.so.6.11.0
+        make[1]: *** [CMakeFiles/cmTC_e1304.dir/build.make:104: cmTC_e1304] Error 1
+        make[1]: Leaving directory '/mnt/shared/handwrite-software/writer/build-test/CMakeFiles/CMakeScratch/TryCompile-qcf75S'
+        make: *** [Makefile:134: cmTC_e1304/fast] Error 2
+        
+      exitCode: 2
+...

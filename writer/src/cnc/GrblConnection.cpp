@@ -17,6 +17,7 @@
 namespace {
 constexpr const char *kG = "WriterQt";
 constexpr const char *kPortKey = "lastSerialPort";
+constexpr int kMaxCommandHistory = 200;
 }
 
 bool GrblConnection::serialAvailable() const {
@@ -25,6 +26,48 @@ bool GrblConnection::serialAvailable() const {
 #else
     return false;
 #endif
+}
+
+void GrblConnection::pushCommandHistory(const QString &line) {
+    const QString trimmed = line.trimmed();
+    if (trimmed.isEmpty()) return;
+    if (!m_commandHistory.isEmpty() && m_commandHistory.last() == trimmed) return;
+    m_commandHistory.append(trimmed);
+    if (m_commandHistory.size() > kMaxCommandHistory) m_commandHistory.removeFirst();
+}
+
+void GrblConnection::sendUserCommand(const QString &line) {
+    const QString trimmed = line.trimmed();
+    if (trimmed.isEmpty()) return;
+    pushCommandHistory(trimmed);
+    resetCommandHistoryBrowse();
+    sendLine(line);
+}
+
+QString GrblConnection::commandHistoryOlder(const QString &currentDraft) {
+    if (m_commandHistory.isEmpty()) return currentDraft;
+    if (m_historyBrowseIndex < 0) {
+        m_historyDraft = currentDraft;
+        m_historyBrowseIndex = m_commandHistory.size();
+    }
+    if (m_historyBrowseIndex <= 0) return m_commandHistory.first();
+    --m_historyBrowseIndex;
+    return m_commandHistory.at(m_historyBrowseIndex);
+}
+
+QString GrblConnection::commandHistoryNewer() {
+    if (m_historyBrowseIndex < 0) return m_historyDraft;
+    ++m_historyBrowseIndex;
+    if (m_historyBrowseIndex >= m_commandHistory.size()) {
+        m_historyBrowseIndex = -1;
+        return m_historyDraft;
+    }
+    return m_commandHistory.at(m_historyBrowseIndex);
+}
+
+void GrblConnection::resetCommandHistoryBrowse() {
+    m_historyBrowseIndex = -1;
+    m_historyDraft.clear();
 }
 
 #ifdef WRITER_HAS_SERIAL

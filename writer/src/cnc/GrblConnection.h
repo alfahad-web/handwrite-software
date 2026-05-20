@@ -54,6 +54,10 @@ public:
     Q_INVOKABLE bool connectPort();
     Q_INVOKABLE void disconnectPort();
     Q_INVOKABLE void sendLine(const QString &line);
+    Q_INVOKABLE void sendUserCommand(const QString &line);
+    Q_INVOKABLE QString commandHistoryOlder(const QString &currentDraft);
+    Q_INVOKABLE QString commandHistoryNewer();
+    Q_INVOKABLE void resetCommandHistoryBrowse();
     Q_INVOKABLE void streamProgram(const QString &program);
     Q_INVOKABLE void cancelStream();
     Q_INVOKABLE void clearLog();
@@ -72,6 +76,12 @@ signals:
     void positionChanged();
 
 private:
+    void pushCommandHistory(const QString &line);
+
+    QStringList m_commandHistory;
+    int m_historyBrowseIndex = -1;
+    QString m_historyDraft;
+
 #ifdef WRITER_HAS_SERIAL
     void appendLog(const QString &line, bool fromMachine = false);
     void loadLastPort();

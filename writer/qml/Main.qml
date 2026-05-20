@@ -33,6 +33,17 @@ ApplicationWindow {
         })
     }
 
+    Shortcut {
+        sequence: StandardKey.Undo
+        enabled: writerController.canUndo
+        onActivated: writerController.undo()
+    }
+    Shortcut {
+        sequence: StandardKey.Redo
+        enabled: writerController.canRedo
+        onActivated: writerController.redo()
+    }
+
     readonly property color settingsTitleColor: "#1e3a8a"
 
     function toggleGrblConnection() {
@@ -257,6 +268,16 @@ ApplicationWindow {
                 text: "Handwriting"
                 highlighted: writerController.viewMode === "handwriting"
                 onClicked: writerController.viewMode = "handwriting"
+            }
+            Button {
+                text: "Undo"
+                enabled: writerController.canUndo
+                onClicked: writerController.undo()
+            }
+            Button {
+                text: "Redo"
+                enabled: writerController.canRedo
+                onClicked: writerController.redo()
             }
             Button {
                 id: generateGcodeBtn
@@ -811,7 +832,7 @@ ApplicationWindow {
                         Layout.fillWidth: true
                         implicitHeight: 32
                         placeholderText: grblConnection.connected
-                                     ? "G-code or ! ~ ?"
+                                     ? "G-code or ! ~ ? (↑↓ history)"
                                      : "Connect to send commands"
                         font.family: "monospace"
                         font.pixelSize: 11
@@ -819,9 +840,21 @@ ApplicationWindow {
                         selectByMouse: true
                         focusPolicy: Qt.StrongFocus
                         enabled: grblConnection.connected && !grblConnection.streaming
+                        Keys.onPressed: function(event) {
+                            if (event.key === Qt.Key_Up) {
+                                text = grblConnection.commandHistoryOlder(text)
+                                cursorPosition = text.length
+                                event.accepted = true
+                            } else if (event.key === Qt.Key_Down) {
+                                text = grblConnection.commandHistoryNewer()
+                                cursorPosition = text.length
+                                event.accepted = true
+                            }
+                        }
+                        onTextEdited: grblConnection.resetCommandHistoryBrowse()
                         onAccepted: {
                             if (text.trim().length > 0) {
-                                grblConnection.sendLine(text)
+                                grblConnection.sendUserCommand(text)
                                 text = ""
                             }
                         }
@@ -838,7 +871,7 @@ ApplicationWindow {
                         enabled: grblConnection.connected && !grblConnection.streaming
                         onClicked: {
                             if (consoleInput.text.trim().length > 0) {
-                                grblConnection.sendLine(consoleInput.text)
+                                grblConnection.sendUserCommand(consoleInput.text)
                                 consoleInput.text = ""
                             }
                         }

@@ -50,6 +50,7 @@ private:
     QHash<int, QPointF> forcedAnchorsForLayout() const;
     void rebuildLayout();
     double pxPerCm() const;
+    double contentOffsetX() const;
     QPointF cmFromPixel(const QPointF &px) const;
     int hitTestGlyph(const QPointF &px);
     void rebuildRunPath();

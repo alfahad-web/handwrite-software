@@ -10,6 +10,8 @@
 #include "gcode/GcodeController.h"
 
 namespace {
+constexpr int kMaxUndoSteps = 100;
+
 void remapManualAnchors(QHash<int, QPointF> *anchors, const QString &oldText, const QString &newText) {
     if (!anchors || oldText == newText) return;
     const int oldLen = oldText.size();
@@ -44,7 +46,13 @@ WriterController::WriterController(QObject *parent) : QObject(parent) {
     m_grbl = new GrblConnection(this);
     m_settings->load();
     m_lastDocumentText = m_document->text();
+    connect(m_document, &DocumentModel::textAboutToChange, this, [this]() {
+        pushUndoState();
+    });
     connect(m_document, &DocumentModel::textChanged, this, &WriterController::onDocumentTextChanged);
+    connect(m_settings, &AppSettings::aboutToChange, this, [this]() {
+        pushUndoState();
+    });
     connect(m_settings, &AppSettings::anyChanged, this, [this]() {
         emit layoutInvalidated();
         bumpDirty();
@@ -56,6 +64,7 @@ WriterController::WriterController(QObject *parent) : QObject(parent) {
 
 void WriterController::setViewMode(const QString &m) {
     if (m_viewMode == m) return;
+    pushUndoState();
     m_viewMode = m;
     emit viewModeChanged();
     bumpDirty();
@@ -79,12 +88,15 @@ void WriterController::onDocumentTextChanged() {
 void WriterController::beginProjectLoad() {
     m_blockAnchorRemap = true;
     m_suppressDirty = true;
+    m_suppressUndo = true;
 }
 
 void WriterController::endProjectLoad() {
     m_lastDocumentText = m_document->text();
     m_blockAnchorRemap = false;
     m_suppressDirty = false;
+    m_suppressUndo = false;
+    clearHistory();
     emit layoutInvalidated();
 }
 
@@ -230,6 +242,7 @@ void WriterController::markSaved() {
 
 void WriterController::resetToEmptyProject(bool resetSettingsToDefaults) {
     m_suppressDirty = true;
+    m_suppressUndo = true;
     stopRun();
     m_document->setText(QString());
     m_lastDocumentText = QString();
@@ -261,8 +274,124 @@ void WriterController::resetToEmptyProject(bool resetSettingsToDefaults) {
     emit fontStatusChanged();
     setProjectFilePath(QString());
     m_suppressDirty = false;
+    m_suppressUndo = false;
+    clearHistory();
     setDocumentDirty(false);
     emit layoutInvalidated();
+}
+
+WriterController::HistoryState WriterController::makeHistoryState() const {
+    HistoryState s;
+    s.documentText = m_document ? m_document->text() : QString();
+    s.manualAnchors = m_manualAnchors;
+    s.viewMode = m_viewMode;
+    if (m_settings) {
+        s.feedRateCmPerS = m_settings->feedRateCmPerS();
+        s.pageWidthCm = m_settings->pageWidthCm();
+        s.pageHeightCm = m_settings->pageHeightCm();
+        s.leftMarginCm = m_settings->leftMarginCm();
+        s.rightMarginCm = m_settings->rightMarginCm();
+        s.verticalGapCm = m_settings->verticalGapCm();
+        s.hxCm = m_settings->hxCm();
+        s.hyCm = m_settings->hyCm();
+        s.lineHeightCm = m_settings->lineHeightCm();
+        s.fontUnitToCm = m_settings->fontUnitToCm();
+        s.joinDistMm = m_settings->joinDistMm();
+        s.xErrorMm = m_settings->xErrorMm();
+        s.yErrorMm = m_settings->yErrorMm();
+        s.penUpZ = m_settings->penUpZ();
+        s.penDownZ = m_settings->penDownZ();
+        s.previewDisplayScale = m_settings->previewDisplayScale();
+    }
+    return s;
+}
+
+void WriterController::applySettingsSnapshot(const HistoryState &state) {
+    if (!m_settings) return;
+    m_settings->setFeedRateCmPerS(state.feedRateCmPerS);
+    m_settings->setPageWidthCm(state.pageWidthCm);
+    m_settings->setPageHeightCm(state.pageHeightCm);
+    m_settings->setLeftMarginCm(state.leftMarginCm);
+    m_settings->setRightMarginCm(state.rightMarginCm);
+    m_settings->setVerticalGapCm(state.verticalGapCm);
+    m_settings->setHxCm(state.hxCm);
+    m_settings->setHyCm(state.hyCm);
+    m_settings->setLineHeightCm(state.lineHeightCm);
+    m_settings->setFontUnitToCm(state.fontUnitToCm);
+    m_settings->setJoinDistMm(state.joinDistMm);
+    m_settings->setXErrorMm(state.xErrorMm);
+    m_settings->setYErrorMm(state.yErrorMm);
+    m_settings->setPenUpZ(state.penUpZ);
+    m_settings->setPenDownZ(state.penDownZ);
+    m_settings->setPreviewDisplayScale(state.previewDisplayScale);
+}
+
+void WriterController::restoreHistoryState(const HistoryState &state) {
+    m_restoringHistory = true;
+    m_blockAnchorRemap = true;
+    stopRun();
+
+    if (m_document) m_document->setText(state.documentText);
+    m_lastDocumentText = state.documentText;
+    m_manualAnchors = state.manualAnchors;
+
+    if (m_viewMode != state.viewMode) {
+        m_viewMode = state.viewMode;
+        emit viewModeChanged();
+    }
+
+    applySettingsSnapshot(state);
+    bumpDirty();
+
+    m_blockAnchorRemap = false;
+    m_restoringHistory = false;
+    emit layoutInvalidated();
+}
+
+void WriterController::pushUndoState() {
+    if (m_restoringHistory || m_suppressUndo) return;
+    const bool wasCanUndo = canUndo();
+    const bool wasCanRedo = canRedo();
+    m_undoStack.push_back(makeHistoryState());
+    if (m_undoStack.size() > kMaxUndoSteps) m_undoStack.removeFirst();
+    m_redoStack.clear();
+    emitHistoryChangedIfNeeded(wasCanUndo, wasCanRedo);
+}
+
+void WriterController::pushUndoSnapshot() {
+    pushUndoState();
+}
+
+void WriterController::clearHistory() {
+    const bool wasCanUndo = canUndo();
+    const bool wasCanRedo = canRedo();
+    m_undoStack.clear();
+    m_redoStack.clear();
+    emitHistoryChangedIfNeeded(wasCanUndo, wasCanRedo);
+}
+
+void WriterController::emitHistoryChangedIfNeeded(bool wasCanUndo, bool wasCanRedo) {
+    if (wasCanUndo != canUndo() || wasCanRedo != canRedo()) emit historyChanged();
+}
+
+bool WriterController::undo() {
+    if (m_undoStack.isEmpty()) return false;
+    const bool wasCanUndo = canUndo();
+    const bool wasCanRedo = canRedo();
+    m_redoStack.push_back(makeHistoryState());
+    restoreHistoryState(m_undoStack.takeLast());
+    emitHistoryChangedIfNeeded(wasCanUndo, wasCanRedo);
+    return true;
+}
+
+bool WriterController::redo() {
+    if (m_redoStack.isEmpty()) return false;
+    const bool wasCanUndo = canUndo();
+    const bool wasCanRedo = canRedo();
+    m_undoStack.push_back(makeHistoryState());
+    restoreHistoryState(m_redoStack.takeLast());
+    emitHistoryChangedIfNeeded(wasCanUndo, wasCanRedo);
+    return true;
 }
 
 void WriterController::newWriterProject() {

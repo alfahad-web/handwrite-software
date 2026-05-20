@@ -18,6 +18,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/WriterQt.dir/src/app/WriterController.cpp.o.d"
   "CMakeFiles/WriterQt.dir/src/cnc/GrblConnection.cpp.o"
   "CMakeFiles/WriterQt.dir/src/cnc/GrblConnection.cpp.o.d"
+  "CMakeFiles/WriterQt.dir/src/cnc/SerialPortScan.cpp.o"
+  "CMakeFiles/WriterQt.dir/src/cnc/SerialPortScan.cpp.o.d"
   "CMakeFiles/WriterQt.dir/src/font/FontLoader.cpp.o"
   "CMakeFiles/WriterQt.dir/src/font/FontLoader.cpp.o.d"
   "CMakeFiles/WriterQt.dir/src/gcode/GcodeController.cpp.o"

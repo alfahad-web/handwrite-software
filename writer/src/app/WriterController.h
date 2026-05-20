@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QPointF>
 #include <QString>
+#include <QVector>
 
 #include "AppSettings.h"
 #include "DocumentModel.h"
@@ -25,6 +26,8 @@ class WriterController : public QObject {
     Q_PROPERTY(bool settingsOpen READ settingsOpen WRITE setSettingsOpen NOTIFY settingsOpenChanged)
     Q_PROPERTY(bool runActive READ runActive NOTIFY runActiveChanged)
     Q_PROPERTY(bool runPaused READ runPaused NOTIFY runPausedChanged)
+    Q_PROPERTY(bool canUndo READ canUndo NOTIFY historyChanged)
+    Q_PROPERTY(bool canRedo READ canRedo NOTIFY historyChanged)
 
 public:
     explicit WriterController(QObject *parent = nullptr);
@@ -49,6 +52,9 @@ public:
     bool runActive() const { return m_runActive; }
     bool runPaused() const { return m_runPaused; }
 
+    bool canUndo() const { return !m_undoStack.isEmpty(); }
+    bool canRedo() const { return !m_redoStack.isEmpty(); }
+
     const FontCatalog &fontCatalog() const { return m_fontCatalog; }
 
     QHash<int, QPointF> manualAnchors() const { return m_manualAnchors; }
@@ -65,6 +71,9 @@ public:
 
     Q_INVOKABLE void notifyLineHeightCollision(bool exceeds);
     Q_INVOKABLE bool generateGcode();
+    Q_INVOKABLE void pushUndoSnapshot();
+    Q_INVOKABLE bool undo();
+    Q_INVOKABLE bool redo();
 
     Q_INVOKABLE void newWriterProject();
     Q_INVOKABLE void openWriterProject();
@@ -92,8 +101,37 @@ signals:
     void lineHeightCollisionWarning();
     void fontFolderMissing(const QString &path);
     void projectIoError(const QString &message);
+    void historyChanged();
 
 private:
+    struct HistoryState {
+        QString documentText;
+        QHash<int, QPointF> manualAnchors;
+        QString viewMode;
+        double feedRateCmPerS = 2.0;
+        double pageWidthCm = 21.0;
+        double pageHeightCm = 29.7;
+        double leftMarginCm = 1.5;
+        double rightMarginCm = 1.5;
+        double verticalGapCm = 0.5;
+        double hxCm = 0.2;
+        double hyCm = 0.5;
+        double lineHeightCm = 0.45;
+        double fontUnitToCm = 0.0001;
+        double joinDistMm = 0.0;
+        double xErrorMm = 0.0;
+        double yErrorMm = 0.0;
+        double penUpZ = 30.0;
+        double penDownZ = -5.0;
+        double previewDisplayScale = 1.0;
+    };
+
+    HistoryState makeHistoryState() const;
+    void restoreHistoryState(const HistoryState &state);
+    void pushUndoState();
+    void clearHistory();
+    void emitHistoryChangedIfNeeded(bool wasCanUndo, bool wasCanRedo);
+    void applySettingsSnapshot(const HistoryState &state);
     void loadFontsFromPath(const QString &path, bool emitMissingIfNotFound);
     void onDocumentTextChanged();
     void setDocumentDirty(bool dirty);
@@ -118,4 +156,8 @@ private:
     bool m_documentDirty = false;
     bool m_suppressDirty = false;
     bool m_blockAnchorRemap = false;
+    bool m_restoringHistory = false;
+    bool m_suppressUndo = false;
+    QVector<HistoryState> m_undoStack;
+    QVector<HistoryState> m_redoStack;
 };

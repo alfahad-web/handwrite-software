@@ -232,10 +232,24 @@ CMakeFiles/WriterQt.dir/src/gcode/GcodeController.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/WriterQt.dir/src/gcode/GcodeController.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /mnt/shared/handwrite-software/writer/src/gcode/GcodeController.cpp -o CMakeFiles/WriterQt.dir/src/gcode/GcodeController.cpp.s
 
+CMakeFiles/WriterQt.dir/src/cnc/SerialPortScan.cpp.o: CMakeFiles/WriterQt.dir/flags.make
+CMakeFiles/WriterQt.dir/src/cnc/SerialPortScan.cpp.o: /mnt/shared/handwrite-software/writer/src/cnc/SerialPortScan.cpp
+CMakeFiles/WriterQt.dir/src/cnc/SerialPortScan.cpp.o: CMakeFiles/WriterQt.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/mnt/shared/handwrite-software/writer/build-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object CMakeFiles/WriterQt.dir/src/cnc/SerialPortScan.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/WriterQt.dir/src/cnc/SerialPortScan.cpp.o -MF CMakeFiles/WriterQt.dir/src/cnc/SerialPortScan.cpp.o.d -o CMakeFiles/WriterQt.dir/src/cnc/SerialPortScan.cpp.o -c /mnt/shared/handwrite-software/writer/src/cnc/SerialPortScan.cpp
+
+CMakeFiles/WriterQt.dir/src/cnc/SerialPortScan.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/WriterQt.dir/src/cnc/SerialPortScan.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /mnt/shared/handwrite-software/writer/src/cnc/SerialPortScan.cpp > CMakeFiles/WriterQt.dir/src/cnc/SerialPortScan.cpp.i
+
+CMakeFiles/WriterQt.dir/src/cnc/SerialPortScan.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/WriterQt.dir/src/cnc/SerialPortScan.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /mnt/shared/handwrite-software/writer/src/cnc/SerialPortScan.cpp -o CMakeFiles/WriterQt.dir/src/cnc/SerialPortScan.cpp.s
+
 CMakeFiles/WriterQt.dir/src/cnc/GrblConnection.cpp.o: CMakeFiles/WriterQt.dir/flags.make
 CMakeFiles/WriterQt.dir/src/cnc/GrblConnection.cpp.o: /mnt/shared/handwrite-software/writer/src/cnc/GrblConnection.cpp
 CMakeFiles/WriterQt.dir/src/cnc/GrblConnection.cpp.o: CMakeFiles/WriterQt.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/mnt/shared/handwrite-software/writer/build-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object CMakeFiles/WriterQt.dir/src/cnc/GrblConnection.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/mnt/shared/handwrite-software/writer/build-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building CXX object CMakeFiles/WriterQt.dir/src/cnc/GrblConnection.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/WriterQt.dir/src/cnc/GrblConnection.cpp.o -MF CMakeFiles/WriterQt.dir/src/cnc/GrblConnection.cpp.o.d -o CMakeFiles/WriterQt.dir/src/cnc/GrblConnection.cpp.o -c /mnt/shared/handwrite-software/writer/src/cnc/GrblConnection.cpp
 
 CMakeFiles/WriterQt.dir/src/cnc/GrblConnection.cpp.i: cmake_force
@@ -249,7 +263,7 @@ CMakeFiles/WriterQt.dir/src/cnc/GrblConnection.cpp.s: cmake_force
 CMakeFiles/WriterQt.dir/src/ui/HandwritingCanvasItem.cpp.o: CMakeFiles/WriterQt.dir/flags.make
 CMakeFiles/WriterQt.dir/src/ui/HandwritingCanvasItem.cpp.o: /mnt/shared/handwrite-software/writer/src/ui/HandwritingCanvasItem.cpp
 CMakeFiles/WriterQt.dir/src/ui/HandwritingCanvasItem.cpp.o: CMakeFiles/WriterQt.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/mnt/shared/handwrite-software/writer/build-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building CXX object CMakeFiles/WriterQt.dir/src/ui/HandwritingCanvasItem.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/mnt/shared/handwrite-software/writer/build-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building CXX object CMakeFiles/WriterQt.dir/src/ui/HandwritingCanvasItem.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/WriterQt.dir/src/ui/HandwritingCanvasItem.cpp.o -MF CMakeFiles/WriterQt.dir/src/ui/HandwritingCanvasItem.cpp.o.d -o CMakeFiles/WriterQt.dir/src/ui/HandwritingCanvasItem.cpp.o -c /mnt/shared/handwrite-software/writer/src/ui/HandwritingCanvasItem.cpp
 
 CMakeFiles/WriterQt.dir/src/ui/HandwritingCanvasItem.cpp.i: cmake_force
@@ -263,7 +277,7 @@ CMakeFiles/WriterQt.dir/src/ui/HandwritingCanvasItem.cpp.s: cmake_force
 CMakeFiles/WriterQt.dir/build-test/.qt/rcc/qrc_qml_resources.cpp.o: CMakeFiles/WriterQt.dir/flags.make
 CMakeFiles/WriterQt.dir/build-test/.qt/rcc/qrc_qml_resources.cpp.o: .qt/rcc/qrc_qml_resources.cpp
 CMakeFiles/WriterQt.dir/build-test/.qt/rcc/qrc_qml_resources.cpp.o: CMakeFiles/WriterQt.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/mnt/shared/handwrite-software/writer/build-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building CXX object CMakeFiles/WriterQt.dir/build-test/.qt/rcc/qrc_qml_resources.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/mnt/shared/handwrite-software/writer/build-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Building CXX object CMakeFiles/WriterQt.dir/build-test/.qt/rcc/qrc_qml_resources.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/WriterQt.dir/build-test/.qt/rcc/qrc_qml_resources.cpp.o -MF CMakeFiles/WriterQt.dir/build-test/.qt/rcc/qrc_qml_resources.cpp.o.d -o CMakeFiles/WriterQt.dir/build-test/.qt/rcc/qrc_qml_resources.cpp.o -c /mnt/shared/handwrite-software/writer/build-test/.qt/rcc/qrc_qml_resources.cpp
 
 CMakeFiles/WriterQt.dir/build-test/.qt/rcc/qrc_qml_resources.cpp.i: cmake_force
@@ -287,6 +301,7 @@ WriterQt_OBJECTS = \
 "CMakeFiles/WriterQt.dir/src/gcode/PathBuilder.cpp.o" \
 "CMakeFiles/WriterQt.dir/src/gcode/GcodeGenerator.cpp.o" \
 "CMakeFiles/WriterQt.dir/src/gcode/GcodeController.cpp.o" \
+"CMakeFiles/WriterQt.dir/src/cnc/SerialPortScan.cpp.o" \
 "CMakeFiles/WriterQt.dir/src/cnc/GrblConnection.cpp.o" \
 "CMakeFiles/WriterQt.dir/src/ui/HandwritingCanvasItem.cpp.o" \
 "CMakeFiles/WriterQt.dir/build-test/.qt/rcc/qrc_qml_resources.cpp.o"
@@ -305,6 +320,7 @@ WriterQt: CMakeFiles/WriterQt.dir/src/layout/LayoutEngine.cpp.o
 WriterQt: CMakeFiles/WriterQt.dir/src/gcode/PathBuilder.cpp.o
 WriterQt: CMakeFiles/WriterQt.dir/src/gcode/GcodeGenerator.cpp.o
 WriterQt: CMakeFiles/WriterQt.dir/src/gcode/GcodeController.cpp.o
+WriterQt: CMakeFiles/WriterQt.dir/src/cnc/SerialPortScan.cpp.o
 WriterQt: CMakeFiles/WriterQt.dir/src/cnc/GrblConnection.cpp.o
 WriterQt: CMakeFiles/WriterQt.dir/src/ui/HandwritingCanvasItem.cpp.o
 WriterQt: CMakeFiles/WriterQt.dir/build-test/.qt/rcc/qrc_qml_resources.cpp.o
@@ -321,7 +337,7 @@ WriterQt: /usr/lib/libGLX.so
 WriterQt: /usr/lib/libOpenGL.so
 WriterQt: /usr/lib/libQt6Core.so.6.11.0
 WriterQt: CMakeFiles/WriterQt.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/mnt/shared/handwrite-software/writer/build-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Linking CXX executable WriterQt"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/mnt/shared/handwrite-software/writer/build-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_17) "Linking CXX executable WriterQt"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/WriterQt.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

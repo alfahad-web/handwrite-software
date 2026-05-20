@@ -17,6 +17,7 @@ AppSettings::AppSettings(QObject *parent) : QObject(parent) {}
 void AppSettings::setFeedRateCmPerS(double v) {
     if (!std::isfinite(v) || v <= 0) v = 0.1;
     if (qFuzzyCompare(m_feedRateCmPerS, v)) return;
+    emit aboutToChange();
     m_feedRateCmPerS = v;
     emit feedRateCmPerSChanged();
     emit feedRateMmPerMinChanged();
@@ -26,6 +27,7 @@ void AppSettings::setFeedRateCmPerS(double v) {
 void AppSettings::setPageWidthCm(double v) {
     clampPositive(v);
     if (qFuzzyCompare(m_pageWidthCm, v)) return;
+    emit aboutToChange();
     m_pageWidthCm = v;
     emit pageWidthCmChanged();
     emit anyChanged();
@@ -34,6 +36,7 @@ void AppSettings::setPageWidthCm(double v) {
 void AppSettings::setPageHeightCm(double v) {
     clampPositive(v);
     if (qFuzzyCompare(m_pageHeightCm, v)) return;
+    emit aboutToChange();
     m_pageHeightCm = v;
     emit pageHeightCmChanged();
     emit anyChanged();
@@ -42,6 +45,7 @@ void AppSettings::setPageHeightCm(double v) {
 void AppSettings::setLeftMarginCm(double v) {
     if (!std::isfinite(v) || v < 0) v = 0;
     if (qFuzzyCompare(m_leftMarginCm, v)) return;
+    emit aboutToChange();
     m_leftMarginCm = v;
     emit leftMarginCmChanged();
     emit anyChanged();
@@ -50,6 +54,7 @@ void AppSettings::setLeftMarginCm(double v) {
 void AppSettings::setRightMarginCm(double v) {
     if (!std::isfinite(v) || v < 0) v = 0;
     if (qFuzzyCompare(m_rightMarginCm, v)) return;
+    emit aboutToChange();
     m_rightMarginCm = v;
     emit rightMarginCmChanged();
     emit anyChanged();
@@ -58,6 +63,7 @@ void AppSettings::setRightMarginCm(double v) {
 void AppSettings::setVerticalGapCm(double v) {
     if (!std::isfinite(v) || v < 0) v = 0;
     if (qFuzzyCompare(m_verticalGapCm, v)) return;
+    emit aboutToChange();
     m_verticalGapCm = v;
     emit verticalGapCmChanged();
     emit anyChanged();
@@ -66,6 +72,7 @@ void AppSettings::setVerticalGapCm(double v) {
 void AppSettings::setHxCm(double v) {
     if (!std::isfinite(v) || v < 0) v = 0;
     if (qFuzzyCompare(m_hxCm, v)) return;
+    emit aboutToChange();
     m_hxCm = v;
     emit hxCmChanged();
     emit anyChanged();
@@ -74,6 +81,7 @@ void AppSettings::setHxCm(double v) {
 void AppSettings::setHyCm(double v) {
     if (!std::isfinite(v) || v < 0) v = 0;
     if (qFuzzyCompare(m_hyCm, v)) return;
+    emit aboutToChange();
     m_hyCm = v;
     emit hyCmChanged();
     emit anyChanged();
@@ -82,6 +90,7 @@ void AppSettings::setHyCm(double v) {
 void AppSettings::setLineHeightCm(double v) {
     clampPositive(v);
     if (qFuzzyCompare(m_lineHeightCm, v)) return;
+    emit aboutToChange();
     m_lineHeightCm = v;
     emit lineHeightCmChanged();
     emit anyChanged();
@@ -90,6 +99,7 @@ void AppSettings::setLineHeightCm(double v) {
 void AppSettings::setFontUnitToCm(double v) {
     if (!std::isfinite(v) || v <= 0) v = 1e-6;
     if (qFuzzyCompare(m_fontUnitToCm, v)) return;
+    emit aboutToChange();
     m_fontUnitToCm = v;
     emit fontUnitToCmChanged();
     emit anyChanged();
@@ -98,6 +108,7 @@ void AppSettings::setFontUnitToCm(double v) {
 void AppSettings::setJoinDistMm(double v) {
     if (!std::isfinite(v) || v < 0) v = 0;
     if (qFuzzyCompare(m_joinDistMm, v)) return;
+    emit aboutToChange();
     m_joinDistMm = v;
     emit joinDistMmChanged();
     emit anyChanged();
@@ -106,6 +117,7 @@ void AppSettings::setJoinDistMm(double v) {
 void AppSettings::setXErrorMm(double v) {
     if (!std::isfinite(v) || v < 0) v = 0;
     if (qFuzzyCompare(m_xErrorMm, v)) return;
+    emit aboutToChange();
     m_xErrorMm = v;
     emit xErrorMmChanged();
     emit anyChanged();
@@ -114,6 +126,7 @@ void AppSettings::setXErrorMm(double v) {
 void AppSettings::setYErrorMm(double v) {
     if (!std::isfinite(v) || v < 0) v = 0;
     if (qFuzzyCompare(m_yErrorMm, v)) return;
+    emit aboutToChange();
     m_yErrorMm = v;
     emit yErrorMmChanged();
     emit anyChanged();
@@ -122,6 +135,7 @@ void AppSettings::setYErrorMm(double v) {
 void AppSettings::setPenUpZ(double v) {
     if (!std::isfinite(v)) v = 30.0;
     if (qFuzzyCompare(m_penUpZ, v)) return;
+    emit aboutToChange();
     m_penUpZ = v;
     emit penUpZChanged();
     emit anyChanged();
@@ -130,6 +144,7 @@ void AppSettings::setPenUpZ(double v) {
 void AppSettings::setPenDownZ(double v) {
     if (!std::isfinite(v)) v = -5.0;
     if (qFuzzyCompare(m_penDownZ, v)) return;
+    emit aboutToChange();
     m_penDownZ = v;
     emit penDownZChanged();
     emit anyChanged();
@@ -139,8 +154,10 @@ void AppSettings::setPreviewDisplayScale(double v) {
     if (!std::isfinite(v) || v < 0.25) v = 0.25;
     if (v > 3.0) v = 3.0;
     if (qFuzzyCompare(m_previewDisplayScale, v)) return;
+    emit aboutToChange();
     m_previewDisplayScale = v;
     emit previewDisplayScaleChanged();
+    emit anyChanged();
 }
 
 void AppSettings::load() {
