@@ -31,6 +31,9 @@ class AppSettings : public QObject {
     Q_PROPERTY(double grblJunctionDeviation READ grblJunctionDeviation WRITE setGrblJunctionDeviation NOTIFY grblJunctionDeviationChanged)
     Q_PROPERTY(double grblAccelX READ grblAccelX WRITE setGrblAccelX NOTIFY grblAccelXChanged)
     Q_PROPERTY(double grblAccelY READ grblAccelY WRITE setGrblAccelY NOTIFY grblAccelYChanged)
+    Q_PROPERTY(bool servoSnapMode READ servoSnapMode WRITE setServoSnapMode NOTIFY servoSnapModeChanged)
+    Q_PROPERTY(double servoUpS READ servoUpS WRITE setServoUpS NOTIFY servoUpSChanged)
+    Q_PROPERTY(double servoDownS READ servoDownS WRITE setServoDownS NOTIFY servoDownSChanged)
     Q_PROPERTY(double penUpZ READ penUpZ WRITE setPenUpZ NOTIFY penUpZChanged)
     Q_PROPERTY(double penDownZ READ penDownZ WRITE setPenDownZ NOTIFY penDownZChanged)
     Q_PROPERTY(double feedRateMmPerMin READ feedRateMmPerMin NOTIFY feedRateMmPerMinChanged)
@@ -117,6 +120,15 @@ public:
     double grblAccelY() const { return m_grblAccelY; }
     void setGrblAccelY(double v);
 
+    bool servoSnapMode() const { return m_servoSnapMode; }
+    void setServoSnapMode(bool v);
+
+    double servoUpS() const { return m_servoUpS; }
+    void setServoUpS(double v);
+
+    double servoDownS() const { return m_servoDownS; }
+    void setServoDownS(double v);
+
     double penUpZ() const { return m_penUpZ; }
     void setPenUpZ(double v);
 
@@ -158,6 +170,9 @@ signals:
     void grblJunctionDeviationChanged();
     void grblAccelXChanged();
     void grblAccelYChanged();
+    void servoSnapModeChanged();
+    void servoUpSChanged();
+    void servoDownSChanged();
     void penUpZChanged();
     void penDownZChanged();
     void feedRateMmPerMinChanged();
@@ -192,6 +207,9 @@ private:
     double m_grblJunctionDeviation = 0.03;
     double m_grblAccelX = 300.0;
     double m_grblAccelY = 300.0;
+    bool m_servoSnapMode = false;
+    double m_servoUpS = 0.0;
+    double m_servoDownS = 1000.0;
     double m_penUpZ = 30.0;
     double m_penDownZ = -5.0;
     double m_previewDisplayScale = 1.0;

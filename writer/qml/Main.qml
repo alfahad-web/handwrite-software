@@ -1354,6 +1354,39 @@ ApplicationWindow {
                                    writerController.settings.grblAccelX,
                                    writerController.settings.grblAccelY)
                 }
+                Label { text: "Servo fast toggle mode"; font.bold: true; color: root.settingsTitleColor }
+                Label {
+                    text: "Uses M3 S commands for pen up/down (faster on servo-zlink firmware) instead of Z motion."
+                    wrapMode: Text.Wrap
+                    Layout.fillWidth: true
+                    color: "#3f3f46"
+                    font.pixelSize: 11
+                }
+                CheckBox {
+                    text: "Enable servo snap mode"
+                    checked: writerController.settings.servoSnapMode
+                    onToggled: writerController.settings.servoSnapMode = checked
+                }
+                Label { text: "Servo up S value"; color: root.settingsTitleColor }
+                SpinBox {
+                    from: 0
+                    to: 100000
+                    stepSize: 1
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.servoUpS)
+                    onValueModified: writerController.settings.servoUpS = value
+                }
+                Label { text: "Servo down S value"; color: root.settingsTitleColor }
+                SpinBox {
+                    from: 0
+                    to: 100000
+                    stepSize: 1
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.servoDownS)
+                    onValueModified: writerController.settings.servoDownS = value
+                }
 
                 Label { text: "CNC / pen"; font.bold: true; color: root.settingsTitleColor }
                 Label { text: "Pen up Z (mm)"; color: root.settingsTitleColor }

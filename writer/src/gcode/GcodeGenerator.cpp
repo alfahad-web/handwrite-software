@@ -98,6 +98,9 @@ GcodeGenerateResult GcodeGenerator::generateWithPageLines(const PathBuildResult 
 
     const double penUpZ = settings->penUpZ();
     const double penDownZ = settings->penDownZ();
+    const bool servoSnapMode = settings->servoSnapMode();
+    const double servoUpS = qMax(0.0, settings->servoUpS());
+    const double servoDownS = qMax(0.0, settings->servoDownS());
     const int feed = qMax(1, int(qRound(settings->feedRateMmPerMin())));
 
     QStringList lines;
@@ -105,7 +108,10 @@ GcodeGenerateResult GcodeGenerator::generateWithPageLines(const PathBuildResult 
     lines << QStringLiteral("; Units: mm, absolute positioning");
     lines << QStringLiteral("G21");
     lines << QStringLiteral("G90");
-    lines << QStringLiteral("G0 Z%1").arg(fmtMm(penUpZ));
+    if (servoSnapMode)
+        lines << QStringLiteral("M3 S%1").arg(fmtMm(servoUpS));
+    else
+        lines << QStringLiteral("G0 Z%1").arg(fmtMm(penUpZ));
     lines << QStringLiteral("G0 X0 Y0");
     lines << QStringLiteral("F%1").arg(feed);
 
@@ -221,12 +227,18 @@ GcodeGenerateResult GcodeGenerator::generateWithPageLines(const PathBuildResult 
     };
     auto ensurePenUp = [&]() {
         if (!penIsDown) return;
-        lines << QStringLiteral("G0 Z%1").arg(fmtMm(penUpZ));
+        if (servoSnapMode)
+            lines << QStringLiteral("M3 S%1").arg(fmtMm(servoUpS));
+        else
+            lines << QStringLiteral("G0 Z%1").arg(fmtMm(penUpZ));
         penIsDown = false;
     };
     auto ensurePenDown = [&]() {
         if (penIsDown) return;
-        lines << QStringLiteral("G0 Z%1").arg(fmtMm(penDownZ));
+        if (servoSnapMode)
+            lines << QStringLiteral("M3 S%1").arg(fmtMm(servoDownS));
+        else
+            lines << QStringLiteral("G0 Z%1").arg(fmtMm(penDownZ));
         penIsDown = true;
         preloadHalfError();
     };

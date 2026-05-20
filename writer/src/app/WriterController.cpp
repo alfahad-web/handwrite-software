@@ -507,6 +507,9 @@ void WriterController::resetToEmptyProject(bool resetSettingsToDefaults) {
         m_settings->setGrblJunctionDeviation(0.03);
         m_settings->setGrblAccelX(300.0);
         m_settings->setGrblAccelY(300.0);
+        m_settings->setServoSnapMode(false);
+        m_settings->setServoUpS(0.0);
+        m_settings->setServoDownS(1000.0);
         m_settings->setPenUpZ(30.0);
         m_settings->setPenDownZ(-5.0);
         m_settings->setPreviewDisplayScale(1.0);
@@ -556,6 +559,9 @@ WriterController::HistoryState WriterController::makeHistoryState() const {
         s.grblJunctionDeviation = m_settings->grblJunctionDeviation();
         s.grblAccelX = m_settings->grblAccelX();
         s.grblAccelY = m_settings->grblAccelY();
+        s.servoSnapMode = m_settings->servoSnapMode();
+        s.servoUpS = m_settings->servoUpS();
+        s.servoDownS = m_settings->servoDownS();
         s.penUpZ = m_settings->penUpZ();
         s.penDownZ = m_settings->penDownZ();
         s.previewDisplayScale = m_settings->previewDisplayScale();
@@ -591,6 +597,9 @@ void WriterController::applySettingsSnapshot(const HistoryState &state) {
     m_settings->setGrblJunctionDeviation(state.grblJunctionDeviation);
     m_settings->setGrblAccelX(state.grblAccelX);
     m_settings->setGrblAccelY(state.grblAccelY);
+    m_settings->setServoSnapMode(state.servoSnapMode);
+    m_settings->setServoUpS(state.servoUpS);
+    m_settings->setServoDownS(state.servoDownS);
     m_settings->setPenUpZ(state.penUpZ);
     m_settings->setPenDownZ(state.penDownZ);
     m_settings->setPreviewDisplayScale(state.previewDisplayScale);

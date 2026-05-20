@@ -253,6 +253,32 @@ void AppSettings::setGrblAccelY(double v) {
     emit anyChanged();
 }
 
+void AppSettings::setServoSnapMode(bool v) {
+    if (m_servoSnapMode == v) return;
+    emit aboutToChange();
+    m_servoSnapMode = v;
+    emit servoSnapModeChanged();
+    emit anyChanged();
+}
+
+void AppSettings::setServoUpS(double v) {
+    if (!std::isfinite(v) || v < 0) v = 0;
+    if (qFuzzyCompare(m_servoUpS, v)) return;
+    emit aboutToChange();
+    m_servoUpS = v;
+    emit servoUpSChanged();
+    emit anyChanged();
+}
+
+void AppSettings::setServoDownS(double v) {
+    if (!std::isfinite(v) || v < 0) v = 0;
+    if (qFuzzyCompare(m_servoDownS, v)) return;
+    emit aboutToChange();
+    m_servoDownS = v;
+    emit servoDownSChanged();
+    emit anyChanged();
+}
+
 void AppSettings::setPenUpZ(double v) {
     if (!std::isfinite(v)) v = 30.0;
     if (qFuzzyCompare(m_penUpZ, v)) return;
@@ -310,6 +336,9 @@ void AppSettings::load() {
     setGrblJunctionDeviation(s.value("grblJunctionDeviation", m_grblJunctionDeviation).toDouble());
     setGrblAccelX(s.value("grblAccelX", m_grblAccelX).toDouble());
     setGrblAccelY(s.value("grblAccelY", m_grblAccelY).toDouble());
+    setServoSnapMode(s.value("servoSnapMode", m_servoSnapMode).toBool());
+    setServoUpS(s.value("servoUpS", m_servoUpS).toDouble());
+    setServoDownS(s.value("servoDownS", m_servoDownS).toDouble());
     setPenUpZ(s.value("penUpZ", m_penUpZ).toDouble());
     setPenDownZ(s.value("penDownZ", m_penDownZ).toDouble());
     setPreviewDisplayScale(s.value("previewDisplayScale", m_previewDisplayScale).toDouble());
@@ -345,6 +374,9 @@ void AppSettings::save() {
     s.setValue("grblJunctionDeviation", m_grblJunctionDeviation);
     s.setValue("grblAccelX", m_grblAccelX);
     s.setValue("grblAccelY", m_grblAccelY);
+    s.setValue("servoSnapMode", m_servoSnapMode);
+    s.setValue("servoUpS", m_servoUpS);
+    s.setValue("servoDownS", m_servoDownS);
     s.setValue("penUpZ", m_penUpZ);
     s.setValue("penDownZ", m_penDownZ);
     s.setValue("previewDisplayScale", m_previewDisplayScale);

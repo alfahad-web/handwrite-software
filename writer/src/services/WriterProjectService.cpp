@@ -40,6 +40,9 @@ QJsonObject settingsToJson(const AppSettings *st) {
     o.insert(QStringLiteral("grblJunctionDeviation"), st->grblJunctionDeviation());
     o.insert(QStringLiteral("grblAccelX"), st->grblAccelX());
     o.insert(QStringLiteral("grblAccelY"), st->grblAccelY());
+    o.insert(QStringLiteral("servoSnapMode"), st->servoSnapMode());
+    o.insert(QStringLiteral("servoUpS"), st->servoUpS());
+    o.insert(QStringLiteral("servoDownS"), st->servoDownS());
     o.insert(QStringLiteral("penUpZ"), st->penUpZ());
     o.insert(QStringLiteral("penDownZ"), st->penDownZ());
     o.insert(QStringLiteral("previewDisplayScale"), st->previewDisplayScale());
@@ -73,6 +76,9 @@ void applySettingsFromJson(AppSettings *st, const QJsonObject &o) {
     if (o.contains(QStringLiteral("grblJunctionDeviation"))) st->setGrblJunctionDeviation(o.value(QStringLiteral("grblJunctionDeviation")).toDouble());
     if (o.contains(QStringLiteral("grblAccelX"))) st->setGrblAccelX(o.value(QStringLiteral("grblAccelX")).toDouble());
     if (o.contains(QStringLiteral("grblAccelY"))) st->setGrblAccelY(o.value(QStringLiteral("grblAccelY")).toDouble());
+    if (o.contains(QStringLiteral("servoSnapMode"))) st->setServoSnapMode(o.value(QStringLiteral("servoSnapMode")).toBool());
+    if (o.contains(QStringLiteral("servoUpS"))) st->setServoUpS(o.value(QStringLiteral("servoUpS")).toDouble());
+    if (o.contains(QStringLiteral("servoDownS"))) st->setServoDownS(o.value(QStringLiteral("servoDownS")).toDouble());
     if (o.contains(QStringLiteral("penUpZ"))) st->setPenUpZ(o.value(QStringLiteral("penUpZ")).toDouble());
     if (o.contains(QStringLiteral("penDownZ"))) st->setPenDownZ(o.value(QStringLiteral("penDownZ")).toDouble());
     if (o.contains(QStringLiteral("previewDisplayScale"))) st->setPreviewDisplayScale(o.value(QStringLiteral("previewDisplayScale")).toDouble());

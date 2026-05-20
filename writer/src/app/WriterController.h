@@ -163,6 +163,9 @@ private:
         double grblJunctionDeviation = 0.03;
         double grblAccelX = 300.0;
         double grblAccelY = 300.0;
+        bool servoSnapMode = false;
+        double servoUpS = 0.0;
+        double servoDownS = 1000.0;
         double penUpZ = 30.0;
         double penDownZ = -5.0;
         double previewDisplayScale = 1.0;
