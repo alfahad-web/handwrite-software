@@ -18,10 +18,21 @@ namespace {
 constexpr const char *kG = "WriterQt";
 constexpr const char *kPortKey = "lastSerialPort";
 constexpr int kMaxCommandHistory = 200;
+constexpr int kRxBufferCapacityBytes = 128;
 }
 
 bool GrblConnection::commandBlocked() const {
     return m_machineState == QLatin1String("Hold") || m_machineState == QLatin1String("Alarm");
+}
+
+void GrblConnection::setStreamingPreset(const QString &preset) {
+    const QString normalized = preset.trimmed().toLower();
+    if (normalized == QLatin1String("safe"))
+        m_rxHeadroomBytes = 24;
+    else if (normalized == QLatin1String("fast"))
+        m_rxHeadroomBytes = 4;
+    else
+        m_rxHeadroomBytes = 12;
 }
 
 bool GrblConnection::serialAvailable() const {
@@ -300,6 +311,28 @@ void GrblConnection::setWorkOriginHere() {
     sendLine(QStringLiteral("G92 X0 Y0 Z30"));
 }
 
+void GrblConnection::applyMotionTuning(double junctionDeviation, double accelX, double accelY) {
+    if (!m_connected) {
+        appendLog(QStringLiteral("Not connected — cannot apply motion tuning."));
+        return;
+    }
+    if (m_waking) {
+        appendLog(QStringLiteral("Still waking GRBL — try again."));
+        return;
+    }
+    const double jd = qMax(0.0, junctionDeviation);
+    const double ax = qMax(0.0, accelX);
+    const double ay = qMax(0.0, accelY);
+    sendLine(QStringLiteral("$11=%1").arg(QString::number(jd, 'f', 3)));
+    sendLine(QStringLiteral("$120=%1").arg(QString::number(ax, 'f', 3)));
+    sendLine(QStringLiteral("$121=%1").arg(QString::number(ay, 'f', 3)));
+    appendLog(QStringLiteral("Applied motion tuning: $11=%1, $120=%2, $121=%3")
+                  .arg(QString::number(jd, 'f', 3),
+                       QString::number(ax, 'f', 3),
+                       QString::number(ay, 'f', 3)),
+              true);
+}
+
 bool GrblConnection::writeRaw(const QByteArray &data) {
 #ifdef WRITER_HAS_SERIALPORT
     return m_serial.isOpen() && m_serial.write(data) == data.size();
@@ -408,6 +441,8 @@ bool GrblConnection::connectPort() {
     m_waking = true;
     m_waitingOk = false;
     m_sendQueue.clear();
+    m_streamInflightLineBytes.clear();
+    m_streamInflightBytes = 0;
     m_readBuffer.clear();
     writeRaw("\r\n\r\n");
     m_wakeTimer.start(2000);
@@ -431,6 +466,9 @@ void GrblConnection::disconnectPort() {
     m_connected = false;
     m_waking = false;
     m_waitingOk = false;
+    m_streamInflightLineBytes.clear();
+    m_streamInflightBytes = 0;
+    m_streamSent = 0;
     m_sendQueue.clear();
     m_readBuffer.clear();
     m_statusTimer.stop();
@@ -546,7 +584,10 @@ void GrblConnection::streamProgram(const QString &program) {
 
     m_streaming = true;
     m_streamIndex = 0;
+    m_streamSent = 0;
     m_streamTotal = m_streamLines.size();
+    m_streamInflightBytes = 0;
+    m_streamInflightLineBytes.clear();
     m_streamProgress = 0.0;
     emit streamingChanged();
     emit streamProgressChanged();
@@ -559,7 +600,10 @@ void GrblConnection::clearHostStreamState(bool emitStreamFinished, bool success)
     m_streaming = false;
     m_streamLines.clear();
     m_streamIndex = 0;
+    m_streamSent = 0;
     m_streamTotal = 0;
+    m_streamInflightBytes = 0;
+    m_streamInflightLineBytes.clear();
     m_streamProgress = 0.0;
     m_sendQueue.clear();
     m_waitingOk = false;
@@ -582,7 +626,8 @@ void GrblConnection::abortStreamAndRecover() {
     }
 
     const bool wasStreaming = m_streaming;
-    const bool hadActivity = wasStreaming || m_waitingOk || !m_sendQueue.isEmpty();
+    const bool hadActivity = wasStreaming || m_waitingOk || !m_sendQueue.isEmpty()
+                             || !m_streamInflightLineBytes.isEmpty();
     if (hadActivity) {
         writeRaw("!");
         appendLog(QStringLiteral("[feed hold before recover]"), false);
@@ -613,18 +658,27 @@ void GrblConnection::onRecoverTimer() {
 }
 
 void GrblConnection::trySendNext() {
-    if (!m_connected || m_waking || m_waitingOk) return;
+    if (!m_connected || m_waking) return;
 
-    QString line;
-    if (m_streaming && m_streamIndex < m_streamLines.size()) {
-        line = m_streamLines.at(m_streamIndex);
-    } else if (!m_sendQueue.isEmpty()) {
-        line = m_sendQueue.takeFirst();
-    } else {
-        if (m_streaming) finishStream(true);
+    if (m_streaming) {
+        while (m_streamSent < m_streamLines.size()) {
+            const QString &line = m_streamLines.at(m_streamSent);
+            const QByteArray payload = (line + QLatin1Char('\n')).toUtf8();
+            const int bytes = payload.size();
+            if (m_streamInflightBytes + bytes > (kRxBufferCapacityBytes - m_rxHeadroomBytes))
+                break;
+            writeRaw(payload);
+            m_streamInflightBytes += bytes;
+            m_streamInflightLineBytes.append(bytes);
+            ++m_streamSent;
+        }
+        if (m_streamSent >= m_streamTotal && m_streamInflightLineBytes.isEmpty())
+            finishStream(true);
         return;
     }
 
+    if (m_waitingOk || m_sendQueue.isEmpty()) return;
+    const QString line = m_sendQueue.takeFirst();
     m_waitingOk = true;
     writeRaw((line + QLatin1Char('\n')).toUtf8());
 }
@@ -633,13 +687,17 @@ void GrblConnection::finishStream(bool success) {
     m_streaming = false;
     m_streamLines.clear();
     m_streamIndex = 0;
+    m_streamSent = 0;
     m_streamTotal = 0;
+    m_streamInflightBytes = 0;
+    m_streamInflightLineBytes.clear();
     m_streamProgress = 1.0;
     emit streamingChanged();
     emit streamProgressChanged();
     appendLog(success ? QStringLiteral("Stream finished.") : QStringLiteral("Stream failed."),
               true);
     emit streamFinished(success);
+    trySendNext();
 }
 
 void GrblConnection::processIncomingData() {
@@ -676,23 +734,30 @@ void GrblConnection::processIncomingData() {
         const bool isError = line.startsWith(QLatin1String("error"), Qt::CaseInsensitive)
                              || line.startsWith(QLatin1String("ALARM"), Qt::CaseInsensitive);
 
-        if (m_waitingOk && (isOk || isError)) {
-            m_waitingOk = false;
-            if (isError) {
-                m_pendingOriginZero = false;
-                if (m_streaming) {
+        if (isOk || isError) {
+            if (m_streaming) {
+                if (!m_streamInflightLineBytes.isEmpty()) {
+                    m_streamInflightBytes = qMax(0, m_streamInflightBytes - m_streamInflightLineBytes.takeFirst());
+                }
+                if (isError) {
+                    m_pendingOriginZero = false;
                     finishStream(false);
                     return;
                 }
-            } else if (m_pendingOriginZero) {
-                m_pendingOriginZero = false;
-                applyOriginZero();
-                writeRaw("?");
-            }
-            if (m_streaming && isOk) {
                 ++m_streamIndex;
                 m_streamProgress = m_streamTotal > 0 ? double(m_streamIndex) / m_streamTotal : 1.0;
                 emit streamProgressChanged();
+            } else if (m_waitingOk) {
+                m_waitingOk = false;
+                if (isError) {
+                    m_pendingOriginZero = false;
+                }
+            }
+
+            if (isOk && m_pendingOriginZero) {
+                m_pendingOriginZero = false;
+                applyOriginZero();
+                writeRaw("?");
             }
             trySendNext();
         }
@@ -791,6 +856,10 @@ void GrblConnection::sendRealtimeCommand(const QString &) {
 }
 
 void GrblConnection::setWorkOriginHere() {
+    logMessage(QStringLiteral("Serial not available."));
+}
+
+void GrblConnection::applyMotionTuning(double, double, double) {
     logMessage(QStringLiteral("Serial not available."));
 }
 

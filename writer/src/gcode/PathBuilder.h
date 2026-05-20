@@ -4,6 +4,7 @@
 #include <QVector>
 
 #include "layout/LayoutEngine.h"
+class AppSettings;
 
 struct PathSegment {
     bool travel = false;
@@ -31,8 +32,8 @@ class WriterController;
 
 class PathBuilder {
 public:
-    static PathBuildResult build(const LayoutResult &layout);
-    static PathBuildWithPageMap buildWithPageMap(const LayoutResult &layout);
+    static PathBuildResult build(const LayoutResult &layout, const AppSettings *settings = nullptr);
+    static PathBuildWithPageMap buildWithPageMap(const LayoutResult &layout, const AppSettings *settings = nullptr);
     static PathBuildResult buildFromController(WriterController *ctrl);
     static PathBuildWithPageMap buildWithPageMapFromController(WriterController *ctrl);
 

@@ -1243,6 +1243,118 @@ ApplicationWindow {
                     onValueModified: writerController.settings.yErrorMm = value / 10.0
                 }
 
+                Label { text: "Path simplification"; font.bold: true; color: root.settingsTitleColor }
+                Label {
+                    text: "Speeds up writing by reducing tiny/collinear points before G-code generation."
+                    wrapMode: Text.Wrap
+                    Layout.fillWidth: true
+                    color: "#3f3f46"
+                    font.pixelSize: 11
+                }
+                Label { text: "Simplify tolerance (mm, actual = entered/100)"; color: root.settingsTitleColor }
+                SpinBox {
+                    from: 0
+                    to: 100
+                    stepSize: 1
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.simplifyToleranceMm * 100)
+                    onValueModified: writerController.settings.simplifyToleranceMm = value / 100.0
+                }
+                Label { text: "Min segment length (mm, actual = entered/100)"; color: root.settingsTitleColor }
+                SpinBox {
+                    from: 0
+                    to: 100
+                    stepSize: 1
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.minSegmentMm * 100)
+                    onValueModified: writerController.settings.minSegmentMm = value / 100.0
+                }
+                Label { text: "Collinear tolerance (mm, actual = entered/100)"; color: root.settingsTitleColor }
+                SpinBox {
+                    from: 0
+                    to: 100
+                    stepSize: 1
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.collinearToleranceMm * 100)
+                    onValueModified: writerController.settings.collinearToleranceMm = value / 100.0
+                }
+                Label { text: "Streaming preset"; color: root.settingsTitleColor }
+                ComboBox {
+                    Layout.fillWidth: true
+                    model: ["safe", "balanced", "fast"]
+                    currentIndex: {
+                        const p = writerController.settings.streamingPreset
+                        const idx = model.indexOf(p)
+                        return idx >= 0 ? idx : 1
+                    }
+                    onActivated: writerController.settings.streamingPreset = currentText
+                }
+                Label { text: "Arc fitting (G2/G3)"; color: root.settingsTitleColor }
+                CheckBox {
+                    text: "Enable arc fit (disabled automatically while backlash compensation is active)"
+                    checked: writerController.settings.arcFitEnabled
+                    onToggled: writerController.settings.arcFitEnabled = checked
+                }
+                Label { text: "Arc fit tolerance (mm, actual = entered/100)"; color: root.settingsTitleColor }
+                SpinBox {
+                    from: 0
+                    to: 100
+                    stepSize: 1
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.arcFitToleranceMm * 100)
+                    onValueModified: writerController.settings.arcFitToleranceMm = value / 100.0
+                }
+                Label { text: "Machine tuning protocol"; font.bold: true; color: root.settingsTitleColor }
+                Label {
+                    text: "Tune GRBL short-segment dynamics for handwriting. Start conservative, test, then increase acceleration gradually."
+                    wrapMode: Text.Wrap
+                    Layout.fillWidth: true
+                    color: "#3f3f46"
+                    font.pixelSize: 11
+                }
+                Label { text: "Junction deviation $11"; color: root.settingsTitleColor }
+                SpinBox {
+                    from: 0
+                    to: 200
+                    stepSize: 1
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.grblJunctionDeviation * 1000)
+                    onValueModified: writerController.settings.grblJunctionDeviation = value / 1000.0
+                }
+                Label { text: "Acceleration X $120 (mm/s^2)"; color: root.settingsTitleColor }
+                SpinBox {
+                    from: 0
+                    to: 200000
+                    stepSize: 1
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.grblAccelX * 10)
+                    onValueModified: writerController.settings.grblAccelX = value / 10.0
+                }
+                Label { text: "Acceleration Y $121 (mm/s^2)"; color: root.settingsTitleColor }
+                SpinBox {
+                    from: 0
+                    to: 200000
+                    stepSize: 1
+                    editable: true
+                    wheelEnabled: true
+                    value: Math.round(writerController.settings.grblAccelY * 10)
+                    onValueModified: writerController.settings.grblAccelY = value / 10.0
+                }
+                Button {
+                    text: "Apply tuning to GRBL ($11/$120/$121)"
+                    enabled: grblConnection.connected && !grblConnection.streaming
+                    onClicked: grblConnection.applyMotionTuning(
+                                   writerController.settings.grblJunctionDeviation,
+                                   writerController.settings.grblAccelX,
+                                   writerController.settings.grblAccelY)
+                }
+
                 Label { text: "CNC / pen"; font.bold: true; color: root.settingsTitleColor }
                 Label { text: "Pen up Z (mm)"; color: root.settingsTitleColor }
                 SpinBox {

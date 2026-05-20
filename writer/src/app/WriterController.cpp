@@ -44,6 +44,7 @@ WriterController::WriterController(QObject *parent) : QObject(parent) {
     m_gcode = new GcodeController(this, this);
     m_grbl = new GrblConnection(this);
     m_settings->load();
+    m_grbl->setStreamingPreset(m_settings->streamingPreset());
     m_lastDocumentText = m_document->text();
     connect(m_document, &DocumentModel::textAboutToChange, this, [this]() {
         pushUndoState();
@@ -55,6 +56,10 @@ WriterController::WriterController(QObject *parent) : QObject(parent) {
     connect(m_settings, &AppSettings::anyChanged, this, [this]() {
         emit layoutInvalidated();
         bumpDirty();
+    });
+    connect(m_settings, &AppSettings::streamingPresetChanged, this, [this]() {
+        if (m_grbl && m_settings)
+            m_grbl->setStreamingPreset(m_settings->streamingPreset());
     });
     connect(m_grbl, &GrblConnection::streamFinished, this, [this](bool success) {
         if (!m_runActive) return;
@@ -226,6 +231,28 @@ double WriterController::pageEndDistance(int page) const {
     return m_pathPageMap.totalLengthCm;
 }
 
+QVariantMap WriterController::pageBenchmark(int page) const {
+    QVariantMap out;
+    if (!m_settings || !m_gcode) return out;
+    const int clampedPage = qMax(0, page);
+    const double distanceCm = qMax(0.0, pageEndDistance(clampedPage) - pageStartDistance(clampedPage));
+    const double feedCmPerS = qMax(1e-6, m_settings->feedRateCmPerS());
+    const double estimatedSec = distanceCm / feedCmPerS;
+    const QString pageGcode = m_gcode->gcodeForPageRange(clampedPage, clampedPage + 1);
+    int lineCount = 0;
+    const QStringList raw = pageGcode.split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+    for (const QString &line : raw) {
+        const QString trimmed = line.trimmed();
+        if (trimmed.isEmpty() || trimmed.startsWith(QLatin1Char(';'))) continue;
+        ++lineCount;
+    }
+    out.insert(QStringLiteral("page"), clampedPage);
+    out.insert(QStringLiteral("distanceCm"), distanceCm);
+    out.insert(QStringLiteral("estimatedSec"), estimatedSec);
+    out.insert(QStringLiteral("lineCount"), lineCount);
+    return out;
+}
+
 void WriterController::setRunArmed(bool armed) {
     if (m_runArmed == armed) return;
     m_runArmed = armed;
@@ -280,11 +307,13 @@ void WriterController::startRun() {
     m_deferGrblStream = false;
     m_pageLocalGrblStream = false;
     m_pendingGrblSlice.clear();
+    m_currentPageBenchmarkLineCount = 0;
     if (m_grbl->connected()) {
         if (!m_gcode->regeneratePage(m_executingPage)) {
             m_grbl->logMessage(QStringLiteral("No strokes on selected page."));
             return;
         }
+        m_currentPageBenchmarkLineCount = m_gcode ? m_gcode->pageProgramLineCount(0) : 0;
         m_pendingGrblSlice = m_gcode->generatedGcode();
         m_deferGrblStream = true;
         m_pageLocalGrblStream = true;
@@ -299,6 +328,7 @@ void WriterController::startRun() {
     setRunArmed(false);
     m_runPaused = false;
     m_runActive = true;
+    m_pageRunTimer.start();
     emit runActiveChanged();
 }
 
@@ -329,10 +359,24 @@ void WriterController::finishPageRun() {
 
     const bool hadPause = m_runPaused;
     const bool wasActive = m_runActive;
+    const qint64 elapsedMs = m_pageRunTimer.isValid() ? m_pageRunTimer.elapsed() : -1;
     m_runActive = false;
     m_runPaused = false;
     if (hadPause) emit runPausedChanged();
     if (wasActive) emit runActiveChanged();
+
+    if (m_grbl->connected()) {
+        const double distanceCm = qMax(0.0, m_runEndDistanceCm - m_runStartDistanceCm);
+        const double estSec = m_settings ? distanceCm / qMax(1e-6, m_settings->feedRateCmPerS()) : 0.0;
+        const double actualSec = elapsedMs >= 0 ? double(elapsedMs) / 1000.0 : 0.0;
+        m_grbl->logMessage(
+            QStringLiteral("Page %1 benchmark — lines=%2 distance=%3cm est=%4s actual=%5s")
+                .arg(m_executingPage)
+                .arg(m_currentPageBenchmarkLineCount)
+                .arg(distanceCm, 0, 'f', 3)
+                .arg(estSec, 0, 'f', 1)
+                .arg(actualSec, 0, 'f', 1));
+    }
 
     if (nextPage < m_pathPageMap.pageCount) {
         m_runStartPage = nextPage;
@@ -454,6 +498,15 @@ void WriterController::resetToEmptyProject(bool resetSettingsToDefaults) {
         m_settings->setXErrorMm(0.0);
         m_settings->setYErrorNearMm(0.0);
         m_settings->setYErrorMm(0.0);
+        m_settings->setSimplifyToleranceMm(0.0);
+        m_settings->setMinSegmentMm(0.05);
+        m_settings->setCollinearToleranceMm(0.02);
+        m_settings->setStreamingPreset(QStringLiteral("balanced"));
+        m_settings->setArcFitEnabled(false);
+        m_settings->setArcFitToleranceMm(0.05);
+        m_settings->setGrblJunctionDeviation(0.03);
+        m_settings->setGrblAccelX(300.0);
+        m_settings->setGrblAccelY(300.0);
         m_settings->setPenUpZ(30.0);
         m_settings->setPenDownZ(-5.0);
         m_settings->setPreviewDisplayScale(1.0);
@@ -494,6 +547,15 @@ WriterController::HistoryState WriterController::makeHistoryState() const {
         s.xErrorMm = m_settings->xErrorMm();
         s.yErrorNearMm = m_settings->yErrorNearMm();
         s.yErrorMm = m_settings->yErrorMm();
+        s.simplifyToleranceMm = m_settings->simplifyToleranceMm();
+        s.minSegmentMm = m_settings->minSegmentMm();
+        s.collinearToleranceMm = m_settings->collinearToleranceMm();
+        s.streamingPreset = m_settings->streamingPreset();
+        s.arcFitEnabled = m_settings->arcFitEnabled();
+        s.arcFitToleranceMm = m_settings->arcFitToleranceMm();
+        s.grblJunctionDeviation = m_settings->grblJunctionDeviation();
+        s.grblAccelX = m_settings->grblAccelX();
+        s.grblAccelY = m_settings->grblAccelY();
         s.penUpZ = m_settings->penUpZ();
         s.penDownZ = m_settings->penDownZ();
         s.previewDisplayScale = m_settings->previewDisplayScale();
@@ -520,6 +582,15 @@ void WriterController::applySettingsSnapshot(const HistoryState &state) {
     m_settings->setXErrorMm(state.xErrorMm);
     m_settings->setYErrorNearMm(state.yErrorNearMm);
     m_settings->setYErrorMm(state.yErrorMm);
+    m_settings->setSimplifyToleranceMm(state.simplifyToleranceMm);
+    m_settings->setMinSegmentMm(state.minSegmentMm);
+    m_settings->setCollinearToleranceMm(state.collinearToleranceMm);
+    m_settings->setStreamingPreset(state.streamingPreset);
+    m_settings->setArcFitEnabled(state.arcFitEnabled);
+    m_settings->setArcFitToleranceMm(state.arcFitToleranceMm);
+    m_settings->setGrblJunctionDeviation(state.grblJunctionDeviation);
+    m_settings->setGrblAccelX(state.grblAccelX);
+    m_settings->setGrblAccelY(state.grblAccelY);
     m_settings->setPenUpZ(state.penUpZ);
     m_settings->setPenDownZ(state.penDownZ);
     m_settings->setPreviewDisplayScale(state.previewDisplayScale);

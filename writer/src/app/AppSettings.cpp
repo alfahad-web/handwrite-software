@@ -168,6 +168,91 @@ void AppSettings::setYErrorMm(double v) {
     emit anyChanged();
 }
 
+void AppSettings::setSimplifyToleranceMm(double v) {
+    if (!std::isfinite(v) || v < 0) v = 0;
+    if (qFuzzyCompare(m_simplifyToleranceMm, v)) return;
+    emit aboutToChange();
+    m_simplifyToleranceMm = v;
+    emit simplifyToleranceMmChanged();
+    emit anyChanged();
+}
+
+void AppSettings::setMinSegmentMm(double v) {
+    if (!std::isfinite(v) || v < 0) v = 0;
+    if (qFuzzyCompare(m_minSegmentMm, v)) return;
+    emit aboutToChange();
+    m_minSegmentMm = v;
+    emit minSegmentMmChanged();
+    emit anyChanged();
+}
+
+void AppSettings::setCollinearToleranceMm(double v) {
+    if (!std::isfinite(v) || v < 0) v = 0;
+    if (qFuzzyCompare(m_collinearToleranceMm, v)) return;
+    emit aboutToChange();
+    m_collinearToleranceMm = v;
+    emit collinearToleranceMmChanged();
+    emit anyChanged();
+}
+
+void AppSettings::setStreamingPreset(const QString &v) {
+    QString normalized = v.trimmed().toLower();
+    if (normalized != QLatin1String("safe")
+        && normalized != QLatin1String("balanced")
+        && normalized != QLatin1String("fast")) {
+        normalized = QStringLiteral("balanced");
+    }
+    if (m_streamingPreset == normalized) return;
+    emit aboutToChange();
+    m_streamingPreset = normalized;
+    emit streamingPresetChanged();
+    emit anyChanged();
+}
+
+void AppSettings::setArcFitEnabled(bool v) {
+    if (m_arcFitEnabled == v) return;
+    emit aboutToChange();
+    m_arcFitEnabled = v;
+    emit arcFitEnabledChanged();
+    emit anyChanged();
+}
+
+void AppSettings::setArcFitToleranceMm(double v) {
+    if (!std::isfinite(v) || v < 0) v = 0;
+    if (qFuzzyCompare(m_arcFitToleranceMm, v)) return;
+    emit aboutToChange();
+    m_arcFitToleranceMm = v;
+    emit arcFitToleranceMmChanged();
+    emit anyChanged();
+}
+
+void AppSettings::setGrblJunctionDeviation(double v) {
+    if (!std::isfinite(v) || v < 0) v = 0;
+    if (qFuzzyCompare(m_grblJunctionDeviation, v)) return;
+    emit aboutToChange();
+    m_grblJunctionDeviation = v;
+    emit grblJunctionDeviationChanged();
+    emit anyChanged();
+}
+
+void AppSettings::setGrblAccelX(double v) {
+    if (!std::isfinite(v) || v < 0) v = 0;
+    if (qFuzzyCompare(m_grblAccelX, v)) return;
+    emit aboutToChange();
+    m_grblAccelX = v;
+    emit grblAccelXChanged();
+    emit anyChanged();
+}
+
+void AppSettings::setGrblAccelY(double v) {
+    if (!std::isfinite(v) || v < 0) v = 0;
+    if (qFuzzyCompare(m_grblAccelY, v)) return;
+    emit aboutToChange();
+    m_grblAccelY = v;
+    emit grblAccelYChanged();
+    emit anyChanged();
+}
+
 void AppSettings::setPenUpZ(double v) {
     if (!std::isfinite(v)) v = 30.0;
     if (qFuzzyCompare(m_penUpZ, v)) return;
@@ -216,6 +301,15 @@ void AppSettings::load() {
     setXErrorMm(s.value("xErrorMm", m_xErrorMm).toDouble());
     setYErrorNearMm(s.value("yErrorNearMm", m_yErrorNearMm).toDouble());
     setYErrorMm(s.value("yErrorMm", m_yErrorMm).toDouble());
+    setSimplifyToleranceMm(s.value("simplifyToleranceMm", m_simplifyToleranceMm).toDouble());
+    setMinSegmentMm(s.value("minSegmentMm", m_minSegmentMm).toDouble());
+    setCollinearToleranceMm(s.value("collinearToleranceMm", m_collinearToleranceMm).toDouble());
+    setStreamingPreset(s.value("streamingPreset", m_streamingPreset).toString());
+    setArcFitEnabled(s.value("arcFitEnabled", m_arcFitEnabled).toBool());
+    setArcFitToleranceMm(s.value("arcFitToleranceMm", m_arcFitToleranceMm).toDouble());
+    setGrblJunctionDeviation(s.value("grblJunctionDeviation", m_grblJunctionDeviation).toDouble());
+    setGrblAccelX(s.value("grblAccelX", m_grblAccelX).toDouble());
+    setGrblAccelY(s.value("grblAccelY", m_grblAccelY).toDouble());
     setPenUpZ(s.value("penUpZ", m_penUpZ).toDouble());
     setPenDownZ(s.value("penDownZ", m_penDownZ).toDouble());
     setPreviewDisplayScale(s.value("previewDisplayScale", m_previewDisplayScale).toDouble());
@@ -242,6 +336,15 @@ void AppSettings::save() {
     s.setValue("xErrorMm", m_xErrorMm);
     s.setValue("yErrorNearMm", m_yErrorNearMm);
     s.setValue("yErrorMm", m_yErrorMm);
+    s.setValue("simplifyToleranceMm", m_simplifyToleranceMm);
+    s.setValue("minSegmentMm", m_minSegmentMm);
+    s.setValue("collinearToleranceMm", m_collinearToleranceMm);
+    s.setValue("streamingPreset", m_streamingPreset);
+    s.setValue("arcFitEnabled", m_arcFitEnabled);
+    s.setValue("arcFitToleranceMm", m_arcFitToleranceMm);
+    s.setValue("grblJunctionDeviation", m_grblJunctionDeviation);
+    s.setValue("grblAccelX", m_grblAccelX);
+    s.setValue("grblAccelY", m_grblAccelY);
     s.setValue("penUpZ", m_penUpZ);
     s.setValue("penDownZ", m_penDownZ);
     s.setValue("previewDisplayScale", m_previewDisplayScale);

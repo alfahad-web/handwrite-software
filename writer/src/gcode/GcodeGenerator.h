@@ -9,6 +9,7 @@
 struct GcodeGenerateResult {
     QString gcode;
     QVector<int> pageLineStart;
+    QVector<int> pageLineCount;
     int pageCount = 0;
 };
 

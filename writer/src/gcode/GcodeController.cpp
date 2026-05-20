@@ -10,6 +10,20 @@
 #include <QGuiApplication>
 #include <QClipboard>
 
+namespace {
+int countProgramLines(const QString &gcode) {
+    int count = 0;
+    const QStringList raw = gcode.split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+    for (const QString &line : raw) {
+        const QString trimmed = line.trimmed();
+        if (trimmed.isEmpty() || trimmed.startsWith(QLatin1Char(';')))
+            continue;
+        ++count;
+    }
+    return count;
+}
+}
+
 GcodeController::GcodeController(WriterController *writer, QObject *parent)
     : QObject(parent), m_writer(writer) {
     if (m_writer) {
@@ -27,13 +41,13 @@ void GcodeController::regenerate() {
     if (!m_writer) {
         setGeneratedGcode(QStringLiteral("; No document\n"));
         setGcodeStale(true);
-        setPageLineMap({}, 0);
+        setPageLineMap({}, {}, 0);
         return;
     }
     const PathBuildResult path = PathBuilder::buildFromController(m_writer);
     const GcodeGenerateResult gen = GcodeGenerator::generateWithPageLines(path, m_writer->settings());
     setGeneratedGcode(gen.gcode);
-    setPageLineMap(gen.pageLineStart, gen.pageCount);
+    setPageLineMap(gen.pageLineStart, gen.pageLineCount, gen.pageCount);
     setGcodeStale(false);
 }
 
@@ -65,6 +79,7 @@ bool GcodeController::regeneratePage(int pageIndex) {
     const QString pageGcode =
         GcodeGenerator::generateSinglePage(path, clampedPage, m_writer->settings());
     setGeneratedGcode(pageGcode);
+    setPageLineMap({7}, {countProgramLines(pageGcode)}, 1);
     setGcodeStale(false);
     return !pageGcode.startsWith(QLatin1String("; No strokes on page"));
 }
@@ -77,7 +92,7 @@ void GcodeController::copyToClipboard() {
 void GcodeController::setGcodeText(const QString &gcode) {
     setGeneratedGcode(gcode);
     setGcodeStale(false);
-    setPageLineMap({}, 0);
+    setPageLineMap({}, {}, 0);
 }
 
 void GcodeController::openGcodeFile() {
@@ -120,8 +135,14 @@ void GcodeController::setGcodeStale(bool stale) {
     emit gcodeStaleChanged();
 }
 
-void GcodeController::setPageLineMap(const QVector<int> &starts, int pageCount) {
+int GcodeController::pageProgramLineCount(int pageIndex) const {
+    if (pageIndex < 0 || pageIndex >= m_pageLineCount.size()) return 0;
+    return m_pageLineCount.at(pageIndex);
+}
+
+void GcodeController::setPageLineMap(const QVector<int> &starts, const QVector<int> &counts, int pageCount) {
     m_pageLineStart = starts;
+    m_pageLineCount = counts;
     m_pageCount = pageCount;
     emit pageLineMapChanged();
 }

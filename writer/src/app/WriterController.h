@@ -5,6 +5,8 @@
 #include <QPointF>
 #include <QString>
 #include <QVector>
+#include <QElapsedTimer>
+#include <QVariantMap>
 
 #include "AppSettings.h"
 #include "DocumentModel.h"
@@ -101,6 +103,7 @@ public:
     Q_INVOKABLE void saveWriterProject();
     Q_INVOKABLE void saveWriterProjectAs();
     Q_INVOKABLE bool loadWriterProjectFromPath(const QString &path);
+    Q_INVOKABLE QVariantMap pageBenchmark(int page) const;
 
     void markSaved();
     void resetToEmptyProject(bool resetSettingsToDefaults);
@@ -151,6 +154,15 @@ private:
         double xErrorMm = 0.0;
         double yErrorNearMm = 0.0;
         double yErrorMm = 0.0;
+        double simplifyToleranceMm = 0.0;
+        double minSegmentMm = 0.05;
+        double collinearToleranceMm = 0.02;
+        QString streamingPreset = QStringLiteral("balanced");
+        bool arcFitEnabled = false;
+        double arcFitToleranceMm = 0.05;
+        double grblJunctionDeviation = 0.03;
+        double grblAccelX = 300.0;
+        double grblAccelY = 300.0;
         double penUpZ = 30.0;
         double penDownZ = -5.0;
         double previewDisplayScale = 1.0;
@@ -197,6 +209,8 @@ private:
     bool m_deferGrblStream = false;
     bool m_pageLocalGrblStream = false;
     bool m_waitingMachineIdleAfterPage = false;
+    QElapsedTimer m_pageRunTimer;
+    int m_currentPageBenchmarkLineCount = 0;
     QString m_pendingGrblSlice;
     PathPageMap m_pathPageMap;
     bool m_wasLineHeightExceeding = false;

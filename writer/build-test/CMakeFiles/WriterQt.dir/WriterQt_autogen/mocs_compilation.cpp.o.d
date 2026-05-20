@@ -303,12 +303,12 @@ CMakeFiles/WriterQt.dir/WriterQt_autogen/mocs_compilation.cpp.o: \
  /usr/include/qt6/QtCore/qobject_impl.h \
  /usr/include/qt6/QtCore/qbindingstorage.h /usr/include/c++/16.1.1/chrono \
  /usr/include/c++/16.1.1/bits/chrono.h /usr/include/c++/16.1.1/ratio \
- /usr/include/c++/16.1.1/ctime /usr/include/qt6/QtCore/qtmochelpers.h \
+ /usr/include/c++/16.1.1/ctime /usr/include/qt6/QtCore/QString \
+ /usr/include/qt6/QtCore/qtmochelpers.h \
  /usr/include/qt6/QtCore/qtmocconstants.h \
  /usr/include/qt6/QtCore/q20algorithm.h \
  /mnt/shared/handwrite-software/writer/build-test/WriterQt_autogen/ISMKEKEPX5/moc_DocumentModel.cpp \
  /mnt/shared/handwrite-software/writer/build-test/WriterQt_autogen/ISMKEKEPX5/../../../src/app/DocumentModel.h \
- /usr/include/qt6/QtCore/QString \
  /mnt/shared/handwrite-software/writer/build-test/WriterQt_autogen/ISMKEKEPX5/moc_WriterController.cpp \
  /mnt/shared/handwrite-software/writer/build-test/WriterQt_autogen/ISMKEKEPX5/../../../src/app/WriterController.h \
  /usr/include/qt6/QtCore/QHash /usr/include/qt6/QtCore/qhash.h \
@@ -316,14 +316,35 @@ CMakeFiles/WriterQt.dir/WriterQt_autogen/mocs_compilation.cpp.o: \
  /usr/include/qt6/QtCore/qcheckedint_impl.h \
  /usr/include/qt6/QtCore/q23utility.h \
  /usr/include/qt6/QtCore/q20utility.h /usr/include/qt6/QtCore/QVector \
- /usr/include/qt6/QtCore/qvector.h \
+ /usr/include/qt6/QtCore/qvector.h /usr/include/qt6/QtCore/QElapsedTimer \
+ /usr/include/qt6/QtCore/qelapsedtimer.h \
+ /usr/include/qt6/QtCore/QVariantMap \
+ /usr/include/qt6/QtCore/qvariantmap.h /usr/include/qt6/QtCore/QMap \
+ /usr/include/qt6/QtCore/qmap.h /usr/include/qt6/QtCore/qshareddata.h \
+ /usr/include/qt6/QtCore/qshareddata_impl.h \
+ /usr/include/qt6/QtCore/QVariant /usr/include/qt6/QtCore/qvariant.h \
+ /usr/include/qt6/QtCore/qdebug.h /usr/include/qt6/QtCore/qtextstream.h \
+ /usr/include/qt6/QtCore/qcontiguouscache.h \
+ /usr/include/c++/16.1.1/climits \
+ /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include/limits.h \
+ /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include/syslimits.h \
+ /usr/include/limits.h /usr/include/bits/posix1_lim.h \
+ /usr/include/bits/local_lim.h /usr/include/linux/limits.h \
+ /usr/include/bits/posix2_lim.h /usr/include/bits/xopen_lim.h \
+ /usr/include/bits/uio_lim.h /usr/include/qt6/QtCore/qsharedpointer.h \
+ /usr/include/qt6/QtCore/qsharedpointer_impl.h \
+ /usr/include/c++/16.1.1/set /usr/include/c++/16.1.1/bits/stl_set.h \
+ /usr/include/c++/16.1.1/bits/stl_multiset.h \
+ /usr/include/c++/16.1.1/unordered_set \
+ /usr/include/c++/16.1.1/bits/unordered_set.h \
+ /usr/include/qt6/QtCore/qset.h /usr/include/qt6/QtCore/qvarlengtharray.h \
+ /usr/include/qt6/QtCore/qalloc.h /usr/include/qt6/QtCore/QString \
  /mnt/shared/handwrite-software/writer/src/cnc/GrblConnection.h \
  /usr/include/qt6/QtCore/QStringList \
  /usr/include/qt6/QtCore/QSocketNotifier \
- /usr/include/qt6/QtCore/qsocketnotifier.h \
- /usr/include/qt6/QtCore/QElapsedTimer \
- /usr/include/qt6/QtCore/qelapsedtimer.h /usr/include/qt6/QtCore/QTimer \
- /usr/include/qt6/QtCore/qtimer.h /usr/include/qt6/QtCore/qbasictimer.h \
+ /usr/include/qt6/QtCore/qsocketnotifier.h /usr/include/qt6/QtCore/QList \
+ /usr/include/qt6/QtCore/QTimer /usr/include/qt6/QtCore/qtimer.h \
+ /usr/include/qt6/QtCore/qbasictimer.h \
  /usr/include/qt6/QtCore/qabstracteventdispatcher.h \
  /usr/include/qt6/QtCore/qeventloop.h \
  /usr/include/qt6/QtCore/qdeadlinetimer.h \
@@ -345,27 +366,8 @@ CMakeFiles/WriterQt.dir/WriterQt_autogen/mocs_compilation.cpp.o: \
  /usr/include/qt6/QtCore/qcoreevent.h /usr/include/qt6/QtCore/qiodevice.h \
  /usr/include/qt6/QtCore/qspan.h /usr/include/c++/16.1.1/cassert \
  /usr/include/qt6/QtCore/q20iterator.h /usr/include/qt6/QtCore/qurl.h \
- /usr/include/qt6/QtCore/qvariant.h /usr/include/qt6/QtCore/qdebug.h \
- /usr/include/qt6/QtCore/qtextstream.h \
- /usr/include/qt6/QtCore/qcontiguouscache.h \
- /usr/include/c++/16.1.1/climits \
- /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include/limits.h \
- /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include/syslimits.h \
- /usr/include/limits.h /usr/include/bits/posix1_lim.h \
- /usr/include/bits/local_lim.h /usr/include/linux/limits.h \
- /usr/include/bits/posix2_lim.h /usr/include/bits/xopen_lim.h \
- /usr/include/bits/uio_lim.h /usr/include/qt6/QtCore/qsharedpointer.h \
- /usr/include/qt6/QtCore/qshareddata.h \
- /usr/include/qt6/QtCore/qsharedpointer_impl.h \
- /usr/include/c++/16.1.1/set /usr/include/c++/16.1.1/bits/stl_set.h \
- /usr/include/c++/16.1.1/bits/stl_multiset.h \
- /usr/include/c++/16.1.1/unordered_set \
- /usr/include/c++/16.1.1/bits/unordered_set.h \
- /usr/include/qt6/QtCore/qmap.h \
- /usr/include/qt6/QtCore/qshareddata_impl.h \
- /usr/include/qt6/QtCore/qset.h /usr/include/qt6/QtCore/qvarlengtharray.h \
- /usr/include/qt6/QtCore/qalloc.h /usr/include/qt6/QtGui/qeventpoint.h \
- /usr/include/qt6/QtGui/qvector2d.h /usr/include/qt6/QtGui/qvectornd.h \
+ /usr/include/qt6/QtGui/qeventpoint.h /usr/include/qt6/QtGui/qvector2d.h \
+ /usr/include/qt6/QtGui/qvectornd.h \
  /usr/include/qt6/QtGui/qpointingdevice.h \
  /usr/include/qt6/QtGui/qinputdevice.h /usr/include/qt6/QtGui/qscreen.h \
  /usr/include/qt6/QtCore/QList /usr/include/qt6/QtCore/QObject \

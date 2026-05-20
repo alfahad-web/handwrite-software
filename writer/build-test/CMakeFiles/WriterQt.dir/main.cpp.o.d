@@ -383,15 +383,18 @@ CMakeFiles/WriterQt.dir/main.cpp.o: \
  /usr/include/qt6/QtCore/QHash /usr/include/qt6/QtCore/QObject \
  /usr/include/qt6/QtCore/QPointF /usr/include/qt6/QtCore/QString \
  /usr/include/qt6/QtCore/QVector /usr/include/qt6/QtCore/qvector.h \
+ /usr/include/qt6/QtCore/QElapsedTimer \
+ /usr/include/qt6/QtCore/qelapsedtimer.h \
+ /usr/include/qt6/QtCore/QVariantMap \
+ /usr/include/qt6/QtCore/qvariantmap.h /usr/include/qt6/QtCore/QMap \
+ /usr/include/qt6/QtCore/QVariant /usr/include/qt6/QtCore/QString \
  /mnt/shared/handwrite-software/writer/src/app/AppSettings.h \
  /mnt/shared/handwrite-software/writer/src/app/DocumentModel.h \
  /mnt/shared/handwrite-software/writer/src/cnc/GrblConnection.h \
  /usr/include/qt6/QtCore/QStringList \
  /usr/include/qt6/QtCore/QSocketNotifier \
- /usr/include/qt6/QtCore/qsocketnotifier.h \
- /usr/include/qt6/QtCore/QElapsedTimer \
- /usr/include/qt6/QtCore/qelapsedtimer.h /usr/include/qt6/QtCore/QTimer \
- /usr/include/qt6/QtCore/qtimer.h \
+ /usr/include/qt6/QtCore/qsocketnotifier.h /usr/include/qt6/QtCore/QList \
+ /usr/include/qt6/QtCore/QTimer /usr/include/qt6/QtCore/qtimer.h \
  /mnt/shared/handwrite-software/writer/src/font/FontLoader.h \
  /usr/include/qt6/QtCore/QChar /usr/include/qt6/QtCore/QRectF \
  /mnt/shared/handwrite-software/writer/src/gcode/GcodeController.h \

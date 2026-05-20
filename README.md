@@ -96,6 +96,25 @@ From the **repository root**:
 cd writer && cmake -B build && cmake --build build && ./build/WriterQt
 ```
 
+### Writer performance/tuning protocol
+
+For handwriting jobs with many short moves, use this repeatable tuning flow:
+
+1. In Writer settings, enable simplification and set conservative values first.
+2. Set streaming preset to `balanced` (or `fast` after stability check).
+3. Open Writer settings > machine tuning:
+   - `Junction deviation $11`
+   - `Acceleration X $120`
+   - `Acceleration Y $121`
+4. Start conservative, test one page, then increase acceleration gradually.
+5. Use **Apply tuning to GRBL ($11/$120/$121)** to write values directly.
+6. Record runtime + quality, then iterate.
+
+Recommended safe starting point:
+- `$11 = 0.030`
+- `$120 = 300`
+- `$121 = 300`
+
 ---
 
 ## Quick reference (from repo root)

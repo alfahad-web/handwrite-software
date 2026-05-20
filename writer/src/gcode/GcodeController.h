@@ -26,6 +26,7 @@ public:
     Q_INVOKABLE void copyToClipboard();
     Q_INVOKABLE QString gcodeForPageRange(int startPage, int endPageExclusive) const;
     Q_INVOKABLE bool regeneratePage(int pageIndex);
+    Q_INVOKABLE int pageProgramLineCount(int pageIndex) const;
 
     const QVector<int> &pageLineStart() const { return m_pageLineStart; }
 
@@ -40,11 +41,12 @@ signals:
 private:
     void setGeneratedGcode(const QString &gcode);
     void setGcodeStale(bool stale);
-    void setPageLineMap(const QVector<int> &starts, int pageCount);
+    void setPageLineMap(const QVector<int> &starts, const QVector<int> &counts, int pageCount);
 
     WriterController *m_writer = nullptr;
     QString m_generatedGcode;
     bool m_gcodeStale = true;
     QVector<int> m_pageLineStart;
+    QVector<int> m_pageLineCount;
     int m_pageCount = 0;
 };

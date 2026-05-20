@@ -407,11 +407,14 @@ CMakeFiles/WriterQt.dir/src/ui/HandwritingCanvasItem.cpp.o: \
  /mnt/shared/handwrite-software/writer/src/app/AppSettings.h \
  /usr/include/qt6/QtCore/QObject \
  /mnt/shared/handwrite-software/writer/src/app/WriterController.h \
+ /usr/include/qt6/QtCore/QVariantMap \
+ /usr/include/qt6/QtCore/qvariantmap.h /usr/include/qt6/QtCore/QMap \
+ /usr/include/qt6/QtCore/QVariant /usr/include/qt6/QtCore/QString \
  /mnt/shared/handwrite-software/writer/src/app/DocumentModel.h \
  /mnt/shared/handwrite-software/writer/src/cnc/GrblConnection.h \
  /usr/include/qt6/QtCore/QStringList \
  /usr/include/qt6/QtCore/QSocketNotifier \
- /usr/include/qt6/QtCore/qsocketnotifier.h \
+ /usr/include/qt6/QtCore/qsocketnotifier.h /usr/include/qt6/QtCore/QList \
  /mnt/shared/handwrite-software/writer/src/gcode/GcodeController.h \
  /usr/include/qt6/QtGui/QPainter /usr/include/qt6/QtGui/qpainter.h \
  /usr/include/qt6/QtGui/qtextoption.h /usr/include/qt6/QtGui/qpen.h \

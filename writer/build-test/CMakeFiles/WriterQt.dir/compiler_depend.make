@@ -307,6 +307,7 @@ CMakeFiles/WriterQt.dir/WriterQt_autogen/mocs_compilation.cpp.o: WriterQt_autoge
   /usr/include/qt6/QtCore/QElapsedTimer \
   /usr/include/qt6/QtCore/QHash \
   /usr/include/qt6/QtCore/QList \
+  /usr/include/qt6/QtCore/QMap \
   /usr/include/qt6/QtCore/QObject \
   /usr/include/qt6/QtCore/QPointF \
   /usr/include/qt6/QtCore/QRect \
@@ -317,6 +318,8 @@ CMakeFiles/WriterQt.dir/WriterQt_autogen/mocs_compilation.cpp.o: WriterQt_autoge
   /usr/include/qt6/QtCore/QString \
   /usr/include/qt6/QtCore/QStringList \
   /usr/include/qt6/QtCore/QTimer \
+  /usr/include/qt6/QtCore/QVariant \
+  /usr/include/qt6/QtCore/QVariantMap \
   /usr/include/qt6/QtCore/QVector \
   /usr/include/qt6/QtCore/q17memory.h \
   /usr/include/qt6/QtCore/q20algorithm.h \
@@ -468,6 +471,7 @@ CMakeFiles/WriterQt.dir/WriterQt_autogen/mocs_compilation.cpp.o: WriterQt_autoge
   /usr/include/qt6/QtCore/qurl.h \
   /usr/include/qt6/QtCore/qutf8stringview.h \
   /usr/include/qt6/QtCore/qvariant.h \
+  /usr/include/qt6/QtCore/qvariantmap.h \
   /usr/include/qt6/QtCore/qvarlengtharray.h \
   /usr/include/qt6/QtCore/qvector.h \
   /usr/include/qt6/QtCore/qversionnumber.h \
@@ -853,6 +857,7 @@ CMakeFiles/WriterQt.dir/main.cpp.o: /mnt/shared/handwrite-software/writer/main.c
   /usr/include/qt6/QtCore/QElapsedTimer \
   /usr/include/qt6/QtCore/QHash \
   /usr/include/qt6/QtCore/QList \
+  /usr/include/qt6/QtCore/QMap \
   /usr/include/qt6/QtCore/QObject \
   /usr/include/qt6/QtCore/QPointF \
   /usr/include/qt6/QtCore/QRect \
@@ -863,6 +868,8 @@ CMakeFiles/WriterQt.dir/main.cpp.o: /mnt/shared/handwrite-software/writer/main.c
   /usr/include/qt6/QtCore/QString \
   /usr/include/qt6/QtCore/QStringList \
   /usr/include/qt6/QtCore/QTimer \
+  /usr/include/qt6/QtCore/QVariant \
+  /usr/include/qt6/QtCore/QVariantMap \
   /usr/include/qt6/QtCore/QVector \
   /usr/include/qt6/QtCore/q17memory.h \
   /usr/include/qt6/QtCore/q20bit.h \
@@ -1012,6 +1019,7 @@ CMakeFiles/WriterQt.dir/main.cpp.o: /mnt/shared/handwrite-software/writer/main.c
   /usr/include/qt6/QtCore/qurl.h \
   /usr/include/qt6/QtCore/qutf8stringview.h \
   /usr/include/qt6/QtCore/qvariant.h \
+  /usr/include/qt6/QtCore/qvariantmap.h \
   /usr/include/qt6/QtCore/qvarlengtharray.h \
   /usr/include/qt6/QtCore/qvector.h \
   /usr/include/qt6/QtCore/qversionnumber.h \
@@ -1398,6 +1406,7 @@ CMakeFiles/WriterQt.dir/src/app/AppSettings.cpp.o: /mnt/shared/handwrite-softwar
   /usr/include/pthread.h \
   /usr/include/qt6/QtCore/QObject \
   /usr/include/qt6/QtCore/QSettings \
+  /usr/include/qt6/QtCore/QString \
   /usr/include/qt6/QtCore/q17memory.h \
   /usr/include/qt6/QtCore/q20bit.h \
   /usr/include/qt6/QtCore/q20functional.h \
@@ -2267,6 +2276,8 @@ CMakeFiles/WriterQt.dir/src/app/WriterController.cpp.o: /mnt/shared/handwrite-so
   /usr/include/qt6/QtCore/QDir \
   /usr/include/qt6/QtCore/QElapsedTimer \
   /usr/include/qt6/QtCore/QHash \
+  /usr/include/qt6/QtCore/QList \
+  /usr/include/qt6/QtCore/QMap \
   /usr/include/qt6/QtCore/QObject \
   /usr/include/qt6/QtCore/QPointF \
   /usr/include/qt6/QtCore/QRectF \
@@ -2274,6 +2285,8 @@ CMakeFiles/WriterQt.dir/src/app/WriterController.cpp.o: /mnt/shared/handwrite-so
   /usr/include/qt6/QtCore/QString \
   /usr/include/qt6/QtCore/QStringList \
   /usr/include/qt6/QtCore/QTimer \
+  /usr/include/qt6/QtCore/QVariant \
+  /usr/include/qt6/QtCore/QVariantMap \
   /usr/include/qt6/QtCore/QVector \
   /usr/include/qt6/QtCore/q17memory.h \
   /usr/include/qt6/QtCore/q20bit.h \
@@ -2417,6 +2430,7 @@ CMakeFiles/WriterQt.dir/src/app/WriterController.cpp.o: /mnt/shared/handwrite-so
   /usr/include/qt6/QtCore/qurl.h \
   /usr/include/qt6/QtCore/qutf8stringview.h \
   /usr/include/qt6/QtCore/qvariant.h \
+  /usr/include/qt6/QtCore/qvariantmap.h \
   /usr/include/qt6/QtCore/qvarlengtharray.h \
   /usr/include/qt6/QtCore/qvector.h \
   /usr/include/qt6/QtCore/qversiontagging.h \
@@ -2798,6 +2812,7 @@ CMakeFiles/WriterQt.dir/src/cnc/GrblConnection.cpp.o: /mnt/shared/handwrite-soft
   /usr/include/math.h \
   /usr/include/pthread.h \
   /usr/include/qt6/QtCore/QElapsedTimer \
+  /usr/include/qt6/QtCore/QList \
   /usr/include/qt6/QtCore/QObject \
   /usr/include/qt6/QtCore/QSettings \
   /usr/include/qt6/QtCore/QSocketNotifier \
@@ -4255,6 +4270,8 @@ CMakeFiles/WriterQt.dir/src/gcode/GcodeController.cpp.o: /mnt/shared/handwrite-s
   /usr/include/qt6/QtCore/QElapsedTimer \
   /usr/include/qt6/QtCore/QFile \
   /usr/include/qt6/QtCore/QHash \
+  /usr/include/qt6/QtCore/QList \
+  /usr/include/qt6/QtCore/QMap \
   /usr/include/qt6/QtCore/QObject \
   /usr/include/qt6/QtCore/QPointF \
   /usr/include/qt6/QtCore/QRectF \
@@ -4262,6 +4279,8 @@ CMakeFiles/WriterQt.dir/src/gcode/GcodeController.cpp.o: /mnt/shared/handwrite-s
   /usr/include/qt6/QtCore/QString \
   /usr/include/qt6/QtCore/QStringList \
   /usr/include/qt6/QtCore/QTimer \
+  /usr/include/qt6/QtCore/QVariant \
+  /usr/include/qt6/QtCore/QVariantMap \
   /usr/include/qt6/QtCore/QVector \
   /usr/include/qt6/QtCore/q17memory.h \
   /usr/include/qt6/QtCore/q20bit.h \
@@ -4409,6 +4428,7 @@ CMakeFiles/WriterQt.dir/src/gcode/GcodeController.cpp.o: /mnt/shared/handwrite-s
   /usr/include/qt6/QtCore/qurl.h \
   /usr/include/qt6/QtCore/qutf8stringview.h \
   /usr/include/qt6/QtCore/qvariant.h \
+  /usr/include/qt6/QtCore/qvariantmap.h \
   /usr/include/qt6/QtCore/qvarlengtharray.h \
   /usr/include/qt6/QtCore/qvector.h \
   /usr/include/qt6/QtCore/qversiontagging.h \
@@ -4929,6 +4949,7 @@ CMakeFiles/WriterQt.dir/src/gcode/PathBuilder.cpp.o: /mnt/shared/handwrite-softw
   /usr/include/bits/iscanonical.h \
   /usr/include/bits/libc-header-start.h \
   /usr/include/bits/libm-simd-decl-stubs.h \
+  /usr/include/bits/local_lim.h \
   /usr/include/bits/locale.h \
   /usr/include/bits/long-double.h \
   /usr/include/bits/math-vector.h \
@@ -4936,6 +4957,8 @@ CMakeFiles/WriterQt.dir/src/gcode/PathBuilder.cpp.o: /mnt/shared/handwrite-softw
   /usr/include/bits/mathcalls-macros.h \
   /usr/include/bits/mathcalls-narrow.h \
   /usr/include/bits/mathcalls.h \
+  /usr/include/bits/posix1_lim.h \
+  /usr/include/bits/posix2_lim.h \
   /usr/include/bits/pthread_stack_min-dynamic.h \
   /usr/include/bits/pthreadtypes-arch.h \
   /usr/include/bits/pthreadtypes.h \
@@ -4981,10 +5004,12 @@ CMakeFiles/WriterQt.dir/src/gcode/PathBuilder.cpp.o: /mnt/shared/handwrite-softw
   /usr/include/bits/types/wint_t.h \
   /usr/include/bits/typesizes.h \
   /usr/include/bits/uintn-identity.h \
+  /usr/include/bits/uio_lim.h \
   /usr/include/bits/waitflags.h \
   /usr/include/bits/waitstatus.h \
   /usr/include/bits/wchar.h \
   /usr/include/bits/wordsize.h \
+  /usr/include/bits/xopen_lim.h \
   /usr/include/c++/16.1.1/algorithm \
   /usr/include/c++/16.1.1/array \
   /usr/include/c++/16.1.1/atomic \
@@ -5061,10 +5086,12 @@ CMakeFiles/WriterQt.dir/src/gcode/PathBuilder.cpp.o: /mnt/shared/handwrite-softw
   /usr/include/c++/16.1.1/bits/stl_list.h \
   /usr/include/c++/16.1.1/bits/stl_map.h \
   /usr/include/c++/16.1.1/bits/stl_multimap.h \
+  /usr/include/c++/16.1.1/bits/stl_multiset.h \
   /usr/include/c++/16.1.1/bits/stl_numeric.h \
   /usr/include/c++/16.1.1/bits/stl_pair.h \
   /usr/include/c++/16.1.1/bits/stl_raw_storage_iter.h \
   /usr/include/c++/16.1.1/bits/stl_relops.h \
+  /usr/include/c++/16.1.1/bits/stl_set.h \
   /usr/include/c++/16.1.1/bits/stl_tempbuf.h \
   /usr/include/c++/16.1.1/bits/stl_tree.h \
   /usr/include/c++/16.1.1/bits/stl_uninitialized.h \
@@ -5077,6 +5104,7 @@ CMakeFiles/WriterQt.dir/src/gcode/PathBuilder.cpp.o: /mnt/shared/handwrite-softw
   /usr/include/c++/16.1.1/bits/uniform_int_dist.h \
   /usr/include/c++/16.1.1/bits/unique_ptr.h \
   /usr/include/c++/16.1.1/bits/unordered_map.h \
+  /usr/include/c++/16.1.1/bits/unordered_set.h \
   /usr/include/c++/16.1.1/bits/uses_allocator.h \
   /usr/include/c++/16.1.1/bits/uses_allocator_args.h \
   /usr/include/c++/16.1.1/bits/utility.h \
@@ -5085,6 +5113,7 @@ CMakeFiles/WriterQt.dir/src/gcode/PathBuilder.cpp.o: /mnt/shared/handwrite-softw
   /usr/include/c++/16.1.1/cctype \
   /usr/include/c++/16.1.1/cerrno \
   /usr/include/c++/16.1.1/chrono \
+  /usr/include/c++/16.1.1/climits \
   /usr/include/c++/16.1.1/clocale \
   /usr/include/c++/16.1.1/cmath \
   /usr/include/c++/16.1.1/compare \
@@ -5123,6 +5152,7 @@ CMakeFiles/WriterQt.dir/src/gcode/PathBuilder.cpp.o: /mnt/shared/handwrite-softw
   /usr/include/c++/16.1.1/pstl/glue_numeric_defs.h \
   /usr/include/c++/16.1.1/pstl/pstl_config.h \
   /usr/include/c++/16.1.1/ratio \
+  /usr/include/c++/16.1.1/set \
   /usr/include/c++/16.1.1/stdexcept \
   /usr/include/c++/16.1.1/stdlib.h \
   /usr/include/c++/16.1.1/streambuf \
@@ -5145,6 +5175,7 @@ CMakeFiles/WriterQt.dir/src/gcode/PathBuilder.cpp.o: /mnt/shared/handwrite-softw
   /usr/include/c++/16.1.1/type_traits \
   /usr/include/c++/16.1.1/typeinfo \
   /usr/include/c++/16.1.1/unordered_map \
+  /usr/include/c++/16.1.1/unordered_set \
   /usr/include/c++/16.1.1/utility \
   /usr/include/c++/16.1.1/variant \
   /usr/include/c++/16.1.1/vector \
@@ -5165,7 +5196,9 @@ CMakeFiles/WriterQt.dir/src/gcode/PathBuilder.cpp.o: /mnt/shared/handwrite-softw
   /usr/include/features.h \
   /usr/include/gnu/stubs-64.h \
   /usr/include/gnu/stubs.h \
+  /usr/include/limits.h \
   /usr/include/linux/errno.h \
+  /usr/include/linux/limits.h \
   /usr/include/linux/posix_types.h \
   /usr/include/linux/sched/types.h \
   /usr/include/linux/stddef.h \
@@ -5177,6 +5210,8 @@ CMakeFiles/WriterQt.dir/src/gcode/PathBuilder.cpp.o: /mnt/shared/handwrite-softw
   /usr/include/qt6/QtCore/QElapsedTimer \
   /usr/include/qt6/QtCore/QHash \
   /usr/include/qt6/QtCore/QLineF \
+  /usr/include/qt6/QtCore/QList \
+  /usr/include/qt6/QtCore/QMap \
   /usr/include/qt6/QtCore/QObject \
   /usr/include/qt6/QtCore/QPointF \
   /usr/include/qt6/QtCore/QRectF \
@@ -5184,6 +5219,8 @@ CMakeFiles/WriterQt.dir/src/gcode/PathBuilder.cpp.o: /mnt/shared/handwrite-softw
   /usr/include/qt6/QtCore/QString \
   /usr/include/qt6/QtCore/QStringList \
   /usr/include/qt6/QtCore/QTimer \
+  /usr/include/qt6/QtCore/QVariant \
+  /usr/include/qt6/QtCore/QVariantMap \
   /usr/include/qt6/QtCore/QVector \
   /usr/include/qt6/QtCore/QtMath \
   /usr/include/qt6/QtCore/q17memory.h \
@@ -5196,6 +5233,7 @@ CMakeFiles/WriterQt.dir/src/gcode/PathBuilder.cpp.o: /mnt/shared/handwrite-softw
   /usr/include/qt6/QtCore/q23utility.h \
   /usr/include/qt6/QtCore/qabstracteventdispatcher.h \
   /usr/include/qt6/QtCore/qalgorithms.h \
+  /usr/include/qt6/QtCore/qalloc.h \
   /usr/include/qt6/QtCore/qanystringview.h \
   /usr/include/qt6/QtCore/qarraydata.h \
   /usr/include/qt6/QtCore/qarraydataops.h \
@@ -5221,9 +5259,11 @@ CMakeFiles/WriterQt.dir/src/gcode/PathBuilder.cpp.o: /mnt/shared/handwrite-softw
   /usr/include/qt6/QtCore/qcontainerfwd.h \
   /usr/include/qt6/QtCore/qcontainerinfo.h \
   /usr/include/qt6/QtCore/qcontainertools_impl.h \
+  /usr/include/qt6/QtCore/qcontiguouscache.h \
   /usr/include/qt6/QtCore/qdarwinhelpers.h \
   /usr/include/qt6/QtCore/qdatastream.h \
   /usr/include/qt6/QtCore/qdeadlinetimer.h \
+  /usr/include/qt6/QtCore/qdebug.h \
   /usr/include/qt6/QtCore/qelapsedtimer.h \
   /usr/include/qt6/QtCore/qeventloop.h \
   /usr/include/qt6/QtCore/qexceptionhandling.h \
@@ -5245,6 +5285,7 @@ CMakeFiles/WriterQt.dir/src/gcode/PathBuilder.cpp.o: /mnt/shared/handwrite-softw
   /usr/include/qt6/QtCore/qlist.h \
   /usr/include/qt6/QtCore/qlogging.h \
   /usr/include/qt6/QtCore/qmalloc.h \
+  /usr/include/qt6/QtCore/qmap.h \
   /usr/include/qt6/QtCore/qmargins.h \
   /usr/include/qt6/QtCore/qmath.h \
   /usr/include/qt6/QtCore/qmetacontainer.h \
@@ -5264,6 +5305,11 @@ CMakeFiles/WriterQt.dir/src/gcode/PathBuilder.cpp.o: /mnt/shared/handwrite-softw
   /usr/include/qt6/QtCore/qrefcount.h \
   /usr/include/qt6/QtCore/qscopedpointer.h \
   /usr/include/qt6/QtCore/qscopeguard.h \
+  /usr/include/qt6/QtCore/qset.h \
+  /usr/include/qt6/QtCore/qshareddata.h \
+  /usr/include/qt6/QtCore/qshareddata_impl.h \
+  /usr/include/qt6/QtCore/qsharedpointer.h \
+  /usr/include/qt6/QtCore/qsharedpointer_impl.h \
   /usr/include/qt6/QtCore/qsize.h \
   /usr/include/qt6/QtCore/qsocketnotifier.h \
   /usr/include/qt6/QtCore/qstdlibdetection.h \
@@ -5290,6 +5336,7 @@ CMakeFiles/WriterQt.dir/src/gcode/PathBuilder.cpp.o: /mnt/shared/handwrite-softw
   /usr/include/qt6/QtCore/qtdeprecationdefinitions.h \
   /usr/include/qt6/QtCore/qtdeprecationmarkers.h \
   /usr/include/qt6/QtCore/qtenvironmentvariables.h \
+  /usr/include/qt6/QtCore/qtextstream.h \
   /usr/include/qt6/QtCore/qtformat_impl.h \
   /usr/include/qt6/QtCore/qtimer.h \
   /usr/include/qt6/QtCore/qtmetamacros.h \
@@ -5303,6 +5350,9 @@ CMakeFiles/WriterQt.dir/src/gcode/PathBuilder.cpp.o: /mnt/shared/handwrite-softw
   /usr/include/qt6/QtCore/qtypeinfo.h \
   /usr/include/qt6/QtCore/qtypes.h \
   /usr/include/qt6/QtCore/qutf8stringview.h \
+  /usr/include/qt6/QtCore/qvariant.h \
+  /usr/include/qt6/QtCore/qvariantmap.h \
+  /usr/include/qt6/QtCore/qvarlengtharray.h \
   /usr/include/qt6/QtCore/qvector.h \
   /usr/include/qt6/QtCore/qversiontagging.h \
   /usr/include/qt6/QtCore/qxptype_traits.h \
@@ -5320,10 +5370,12 @@ CMakeFiles/WriterQt.dir/src/gcode/PathBuilder.cpp.o: /mnt/shared/handwrite-softw
   /usr/include/sys/types.h \
   /usr/include/time.h \
   /usr/include/wchar.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include/limits.h \
   /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include/stdarg.h \
   /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include/stdbool.h \
   /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include/stddef.h \
-  /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include/stdint.h
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include/stdint.h \
+  /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include/syslimits.h
 
 CMakeFiles/WriterQt.dir/src/layout/LayoutEngine.cpp.o: /mnt/shared/handwrite-software/writer/src/layout/LayoutEngine.cpp \
   /mnt/shared/handwrite-software/writer/src/font/FontLoader.h \
@@ -6046,6 +6098,8 @@ CMakeFiles/WriterQt.dir/src/services/WriterProjectService.cpp.o: /mnt/shared/han
   /usr/include/qt6/QtCore/QJsonArray \
   /usr/include/qt6/QtCore/QJsonDocument \
   /usr/include/qt6/QtCore/QJsonObject \
+  /usr/include/qt6/QtCore/QList \
+  /usr/include/qt6/QtCore/QMap \
   /usr/include/qt6/QtCore/QObject \
   /usr/include/qt6/QtCore/QPointF \
   /usr/include/qt6/QtCore/QRectF \
@@ -6053,6 +6107,8 @@ CMakeFiles/WriterQt.dir/src/services/WriterProjectService.cpp.o: /mnt/shared/han
   /usr/include/qt6/QtCore/QString \
   /usr/include/qt6/QtCore/QStringList \
   /usr/include/qt6/QtCore/QTimer \
+  /usr/include/qt6/QtCore/QVariant \
+  /usr/include/qt6/QtCore/QVariantMap \
   /usr/include/qt6/QtCore/QVector \
   /usr/include/qt6/QtCore/q17memory.h \
   /usr/include/qt6/QtCore/q20bit.h \
@@ -6200,6 +6256,7 @@ CMakeFiles/WriterQt.dir/src/services/WriterProjectService.cpp.o: /mnt/shared/han
   /usr/include/qt6/QtCore/qutf8stringview.h \
   /usr/include/qt6/QtCore/quuid.h \
   /usr/include/qt6/QtCore/qvariant.h \
+  /usr/include/qt6/QtCore/qvariantmap.h \
   /usr/include/qt6/QtCore/qvarlengtharray.h \
   /usr/include/qt6/QtCore/qvector.h \
   /usr/include/qt6/QtCore/qversiontagging.h \
@@ -6527,6 +6584,7 @@ CMakeFiles/WriterQt.dir/src/ui/HandwritingCanvasItem.cpp.o: /mnt/shared/handwrit
   /usr/include/qt6/QtCore/QEvent \
   /usr/include/qt6/QtCore/QHash \
   /usr/include/qt6/QtCore/QList \
+  /usr/include/qt6/QtCore/QMap \
   /usr/include/qt6/QtCore/QMargins \
   /usr/include/qt6/QtCore/QObject \
   /usr/include/qt6/QtCore/QPointF \
@@ -6538,6 +6596,8 @@ CMakeFiles/WriterQt.dir/src/ui/HandwritingCanvasItem.cpp.o: /mnt/shared/handwrit
   /usr/include/qt6/QtCore/QString \
   /usr/include/qt6/QtCore/QStringList \
   /usr/include/qt6/QtCore/QTimer \
+  /usr/include/qt6/QtCore/QVariant \
+  /usr/include/qt6/QtCore/QVariantMap \
   /usr/include/qt6/QtCore/QVector \
   /usr/include/qt6/QtCore/QtMath \
   /usr/include/qt6/QtCore/q17memory.h \
@@ -6687,6 +6747,7 @@ CMakeFiles/WriterQt.dir/src/ui/HandwritingCanvasItem.cpp.o: /mnt/shared/handwrit
   /usr/include/qt6/QtCore/qurl.h \
   /usr/include/qt6/QtCore/qutf8stringview.h \
   /usr/include/qt6/QtCore/qvariant.h \
+  /usr/include/qt6/QtCore/qvariantmap.h \
   /usr/include/qt6/QtCore/qvarlengtharray.h \
   /usr/include/qt6/QtCore/qvector.h \
   /usr/include/qt6/QtCore/qversionnumber.h \
@@ -7328,6 +7389,8 @@ CMakeFiles/WriterQt.dir/src/gcode/GcodeGenerator.cpp.o:
 
 /usr/include/wchar.h:
 
+/usr/include/sys/select.h:
+
 /usr/include/c++/16.1.1/tr1/bessel_function.tcc:
 
 /usr/include/bits/termios-c_cc.h:
@@ -7511,6 +7574,10 @@ CMakeFiles/WriterQt.dir/src/cnc/GrblConnection.cpp.o:
 /usr/include/qt6/QtQml/qjsprimitivevalue.h:
 
 /usr/include/c++/16.1.1/bits/predefined_ops.h:
+
+/usr/include/sys/types.h:
+
+/usr/include/c++/16.1.1/bits/ostream_insert.h:
 
 /usr/lib32/libbrotlicommon.so.1:
 
@@ -7762,10 +7829,6 @@ CMakeFiles/WriterQt.dir/src/layout/LayoutEngine.cpp.o:
 
 /mnt/shared/handwrite-software/writer/src/font/FontLoader.h:
 
-/usr/include/c++/16.1.1/bits/ostream_insert.h:
-
-/usr/include/sys/types.h:
-
 /usr/include/c++/16.1.1/tr1/modified_bessel_func.tcc:
 
 /usr/include/c++/16.1.1/bits/new_allocator.h:
@@ -7781,8 +7844,6 @@ CMakeFiles/WriterQt.dir/src/layout/LayoutEngine.cpp.o:
 /usr/include/qt6/QtGui/qguiapplication_platform.h:
 
 /mnt/shared/handwrite-software/writer/src/app/WriterController.h:
-
-/usr/include/sys/select.h:
 
 /usr/include/asm/bitsperlong.h:
 
@@ -8014,6 +8075,8 @@ WriterQt_autogen/YPKJ5OE7LN/moc_HandwritingCanvasItem.cpp:
 
 /usr/include/c++/16.1.1/ext/concurrence.h:
 
+/usr/include/qt6/QtCore/QVariantMap:
+
 /usr/include/bits/types/locale_t.h:
 
 /usr/include/bits/types/mbstate_t.h:
@@ -8232,11 +8295,17 @@ WriterQt_autogen/ISMKEKEPX5/moc_WriterController.cpp:
 
 /usr/include/qt6/QtCore/QList:
 
+/usr/include/qt6/QtCore/QMap:
+
+/usr/include/qt6/QtCore/qanystringview.h:
+
 /usr/include/qt6/QtCore/QPointF:
 
 /usr/include/qt6/QtCore/QRect:
 
 /usr/include/c++/16.1.1/cwchar:
+
+/usr/include/qt6/QtCore/qvariantmap.h:
 
 /usr/include/qt6/QtCore/QRectF:
 
@@ -8274,6 +8343,12 @@ WriterQt_autogen/ISMKEKEPX5/moc_WriterController.cpp:
 
 /usr/include/qt6/QtCore/qfunctionpointer.h:
 
+/usr/include/qt6/QtCore/QVariant:
+
+/usr/include/c++/16.1.1/tr1/ell_integral.tcc:
+
+/usr/include/qt6/QtGui/qpointingdevice.h:
+
 /usr/lib32/libpsl.so.5:
 
 /usr/include/qt6/QtGui/qbrush.h:
@@ -8303,8 +8378,6 @@ WriterQt_autogen/ISMKEKEPX5/moc_WriterController.cpp:
 /usr/include/qt6/QtCore/q23type_traits.h:
 
 /usr/include/qt6/QtCore/qalloc.h:
-
-/usr/include/qt6/QtCore/qanystringview.h:
 
 /usr/lib32/libnghttp3.so.9:
 
@@ -8397,6 +8470,10 @@ WriterQt_autogen/mocs_compilation.cpp:
 /usr/lib32/libXdmcp.so.6:
 
 /usr/include/qt6/QtCore/qline.h:
+
+/usr/include/time.h:
+
+/usr/include/qt6/QtCore/qlocale.h:
 
 /usr/include/bits/stdint-uintn.h:
 
@@ -8564,10 +8641,6 @@ CMakeFiles/WriterQt.dir/src/font/FontLoader.cpp.o:
 
 /usr/include/qt6/QtGui/qpaintdevice.h:
 
-/usr/include/c++/16.1.1/tr1/ell_integral.tcc:
-
-/usr/include/qt6/QtGui/qpointingdevice.h:
-
 /usr/include/bits/getopt_posix.h:
 
 /usr/include/qt6/QtCore/qfunctionaltools_impl.h:
@@ -8637,7 +8710,3 @@ CMakeFiles/WriterQt.dir/src/font/FontLoader.cpp.o:
 /usr/lib/libzstd.so.1:
 
 /usr/include/sys/cdefs.h:
-
-/usr/include/qt6/QtCore/qlocale.h:
-
-/usr/include/time.h:

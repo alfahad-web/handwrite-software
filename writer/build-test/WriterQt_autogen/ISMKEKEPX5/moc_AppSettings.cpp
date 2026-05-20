@@ -57,6 +57,15 @@ template <> constexpr inline auto AppSettings::qt_create_metaobjectdata<qt_meta_
         "xErrorMmChanged",
         "yErrorNearMmChanged",
         "yErrorMmChanged",
+        "simplifyToleranceMmChanged",
+        "minSegmentMmChanged",
+        "collinearToleranceMmChanged",
+        "streamingPresetChanged",
+        "arcFitEnabledChanged",
+        "arcFitToleranceMmChanged",
+        "grblJunctionDeviationChanged",
+        "grblAccelXChanged",
+        "grblAccelYChanged",
         "penUpZChanged",
         "penDownZChanged",
         "feedRateMmPerMinChanged",
@@ -82,6 +91,15 @@ template <> constexpr inline auto AppSettings::qt_create_metaobjectdata<qt_meta_
         "xErrorMm",
         "yErrorNearMm",
         "yErrorMm",
+        "simplifyToleranceMm",
+        "minSegmentMm",
+        "collinearToleranceMm",
+        "streamingPreset",
+        "arcFitEnabled",
+        "arcFitToleranceMm",
+        "grblJunctionDeviation",
+        "grblAccelX",
+        "grblAccelY",
         "penUpZ",
         "penDownZ",
         "feedRateMmPerMin",
@@ -123,66 +141,102 @@ template <> constexpr inline auto AppSettings::qt_create_metaobjectdata<qt_meta_
         QtMocHelpers::SignalData<void()>(17, 2, QMC::AccessPublic, QMetaType::Void),
         // Signal 'yErrorMmChanged'
         QtMocHelpers::SignalData<void()>(18, 2, QMC::AccessPublic, QMetaType::Void),
-        // Signal 'penUpZChanged'
+        // Signal 'simplifyToleranceMmChanged'
         QtMocHelpers::SignalData<void()>(19, 2, QMC::AccessPublic, QMetaType::Void),
-        // Signal 'penDownZChanged'
+        // Signal 'minSegmentMmChanged'
         QtMocHelpers::SignalData<void()>(20, 2, QMC::AccessPublic, QMetaType::Void),
-        // Signal 'feedRateMmPerMinChanged'
+        // Signal 'collinearToleranceMmChanged'
         QtMocHelpers::SignalData<void()>(21, 2, QMC::AccessPublic, QMetaType::Void),
-        // Signal 'previewDisplayScaleChanged'
+        // Signal 'streamingPresetChanged'
         QtMocHelpers::SignalData<void()>(22, 2, QMC::AccessPublic, QMetaType::Void),
-        // Signal 'anyChanged'
+        // Signal 'arcFitEnabledChanged'
         QtMocHelpers::SignalData<void()>(23, 2, QMC::AccessPublic, QMetaType::Void),
-        // Signal 'aboutToChange'
+        // Signal 'arcFitToleranceMmChanged'
         QtMocHelpers::SignalData<void()>(24, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'grblJunctionDeviationChanged'
+        QtMocHelpers::SignalData<void()>(25, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'grblAccelXChanged'
+        QtMocHelpers::SignalData<void()>(26, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'grblAccelYChanged'
+        QtMocHelpers::SignalData<void()>(27, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'penUpZChanged'
+        QtMocHelpers::SignalData<void()>(28, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'penDownZChanged'
+        QtMocHelpers::SignalData<void()>(29, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'feedRateMmPerMinChanged'
+        QtMocHelpers::SignalData<void()>(30, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'previewDisplayScaleChanged'
+        QtMocHelpers::SignalData<void()>(31, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'anyChanged'
+        QtMocHelpers::SignalData<void()>(32, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'aboutToChange'
+        QtMocHelpers::SignalData<void()>(33, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'load'
-        QtMocHelpers::MethodData<void()>(25, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(34, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'save'
-        QtMocHelpers::MethodData<void()>(26, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(35, 2, QMC::AccessPublic, QMetaType::Void),
     };
     QtMocHelpers::UintData qt_properties {
         // property 'feedRateCmPerS'
-        QtMocHelpers::PropertyData<double>(27, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 0),
+        QtMocHelpers::PropertyData<double>(36, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 0),
         // property 'pageWidthCm'
-        QtMocHelpers::PropertyData<double>(28, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 1),
+        QtMocHelpers::PropertyData<double>(37, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 1),
         // property 'pageHeightCm'
-        QtMocHelpers::PropertyData<double>(29, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 2),
+        QtMocHelpers::PropertyData<double>(38, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 2),
         // property 'leftMarginCm'
-        QtMocHelpers::PropertyData<double>(30, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 3),
+        QtMocHelpers::PropertyData<double>(39, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 3),
         // property 'rightMarginCm'
-        QtMocHelpers::PropertyData<double>(31, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 4),
+        QtMocHelpers::PropertyData<double>(40, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 4),
         // property 'verticalGapCm'
-        QtMocHelpers::PropertyData<double>(32, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 5),
+        QtMocHelpers::PropertyData<double>(41, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 5),
         // property 'hxCm'
-        QtMocHelpers::PropertyData<double>(33, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 6),
+        QtMocHelpers::PropertyData<double>(42, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 6),
         // property 'hyCm'
-        QtMocHelpers::PropertyData<double>(34, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 7),
+        QtMocHelpers::PropertyData<double>(43, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 7),
         // property 'lineHeightCm'
-        QtMocHelpers::PropertyData<double>(35, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 8),
+        QtMocHelpers::PropertyData<double>(44, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 8),
         // property 'fontUnitToCm'
-        QtMocHelpers::PropertyData<double>(36, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 9),
+        QtMocHelpers::PropertyData<double>(45, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 9),
         // property 'joinDistMm'
-        QtMocHelpers::PropertyData<double>(37, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 10),
+        QtMocHelpers::PropertyData<double>(46, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 10),
         // property 'backlashYStartMm'
-        QtMocHelpers::PropertyData<double>(38, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 11),
+        QtMocHelpers::PropertyData<double>(47, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 11),
         // property 'backlashYEndMm'
-        QtMocHelpers::PropertyData<double>(39, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 12),
+        QtMocHelpers::PropertyData<double>(48, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 12),
         // property 'xErrorNearMm'
-        QtMocHelpers::PropertyData<double>(40, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 13),
+        QtMocHelpers::PropertyData<double>(49, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 13),
         // property 'xErrorMm'
-        QtMocHelpers::PropertyData<double>(41, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 14),
+        QtMocHelpers::PropertyData<double>(50, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 14),
         // property 'yErrorNearMm'
-        QtMocHelpers::PropertyData<double>(42, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 15),
+        QtMocHelpers::PropertyData<double>(51, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 15),
         // property 'yErrorMm'
-        QtMocHelpers::PropertyData<double>(43, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 16),
+        QtMocHelpers::PropertyData<double>(52, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 16),
+        // property 'simplifyToleranceMm'
+        QtMocHelpers::PropertyData<double>(53, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 17),
+        // property 'minSegmentMm'
+        QtMocHelpers::PropertyData<double>(54, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 18),
+        // property 'collinearToleranceMm'
+        QtMocHelpers::PropertyData<double>(55, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 19),
+        // property 'streamingPreset'
+        QtMocHelpers::PropertyData<QString>(56, QMetaType::QString, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 20),
+        // property 'arcFitEnabled'
+        QtMocHelpers::PropertyData<bool>(57, QMetaType::Bool, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 21),
+        // property 'arcFitToleranceMm'
+        QtMocHelpers::PropertyData<double>(58, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 22),
+        // property 'grblJunctionDeviation'
+        QtMocHelpers::PropertyData<double>(59, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 23),
+        // property 'grblAccelX'
+        QtMocHelpers::PropertyData<double>(60, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 24),
+        // property 'grblAccelY'
+        QtMocHelpers::PropertyData<double>(61, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 25),
         // property 'penUpZ'
-        QtMocHelpers::PropertyData<double>(44, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 17),
+        QtMocHelpers::PropertyData<double>(62, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 26),
         // property 'penDownZ'
-        QtMocHelpers::PropertyData<double>(45, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 18),
+        QtMocHelpers::PropertyData<double>(63, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 27),
         // property 'feedRateMmPerMin'
-        QtMocHelpers::PropertyData<double>(46, QMetaType::Double, QMC::DefaultPropertyFlags, 19),
+        QtMocHelpers::PropertyData<double>(64, QMetaType::Double, QMC::DefaultPropertyFlags, 28),
         // property 'previewDisplayScale'
-        QtMocHelpers::PropertyData<double>(47, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 20),
+        QtMocHelpers::PropertyData<double>(65, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 29),
     };
     QtMocHelpers::UintData qt_enums {
     };
@@ -221,14 +275,23 @@ void AppSettings::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id,
         case 14: _t->xErrorMmChanged(); break;
         case 15: _t->yErrorNearMmChanged(); break;
         case 16: _t->yErrorMmChanged(); break;
-        case 17: _t->penUpZChanged(); break;
-        case 18: _t->penDownZChanged(); break;
-        case 19: _t->feedRateMmPerMinChanged(); break;
-        case 20: _t->previewDisplayScaleChanged(); break;
-        case 21: _t->anyChanged(); break;
-        case 22: _t->aboutToChange(); break;
-        case 23: _t->load(); break;
-        case 24: _t->save(); break;
+        case 17: _t->simplifyToleranceMmChanged(); break;
+        case 18: _t->minSegmentMmChanged(); break;
+        case 19: _t->collinearToleranceMmChanged(); break;
+        case 20: _t->streamingPresetChanged(); break;
+        case 21: _t->arcFitEnabledChanged(); break;
+        case 22: _t->arcFitToleranceMmChanged(); break;
+        case 23: _t->grblJunctionDeviationChanged(); break;
+        case 24: _t->grblAccelXChanged(); break;
+        case 25: _t->grblAccelYChanged(); break;
+        case 26: _t->penUpZChanged(); break;
+        case 27: _t->penDownZChanged(); break;
+        case 28: _t->feedRateMmPerMinChanged(); break;
+        case 29: _t->previewDisplayScaleChanged(); break;
+        case 30: _t->anyChanged(); break;
+        case 31: _t->aboutToChange(); break;
+        case 32: _t->load(); break;
+        case 33: _t->save(); break;
         default: ;
         }
     }
@@ -267,17 +330,35 @@ void AppSettings::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id,
             return;
         if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::yErrorMmChanged, 16))
             return;
-        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::penUpZChanged, 17))
+        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::simplifyToleranceMmChanged, 17))
             return;
-        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::penDownZChanged, 18))
+        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::minSegmentMmChanged, 18))
             return;
-        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::feedRateMmPerMinChanged, 19))
+        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::collinearToleranceMmChanged, 19))
             return;
-        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::previewDisplayScaleChanged, 20))
+        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::streamingPresetChanged, 20))
             return;
-        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::anyChanged, 21))
+        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::arcFitEnabledChanged, 21))
             return;
-        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::aboutToChange, 22))
+        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::arcFitToleranceMmChanged, 22))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::grblJunctionDeviationChanged, 23))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::grblAccelXChanged, 24))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::grblAccelYChanged, 25))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::penUpZChanged, 26))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::penDownZChanged, 27))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::feedRateMmPerMinChanged, 28))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::previewDisplayScaleChanged, 29))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::anyChanged, 30))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (AppSettings::*)()>(_a, &AppSettings::aboutToChange, 31))
             return;
     }
     if (_c == QMetaObject::ReadProperty) {
@@ -300,10 +381,19 @@ void AppSettings::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id,
         case 14: *reinterpret_cast<double*>(_v) = _t->xErrorMm(); break;
         case 15: *reinterpret_cast<double*>(_v) = _t->yErrorNearMm(); break;
         case 16: *reinterpret_cast<double*>(_v) = _t->yErrorMm(); break;
-        case 17: *reinterpret_cast<double*>(_v) = _t->penUpZ(); break;
-        case 18: *reinterpret_cast<double*>(_v) = _t->penDownZ(); break;
-        case 19: *reinterpret_cast<double*>(_v) = _t->feedRateMmPerMin(); break;
-        case 20: *reinterpret_cast<double*>(_v) = _t->previewDisplayScale(); break;
+        case 17: *reinterpret_cast<double*>(_v) = _t->simplifyToleranceMm(); break;
+        case 18: *reinterpret_cast<double*>(_v) = _t->minSegmentMm(); break;
+        case 19: *reinterpret_cast<double*>(_v) = _t->collinearToleranceMm(); break;
+        case 20: *reinterpret_cast<QString*>(_v) = _t->streamingPreset(); break;
+        case 21: *reinterpret_cast<bool*>(_v) = _t->arcFitEnabled(); break;
+        case 22: *reinterpret_cast<double*>(_v) = _t->arcFitToleranceMm(); break;
+        case 23: *reinterpret_cast<double*>(_v) = _t->grblJunctionDeviation(); break;
+        case 24: *reinterpret_cast<double*>(_v) = _t->grblAccelX(); break;
+        case 25: *reinterpret_cast<double*>(_v) = _t->grblAccelY(); break;
+        case 26: *reinterpret_cast<double*>(_v) = _t->penUpZ(); break;
+        case 27: *reinterpret_cast<double*>(_v) = _t->penDownZ(); break;
+        case 28: *reinterpret_cast<double*>(_v) = _t->feedRateMmPerMin(); break;
+        case 29: *reinterpret_cast<double*>(_v) = _t->previewDisplayScale(); break;
         default: break;
         }
     }
@@ -327,9 +417,18 @@ void AppSettings::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id,
         case 14: _t->setXErrorMm(*reinterpret_cast<double*>(_v)); break;
         case 15: _t->setYErrorNearMm(*reinterpret_cast<double*>(_v)); break;
         case 16: _t->setYErrorMm(*reinterpret_cast<double*>(_v)); break;
-        case 17: _t->setPenUpZ(*reinterpret_cast<double*>(_v)); break;
-        case 18: _t->setPenDownZ(*reinterpret_cast<double*>(_v)); break;
-        case 20: _t->setPreviewDisplayScale(*reinterpret_cast<double*>(_v)); break;
+        case 17: _t->setSimplifyToleranceMm(*reinterpret_cast<double*>(_v)); break;
+        case 18: _t->setMinSegmentMm(*reinterpret_cast<double*>(_v)); break;
+        case 19: _t->setCollinearToleranceMm(*reinterpret_cast<double*>(_v)); break;
+        case 20: _t->setStreamingPreset(*reinterpret_cast<QString*>(_v)); break;
+        case 21: _t->setArcFitEnabled(*reinterpret_cast<bool*>(_v)); break;
+        case 22: _t->setArcFitToleranceMm(*reinterpret_cast<double*>(_v)); break;
+        case 23: _t->setGrblJunctionDeviation(*reinterpret_cast<double*>(_v)); break;
+        case 24: _t->setGrblAccelX(*reinterpret_cast<double*>(_v)); break;
+        case 25: _t->setGrblAccelY(*reinterpret_cast<double*>(_v)); break;
+        case 26: _t->setPenUpZ(*reinterpret_cast<double*>(_v)); break;
+        case 27: _t->setPenDownZ(*reinterpret_cast<double*>(_v)); break;
+        case 29: _t->setPreviewDisplayScale(*reinterpret_cast<double*>(_v)); break;
         default: break;
         }
     }
@@ -354,20 +453,20 @@ int AppSettings::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 25)
+        if (_id < 34)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 25;
+        _id -= 34;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 25)
+        if (_id < 34)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 25;
+        _id -= 34;
     }
     if (_c == QMetaObject::ReadProperty || _c == QMetaObject::WriteProperty
             || _c == QMetaObject::ResetProperty || _c == QMetaObject::BindableProperty
             || _c == QMetaObject::RegisterPropertyMetaType) {
         qt_static_metacall(this, _c, _id, _a);
-        _id -= 21;
+        _id -= 30;
     }
     return _id;
 }
@@ -475,38 +574,92 @@ void AppSettings::yErrorMmChanged()
 }
 
 // SIGNAL 17
-void AppSettings::penUpZChanged()
+void AppSettings::simplifyToleranceMmChanged()
 {
     QMetaObject::activate(this, &staticMetaObject, 17, nullptr);
 }
 
 // SIGNAL 18
-void AppSettings::penDownZChanged()
+void AppSettings::minSegmentMmChanged()
 {
     QMetaObject::activate(this, &staticMetaObject, 18, nullptr);
 }
 
 // SIGNAL 19
-void AppSettings::feedRateMmPerMinChanged()
+void AppSettings::collinearToleranceMmChanged()
 {
     QMetaObject::activate(this, &staticMetaObject, 19, nullptr);
 }
 
 // SIGNAL 20
-void AppSettings::previewDisplayScaleChanged()
+void AppSettings::streamingPresetChanged()
 {
     QMetaObject::activate(this, &staticMetaObject, 20, nullptr);
 }
 
 // SIGNAL 21
-void AppSettings::anyChanged()
+void AppSettings::arcFitEnabledChanged()
 {
     QMetaObject::activate(this, &staticMetaObject, 21, nullptr);
 }
 
 // SIGNAL 22
-void AppSettings::aboutToChange()
+void AppSettings::arcFitToleranceMmChanged()
 {
     QMetaObject::activate(this, &staticMetaObject, 22, nullptr);
+}
+
+// SIGNAL 23
+void AppSettings::grblJunctionDeviationChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 23, nullptr);
+}
+
+// SIGNAL 24
+void AppSettings::grblAccelXChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 24, nullptr);
+}
+
+// SIGNAL 25
+void AppSettings::grblAccelYChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 25, nullptr);
+}
+
+// SIGNAL 26
+void AppSettings::penUpZChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 26, nullptr);
+}
+
+// SIGNAL 27
+void AppSettings::penDownZChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 27, nullptr);
+}
+
+// SIGNAL 28
+void AppSettings::feedRateMmPerMinChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 28, nullptr);
+}
+
+// SIGNAL 29
+void AppSettings::previewDisplayScaleChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 29, nullptr);
+}
+
+// SIGNAL 30
+void AppSettings::anyChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 30, nullptr);
+}
+
+// SIGNAL 31
+void AppSettings::aboutToChange()
+{
+    QMetaObject::activate(this, &staticMetaObject, 31, nullptr);
 }
 QT_WARNING_POP

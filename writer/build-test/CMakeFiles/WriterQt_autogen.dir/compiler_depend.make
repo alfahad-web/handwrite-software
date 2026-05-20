@@ -307,6 +307,7 @@ WriterQt_autogen/timestamp: /mnt/shared/handwrite-software/writer/CMakeLists.txt
   /usr/include/qt6/QtCore/QElapsedTimer \
   /usr/include/qt6/QtCore/QHash \
   /usr/include/qt6/QtCore/QList \
+  /usr/include/qt6/QtCore/QMap \
   /usr/include/qt6/QtCore/QObject \
   /usr/include/qt6/QtCore/QPointF \
   /usr/include/qt6/QtCore/QRect \
@@ -317,6 +318,8 @@ WriterQt_autogen/timestamp: /mnt/shared/handwrite-software/writer/CMakeLists.txt
   /usr/include/qt6/QtCore/QString \
   /usr/include/qt6/QtCore/QStringList \
   /usr/include/qt6/QtCore/QTimer \
+  /usr/include/qt6/QtCore/QVariant \
+  /usr/include/qt6/QtCore/QVariantMap \
   /usr/include/qt6/QtCore/QVector \
   /usr/include/qt6/QtCore/q17memory.h \
   /usr/include/qt6/QtCore/q20bit.h \
@@ -465,6 +468,7 @@ WriterQt_autogen/timestamp: /mnt/shared/handwrite-software/writer/CMakeLists.txt
   /usr/include/qt6/QtCore/qurl.h \
   /usr/include/qt6/QtCore/qutf8stringview.h \
   /usr/include/qt6/QtCore/qvariant.h \
+  /usr/include/qt6/QtCore/qvariantmap.h \
   /usr/include/qt6/QtCore/qvarlengtharray.h \
   /usr/include/qt6/QtCore/qvector.h \
   /usr/include/qt6/QtCore/qversionnumber.h \
@@ -1806,9 +1810,9 @@ WriterQt_autogen/timestamp: /mnt/shared/handwrite-software/writer/CMakeLists.txt
 
 /usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6qtquickcontrols2materialstyleimplpluginAdditionalTargetInfo.cmake:
 
-/usr/lib/cmake/Qt6/FindWrapAtomic.cmake:
+/usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6qtquickcontrols2implpluginTargetsPrecheck.cmake:
 
-/usr/include/qt6/QtCore/qlocale.h:
+/usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6qtquickcontrols2implpluginTargets-relwithdebinfo.cmake:
 
 /usr/include/sys/cdefs.h:
 
@@ -1880,8 +1884,6 @@ WriterQt_autogen/timestamp: /mnt/shared/handwrite-software/writer/CMakeLists.txt
 
 /usr/include/qt6/QtCore/qfunctionaltools_impl.h:
 
-/usr/include/qt6/QtGui/qpointingdevice.h:
-
 /usr/include/qt6/QtGui/qpaintdevice.h:
 
 /usr/include/qt6/QtGui/qpixelformat.h:
@@ -1913,6 +1915,10 @@ WriterQt_autogen/timestamp: /mnt/shared/handwrite-software/writer/CMakeLists.txt
 /usr/include/qt6/QtCore/qtversion.h:
 
 /usr/include/qt6/QtCore/qversiontagging.h:
+
+/usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6qtquickcontrols2implpluginTargets.cmake:
+
+/usr/include/qt6/QtCore/qttranslation.h:
 
 /usr/lib/cmake/Qt6Gui/Qt6QEvdevTouchScreenPluginTargets-relwithdebinfo.cmake:
 
@@ -2026,6 +2032,8 @@ WriterQt_autogen/timestamp: /mnt/shared/handwrite-software/writer/CMakeLists.txt
 
 /usr/lib/cmake/Qt6Gui/Qt6QEvdevTabletPluginTargets.cmake:
 
+/usr/include/qt6/QtCore/qlocale.h:
+
 /usr/include/qt6/QtCore/qline.h:
 
 /usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6qquick3dpluginTargets-relwithdebinfo.cmake:
@@ -2124,8 +2132,6 @@ WriterQt_autogen/timestamp: /mnt/shared/handwrite-software/writer/CMakeLists.txt
 
 /usr/include/qt6/QtCore/qarraydatapointer.h:
 
-/usr/include/qt6/QtCore/qanystringview.h:
-
 /usr/include/qt6/QtCore/qalloc.h:
 
 /usr/lib/cmake/Qt6Gui/Qt6QWaylandEglClientBufferPluginTargets.cmake:
@@ -2156,6 +2162,10 @@ WriterQt_autogen/timestamp: /mnt/shared/handwrite-software/writer/CMakeLists.txt
 
 /usr/include/qt6/QtCore/q20bit.h:
 
+/usr/include/qt6/QtGui/qpointingdevice.h:
+
+/usr/include/qt6/QtCore/QVariant:
+
 /usr/include/qt6/QtCore/QTimer:
 
 /usr/include/c++/16.1.1/numeric:
@@ -2169,8 +2179,6 @@ WriterQt_autogen/timestamp: /mnt/shared/handwrite-software/writer/CMakeLists.txt
 /usr/include/c++/16.1.1/tr1/beta_function.tcc:
 
 /usr/include/qt6/QtCore/qhash.h:
-
-/usr/include/qt6/QtCore/QSocketNotifier:
 
 /usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6qtquickcontrols2fluentwinui3styleimplpluginConfig.cmake:
 
@@ -2187,6 +2195,12 @@ WriterQt_autogen/timestamp: /mnt/shared/handwrite-software/writer/CMakeLists.txt
 /usr/include/c++/16.1.1/functional:
 
 /usr/include/qt6/QtCore/QRect:
+
+/usr/include/qt6/QtCore/qanystringview.h:
+
+/usr/include/qt6/QtCore/QSocketNotifier:
+
+/usr/include/qt6/QtCore/QMap:
 
 /usr/include/qt6/QtCore/QElapsedTimer:
 
@@ -2205,8 +2219,6 @@ WriterQt_autogen/timestamp: /mnt/shared/handwrite-software/writer/CMakeLists.txt
 /usr/include/qt6/QtQuick/qtquick-config.h:
 
 /usr/include/asm-generic/posix_types.h:
-
-/usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6qtquickcontrols2implpluginTargetsPrecheck.cmake:
 
 /usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6workerscriptpluginTargets.cmake:
 
@@ -2381,6 +2393,12 @@ WriterQt_autogen/timestamp: /mnt/shared/handwrite-software/writer/CMakeLists.txt
 /usr/include/qt6/QtCore/qversionnumber.h:
 
 /usr/include/bits/types/mbstate_t.h:
+
+/usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6quickwindowTargets-relwithdebinfo.cmake:
+
+/usr/lib/cmake/Qt6GuiTools/Qt6GuiToolsTargetsPrecheck.cmake:
+
+/usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6QmlNetworkpluginTargets.cmake:
 
 /usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6workerscriptpluginAdditionalTargetInfo.cmake:
 
@@ -2692,15 +2710,11 @@ WriterQt_autogen/timestamp: /mnt/shared/handwrite-software/writer/CMakeLists.txt
 
 /usr/lib/cmake/Qt6Gui/Qt6QXcbGlxIntegrationPluginAdditionalTargetInfo.cmake:
 
-/usr/lib/cmake/Qt6/FindWrapOpenGL.cmake:
-
-/mnt/shared/handwrite-software/writer/src/font/FontLoader.h:
-
-/mnt/shared/handwrite-software/writer/src/cnc/GrblConnection.h:
-
-/usr/include/c++/16.1.1/bits/std_function.h:
-
 /usr/include/c++/16.1.1/bits/stl_relops.h:
+
+/usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6QuickControlsTestUtilsPrivatepluginTargets.cmake:
+
+/usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6qtquick3dparticleeffectspluginConfig.cmake:
 
 /mnt/shared/handwrite-software/writer/src/gcode/GcodeGenerator.cpp:
 
@@ -2848,6 +2862,14 @@ WriterQt_autogen/moc_predefs.h:
 
 /usr/include/c++/16.1.1/bits/ostream_insert.h:
 
+/mnt/shared/handwrite-software/writer/src/font/FontLoader.h:
+
+/mnt/shared/handwrite-software/writer/src/cnc/GrblConnection.h:
+
+/usr/include/c++/16.1.1/bits/std_function.h:
+
+/usr/lib/cmake/Qt6/FindWrapOpenGL.cmake:
+
 /usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6QuickTestpluginTargets-relwithdebinfo.cmake:
 
 /usr/include/gnu/stubs.h:
@@ -2907,8 +2929,6 @@ WriterQt_autogen/moc_predefs.h:
 /usr/lib/cmake/Qt6Gui/Qt6QEglFSKmsEglDeviceIntegrationPluginConfig.cmake:
 
 /usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6qmlwavefrontmeshpluginConfig.cmake:
-
-/usr/include/wchar.h:
 
 /usr/include/asm/bitsperlong.h:
 
@@ -3254,6 +3274,10 @@ WriterQt_autogen/moc_predefs.h:
 
 /usr/include/c++/16.1.1/tr1/bessel_function.tcc:
 
+/usr/include/wchar.h:
+
+/usr/lib/cmake/Qt6/FindWrapAtomic.cmake:
+
 /usr/lib/cmake/Qt6/FindWrapVulkanHeaders.cmake:
 
 /usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6LabsStyleKitImplpluginConfig.cmake:
@@ -3556,6 +3580,8 @@ WriterQt_autogen/moc_predefs.h:
 
 /usr/include/qt6/QtCore/qbindingstorage.h:
 
+/usr/include/qt6/QtCore/QVariantMap:
+
 /usr/lib/cmake/Qt6Gui/Qt6QEvdevTouchScreenPluginTargetsPrecheck.cmake:
 
 /usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6qtquick3dhelpersimplpluginAdditionalTargetInfo.cmake:
@@ -3770,6 +3796,8 @@ CMakeFiles/4.3.2/CMakeCXXCompiler.cmake:
 
 /usr/lib/cmake/Qt6Gui/Qt6QWaylandWlShellIntegrationPluginTargets.cmake:
 
+/usr/include/qt6/QtCore/qvariantmap.h:
+
 /usr/lib/cmake/Qt6Gui/Qt6QWaylandXdgShellIntegrationPluginAdditionalTargetInfo.cmake:
 
 /usr/include/qt6/QtQml/qqmlregistration.h:
@@ -3843,16 +3871,6 @@ CMakeFiles/4.3.2/CMakeCXXCompiler.cmake:
 /usr/lib/cmake/Qt6GuiTools/Qt6GuiToolsConfigVersion.cmake:
 
 /usr/lib/cmake/Qt6GuiTools/Qt6GuiToolsTargets-relwithdebinfo.cmake:
-
-/usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6quickwindowTargets-relwithdebinfo.cmake:
-
-/usr/lib/cmake/Qt6GuiTools/Qt6GuiToolsTargetsPrecheck.cmake:
-
-/usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6QmlNetworkpluginTargets.cmake:
-
-/usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6qtquick3dparticleeffectspluginConfig.cmake:
-
-/usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6QuickControlsTestUtilsPrivatepluginTargets.cmake:
 
 /usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6LabsPlatformpluginTargetsPrecheck.cmake:
 
@@ -4271,9 +4289,3 @@ CMakeFiles/4.3.2/CMakeCXXCompiler.cmake:
 /usr/lib/cmake/Qt6Gui/Qt6QEglFSEmulatorIntegrationPluginAdditionalTargetInfo.cmake:
 
 /usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6qtquickcontrols2imaginestylepluginTargetsPrecheck.cmake:
-
-/usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6qtquickcontrols2implpluginTargets-relwithdebinfo.cmake:
-
-/usr/include/qt6/QtCore/qttranslation.h:
-
-/usr/lib/cmake/Qt6Qml/QmlPlugins/Qt6qtquickcontrols2implpluginTargets.cmake:

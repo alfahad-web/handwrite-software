@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QString>
 
 class AppSettings : public QObject {
     Q_OBJECT
@@ -21,6 +22,15 @@ class AppSettings : public QObject {
     Q_PROPERTY(double xErrorMm READ xErrorMm WRITE setXErrorMm NOTIFY xErrorMmChanged)
     Q_PROPERTY(double yErrorNearMm READ yErrorNearMm WRITE setYErrorNearMm NOTIFY yErrorNearMmChanged)
     Q_PROPERTY(double yErrorMm READ yErrorMm WRITE setYErrorMm NOTIFY yErrorMmChanged)
+    Q_PROPERTY(double simplifyToleranceMm READ simplifyToleranceMm WRITE setSimplifyToleranceMm NOTIFY simplifyToleranceMmChanged)
+    Q_PROPERTY(double minSegmentMm READ minSegmentMm WRITE setMinSegmentMm NOTIFY minSegmentMmChanged)
+    Q_PROPERTY(double collinearToleranceMm READ collinearToleranceMm WRITE setCollinearToleranceMm NOTIFY collinearToleranceMmChanged)
+    Q_PROPERTY(QString streamingPreset READ streamingPreset WRITE setStreamingPreset NOTIFY streamingPresetChanged)
+    Q_PROPERTY(bool arcFitEnabled READ arcFitEnabled WRITE setArcFitEnabled NOTIFY arcFitEnabledChanged)
+    Q_PROPERTY(double arcFitToleranceMm READ arcFitToleranceMm WRITE setArcFitToleranceMm NOTIFY arcFitToleranceMmChanged)
+    Q_PROPERTY(double grblJunctionDeviation READ grblJunctionDeviation WRITE setGrblJunctionDeviation NOTIFY grblJunctionDeviationChanged)
+    Q_PROPERTY(double grblAccelX READ grblAccelX WRITE setGrblAccelX NOTIFY grblAccelXChanged)
+    Q_PROPERTY(double grblAccelY READ grblAccelY WRITE setGrblAccelY NOTIFY grblAccelYChanged)
     Q_PROPERTY(double penUpZ READ penUpZ WRITE setPenUpZ NOTIFY penUpZChanged)
     Q_PROPERTY(double penDownZ READ penDownZ WRITE setPenDownZ NOTIFY penDownZChanged)
     Q_PROPERTY(double feedRateMmPerMin READ feedRateMmPerMin NOTIFY feedRateMmPerMinChanged)
@@ -80,6 +90,33 @@ public:
     double yErrorMm() const { return m_yErrorMm; }
     void setYErrorMm(double v);
 
+    double simplifyToleranceMm() const { return m_simplifyToleranceMm; }
+    void setSimplifyToleranceMm(double v);
+
+    double minSegmentMm() const { return m_minSegmentMm; }
+    void setMinSegmentMm(double v);
+
+    double collinearToleranceMm() const { return m_collinearToleranceMm; }
+    void setCollinearToleranceMm(double v);
+
+    QString streamingPreset() const { return m_streamingPreset; }
+    void setStreamingPreset(const QString &v);
+
+    bool arcFitEnabled() const { return m_arcFitEnabled; }
+    void setArcFitEnabled(bool v);
+
+    double arcFitToleranceMm() const { return m_arcFitToleranceMm; }
+    void setArcFitToleranceMm(double v);
+
+    double grblJunctionDeviation() const { return m_grblJunctionDeviation; }
+    void setGrblJunctionDeviation(double v);
+
+    double grblAccelX() const { return m_grblAccelX; }
+    void setGrblAccelX(double v);
+
+    double grblAccelY() const { return m_grblAccelY; }
+    void setGrblAccelY(double v);
+
     double penUpZ() const { return m_penUpZ; }
     void setPenUpZ(double v);
 
@@ -112,6 +149,15 @@ signals:
     void xErrorMmChanged();
     void yErrorNearMmChanged();
     void yErrorMmChanged();
+    void simplifyToleranceMmChanged();
+    void minSegmentMmChanged();
+    void collinearToleranceMmChanged();
+    void streamingPresetChanged();
+    void arcFitEnabledChanged();
+    void arcFitToleranceMmChanged();
+    void grblJunctionDeviationChanged();
+    void grblAccelXChanged();
+    void grblAccelYChanged();
     void penUpZChanged();
     void penDownZChanged();
     void feedRateMmPerMinChanged();
@@ -137,6 +183,15 @@ private:
     double m_xErrorMm = 0.0;
     double m_yErrorNearMm = 0.0;
     double m_yErrorMm = 0.0;
+    double m_simplifyToleranceMm = 0.0;
+    double m_minSegmentMm = 0.05;
+    double m_collinearToleranceMm = 0.02;
+    QString m_streamingPreset = QStringLiteral("balanced");
+    bool m_arcFitEnabled = false;
+    double m_arcFitToleranceMm = 0.05;
+    double m_grblJunctionDeviation = 0.03;
+    double m_grblAccelX = 300.0;
+    double m_grblAccelY = 300.0;
     double m_penUpZ = 30.0;
     double m_penDownZ = -5.0;
     double m_previewDisplayScale = 1.0;

@@ -14,6 +14,12 @@ QString xyLine(const char *cmd, double xMm, double yMm) {
     return QStringLiteral("%1 X%2 Y%3").arg(QLatin1String(cmd), fmtMm(xMm), fmtMm(yMm));
 }
 
+QString arcLine(bool clockwise, double xMm, double yMm, double iMm, double jMm) {
+    const char *cmd = clockwise ? "G2" : "G3";
+    return QStringLiteral("%1 X%2 Y%3 I%4 J%5")
+        .arg(QLatin1String(cmd), fmtMm(xMm), fmtMm(yMm), fmtMm(iMm), fmtMm(jMm));
+}
+
 QPointF layoutCmToMachineMm(const QPointF &pCm) {
     return QPointF(pCm.y() * 10.0, pCm.x() * 10.0);
 }
@@ -46,6 +52,36 @@ double interpolateByY(double absYmm, double yStartMm, double yEndMm, double near
     t = qBound(0.0, t, 1.0);
     return nearValue + (farValue - nearValue) * t;
 }
+
+bool fitArcThrough3(const QPointF &p0, const QPointF &p1, const QPointF &p2, double toleranceMm,
+                    bool *clockwise, QPointF *centerOut) {
+    if (!clockwise || !centerOut) return false;
+    const double x1 = p0.x(), y1 = p0.y();
+    const double x2 = p1.x(), y2 = p1.y();
+    const double x3 = p2.x(), y3 = p2.y();
+    const double d = 2.0 * (x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2));
+    if (qAbs(d) < 1e-9) return false;
+
+    const double x1Sq = x1 * x1 + y1 * y1;
+    const double x2Sq = x2 * x2 + y2 * y2;
+    const double x3Sq = x3 * x3 + y3 * y3;
+    const double ux = (x1Sq * (y2 - y3) + x2Sq * (y3 - y1) + x3Sq * (y1 - y2)) / d;
+    const double uy = (x1Sq * (x3 - x2) + x2Sq * (x1 - x3) + x3Sq * (x2 - x1)) / d;
+    const QPointF center(ux, uy);
+
+    const double r = QLineF(center, p0).length();
+    if (r < 1e-6) return false;
+    const double e1 = qAbs(QLineF(center, p1).length() - r);
+    const double e2 = qAbs(QLineF(center, p2).length() - r);
+    if (qMax(e1, e2) > toleranceMm) return false;
+
+    const double cross = (p1.x() - p0.x()) * (p2.y() - p1.y())
+                         - (p1.y() - p0.y()) * (p2.x() - p1.x());
+    if (qAbs(cross) < 1e-9) return false;
+    *clockwise = cross < 0.0;
+    *centerOut = center;
+    return true;
+}
 }
 
 QString GcodeGenerator::generate(const PathBuildResult &path, const AppSettings *settings) {
@@ -76,6 +112,7 @@ GcodeGenerateResult GcodeGenerator::generateWithPageLines(const PathBuildResult 
     const int pageCount = qMax(1, maxPageInPath(path) + 1);
     out.pageCount = pageCount;
     out.pageLineStart.resize(pageCount);
+    out.pageLineCount.fill(0, pageCount);
     for (int i = 0; i < pageCount; ++i)
         out.pageLineStart[i] = -1;
 
@@ -90,6 +127,10 @@ GcodeGenerateResult GcodeGenerator::generateWithPageLines(const PathBuildResult 
     const double xErrorFarMm = qMax(0.0, settings->xErrorMm());
     const double yErrorNearMm = qMax(0.0, settings->yErrorNearMm());
     const double yErrorFarMm = qMax(0.0, settings->yErrorMm());
+    const bool compActive = (xErrorNearMm > 1e-6 || xErrorFarMm > 1e-6
+                             || yErrorNearMm > 1e-6 || yErrorFarMm > 1e-6);
+    const bool arcFitEnabled = settings->arcFitEnabled() && !compActive;
+    const double arcFitTolMm = qMax(0.0, settings->arcFitToleranceMm());
     const double axisEpsMm = 1e-6;
     const double reversalDeadbandMm = 0.03;
     const double minReversalStepMm = 0.05;
@@ -209,6 +250,21 @@ GcodeGenerateResult GcodeGenerator::generateWithPageLines(const PathBuildResult 
         hasPos = true;
         hasMotion = true;
     };
+    auto moveDrawArc = [&](const QPointF &toMm, bool clockwise, const QPointF &centerMm) {
+        if (hasPos && samePoint(currentPosMm, toMm)) return;
+        ensurePenDown();
+        // Arc mode is disabled when backlash compensation is active.
+        if (!hasPos || !arcFitEnabled) {
+            moveDraw(toMm);
+            return;
+        }
+        const QPointF startMm = currentPosMm;
+        lines << arcLine(clockwise, toMm.x(), toMm.y(),
+                         centerMm.x() - startMm.x(), centerMm.y() - startMm.y());
+        currentPosMm = toMm;
+        hasPos = true;
+        hasMotion = true;
+    };
 
     auto markPageStart = [&](int pageIndex) {
         if (pageIndex < 0 || pageIndex >= pageCount) return;
@@ -247,9 +303,31 @@ GcodeGenerateResult GcodeGenerator::generateWithPageLines(const PathBuildResult 
                 else moveRapid(p0);
             }
             ensurePenDown();
-            for (int i = 1; i < pts.size(); ++i) {
-                const QPointF p = layoutCmToMachineMm(pts[i]);
-                moveDraw(p);
+            if (arcFitEnabled && arcFitTolMm > 1e-9) {
+                QVector<QPointF> drawMm;
+                drawMm.reserve(pts.size());
+                for (const QPointF &pt : pts)
+                    drawMm.push_back(layoutCmToMachineMm(pt));
+                int i = 1;
+                while (i < drawMm.size()) {
+                    if (i + 1 < drawMm.size()) {
+                        bool cw = false;
+                        QPointF center;
+                        if (fitArcThrough3(drawMm[i - 1], drawMm[i], drawMm[i + 1], arcFitTolMm,
+                                           &cw, &center)) {
+                            moveDrawArc(drawMm[i + 1], cw, center);
+                            i += 2;
+                            continue;
+                        }
+                    }
+                    moveDraw(drawMm[i]);
+                    ++i;
+                }
+            } else {
+                for (int i = 1; i < pts.size(); ++i) {
+                    const QPointF p = layoutCmToMachineMm(pts[i]);
+                    moveDraw(p);
+                }
             }
         }
     }
@@ -262,6 +340,8 @@ GcodeGenerateResult GcodeGenerator::generateWithPageLines(const PathBuildResult 
     ensurePenUp();
     lines << QStringLiteral("G0 X0 Y0");
 
+    QVector<int> rawPageStart = out.pageLineStart;
+
     if (out.pageLineStart[0] < 0)
         out.pageLineStart[0] = 7;
 
@@ -271,6 +351,21 @@ GcodeGenerateResult GcodeGenerator::generateWithPageLines(const PathBuildResult 
             out.pageLineStart[p] = lastKnown;
         else
             lastKnown = out.pageLineStart[p];
+    }
+
+    for (int p = 0; p < pageCount; ++p) {
+        if (rawPageStart[p] < 0) {
+            out.pageLineCount[p] = 0;
+            continue;
+        }
+        int nextStart = lines.size();
+        for (int q = p + 1; q < pageCount; ++q) {
+            if (rawPageStart[q] >= 0) {
+                nextStart = rawPageStart[q];
+                break;
+            }
+        }
+        out.pageLineCount[p] = qMax(0, nextStart - rawPageStart[p]);
     }
 
     out.gcode = lines.join(QLatin1Char('\n')) + QLatin1Char('\n');

@@ -304,6 +304,7 @@ WriterQt_autogen/timestamp: \
 	/usr/include/qt6/QtCore/QElapsedTimer \
 	/usr/include/qt6/QtCore/QHash \
 	/usr/include/qt6/QtCore/QList \
+	/usr/include/qt6/QtCore/QMap \
 	/usr/include/qt6/QtCore/QObject \
 	/usr/include/qt6/QtCore/QPointF \
 	/usr/include/qt6/QtCore/QRect \
@@ -314,6 +315,8 @@ WriterQt_autogen/timestamp: \
 	/usr/include/qt6/QtCore/QString \
 	/usr/include/qt6/QtCore/QStringList \
 	/usr/include/qt6/QtCore/QTimer \
+	/usr/include/qt6/QtCore/QVariant \
+	/usr/include/qt6/QtCore/QVariantMap \
 	/usr/include/qt6/QtCore/QVector \
 	/usr/include/qt6/QtCore/q17memory.h \
 	/usr/include/qt6/QtCore/q20bit.h \
@@ -462,6 +465,7 @@ WriterQt_autogen/timestamp: \
 	/usr/include/qt6/QtCore/qurl.h \
 	/usr/include/qt6/QtCore/qutf8stringview.h \
 	/usr/include/qt6/QtCore/qvariant.h \
+	/usr/include/qt6/QtCore/qvariantmap.h \
 	/usr/include/qt6/QtCore/qvarlengtharray.h \
 	/usr/include/qt6/QtCore/qvector.h \
 	/usr/include/qt6/QtCore/qversionnumber.h \

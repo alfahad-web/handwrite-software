@@ -15,6 +15,7 @@
 #include <QSocketNotifier>
 #endif
 #include <QElapsedTimer>
+#include <QList>
 #include <QTimer>
 
 class GrblConnection : public QObject {
@@ -69,6 +70,8 @@ public:
     Q_INVOKABLE void logMessage(const QString &msg);
     Q_INVOKABLE void sendRealtimeCommand(const QString &cmd);
     Q_INVOKABLE void setWorkOriginHere();
+    Q_INVOKABLE void applyMotionTuning(double junctionDeviation, double accelX, double accelY);
+    void setStreamingPreset(const QString &preset);
 
 signals:
     void connectedChanged();
@@ -117,7 +120,11 @@ private:
     QStringList m_sendQueue;
     QStringList m_streamLines;
     int m_streamIndex = 0;
+    int m_streamSent = 0;
     int m_streamTotal = 0;
+    int m_streamInflightBytes = 0;
+    QList<int> m_streamInflightLineBytes;
+    int m_rxHeadroomBytes = 12;
     QTimer m_wakeTimer;
     QTimer m_statusTimer;
     QTimer m_recoverTimer;
@@ -168,5 +175,6 @@ private slots:
     double m_posZ = 0;
     bool m_positionKnown = false;
     QString m_machineState = QStringLiteral("Unknown");
+    int m_rxHeadroomBytes = 12;
 #endif
 };
