@@ -76,16 +76,8 @@ void AppController::assignSelectionCharacter(const QString &selectionId, const Q
         emit statusMessageChanged();
         return;
     }
-    SelectionBox *box = m_store->selectionByIdMutable(selectionId);
-    if (!box) return;
-    box->assigned = true;
-    box->assignedAscii = static_cast<int>(code);
-    // Persist the user's entered character as-is; export naming is derived
-    // from ASCII code at generation time for deterministic filenames.
-    box->fileStem = QString(ch);
-    box->joinMode = joinModeFromString(joinMode);
-    m_store->recomputeSelectionAnchors();
-    m_store->markDirty();
+    if (!m_store->setSelectionAssignment(selectionId, static_cast<int>(code), QString(ch), joinModeFromString(joinMode)))
+        return;
     m_statusMessage = QStringLiteral("Selection assigned.");
     emit statusMessageChanged();
 }

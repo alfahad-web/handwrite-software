@@ -24,6 +24,8 @@ class EditorStore : public QObject {
     Q_PROPERTY(bool isDirty READ isDirty NOTIFY isDirtyChanged)
     Q_PROPERTY(QString projectFilePath READ projectFilePath NOTIFY projectFilePathChanged)
     Q_PROPERTY(QString projectFileName READ projectFileName NOTIFY projectFileNameChanged)
+    Q_PROPERTY(bool canUndo READ canUndo NOTIFY historyChanged)
+    Q_PROPERTY(bool canRedo READ canRedo NOTIFY historyChanged)
 
 public:
     explicit EditorStore(QObject *parent = nullptr);
@@ -40,6 +42,8 @@ public:
     bool isDirty() const;
     QString projectFilePath() const;
     QString projectFileName() const;
+    bool canUndo() const;
+    bool canRedo() const;
     QString selectedSelectionId() const;
 
     const QVector<Stroke> &strokes() const;
@@ -63,6 +67,8 @@ public:
     Q_INVOKABLE void setEraseRadiusPx(int value);
     Q_INVOKABLE void setDrawStrokeEraseActive(bool active);
     Q_INVOKABLE bool deleteSelectedSelection();
+    Q_INVOKABLE bool undo();
+    Q_INVOKABLE bool redo();
 
     void startStroke(const QPointF &point);
     void replaceActiveStrokePoints(const QVector<QPointF> &points);
@@ -73,6 +79,7 @@ public:
     void setSelectionRect(const QString &selectionId, const SelectionRect *rect);
     void setSelectedSelectionId(const QString &selectionId);
     bool setSelectionAnchorPoint(const QString &selectionId, const QPointF &point);
+    bool setSelectionAssignment(const QString &selectionId, int asciiCode, const QString &fileStem, JoinMode joinMode);
     void setSelectionResizeState(const ResizeDragState *state);
     bool erasePointsInSelectedSelection(const QPointF &center, qreal radiusPx);
     bool erasePointsInSelectedSelectionPath(const QVector<QPointF> &centers, qreal radiusPx);
@@ -114,8 +121,25 @@ signals:
     void isDirtyChanged();
     void projectFilePathChanged();
     void projectFileNameChanged();
+    void historyChanged();
 
 private:
+    struct HistoryState {
+        QVector<Stroke> strokes;
+        QString currentStrokeId;
+        QVector<SelectionBox> selectionBoxes;
+        QString selectedSelectionId;
+        bool hasSelectionDraftRect = false;
+        SelectionRect selectionDraftRect;
+        bool hasResizeState = false;
+        ResizeDragState resizeState;
+        int nextSelectionOrder = 1;
+        QHash<int, QString> specialCharStemMap;
+        QHash<QString, QSet<QString>> selectionErasedPointKeys;
+        QSet<QString> highlightedSelectionIds;
+        bool isDirty = false;
+    };
+
     struct PointRef {
         int strokeIndex = -1;
         int pointIndex = -1;
@@ -129,6 +153,11 @@ private:
     static QString makePointKey(const QString &strokeId, int pointIndex);
     static qint64 makeCellKey(int cellX, int cellY);
     static int parsePointIndexFromKey(const QString &key);
+    HistoryState makeHistoryState() const;
+    void restoreHistoryState(const HistoryState &state);
+    void pushUndoState();
+    void clearHistory();
+    void emitHistoryChangedIfNeeded(bool wasCanUndo, bool wasCanRedo);
     void clearPointSpatialIndex();
     void rebuildPointSpatialIndex();
     void ensurePointSpatialIndex();
@@ -160,5 +189,8 @@ private:
     QHash<qint64, QVector<PointRef>> m_pointSpatialIndex;
     bool m_pointSpatialIndexDirty = true;
     QSet<QString> m_highlightedSelectionIds;
+    QVector<HistoryState> m_undoStack;
+    QVector<HistoryState> m_redoStack;
+    bool m_historyStrokeOpen = false;
     bool m_isDirty;
 };

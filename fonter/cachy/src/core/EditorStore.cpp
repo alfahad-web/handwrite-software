@@ -12,6 +12,7 @@ constexpr int kDefaultStrokePx = 6;
 constexpr int kDefaultCaptureGapUm = 350;
 constexpr int kDefaultGuideLineGapPx = 65;
 constexpr int kDefaultEraseRadiusPx = 20;
+constexpr int kMaxUndoSteps = 100;
 constexpr int kMinRectSide = 4;
 constexpr qreal kSpatialCellSizePx = 48.0;
 constexpr char kStemAlphabet[] = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -76,6 +77,8 @@ bool EditorStore::drawStrokeEraseActive() const { return m_drawStrokeEraseActive
 bool EditorStore::isDirty() const { return m_isDirty; }
 QString EditorStore::projectFilePath() const { return m_projectFilePath; }
 QString EditorStore::projectFileName() const { return m_projectFileName; }
+bool EditorStore::canUndo() const { return !m_undoStack.isEmpty(); }
+bool EditorStore::canRedo() const { return !m_redoStack.isEmpty(); }
 QString EditorStore::selectedSelectionId() const { return m_selectedSelectionId; }
 const QVector<Stroke> &EditorStore::strokes() const { return m_strokes; }
 QString EditorStore::currentStrokeId() const { return m_currentStrokeId; }
@@ -176,6 +179,7 @@ bool EditorStore::deleteSelectedSelection() {
     if (m_selectedSelectionId.isEmpty()) return false;
     const int idx = findSelectionIndexById(m_selectedSelectionId);
     if (idx < 0) return false;
+    pushUndoState();
     const int deletedOrderIndex = m_selectionBoxes[idx].orderIndex;
     m_highlightedSelectionIds.remove(m_selectedSelectionId);
     m_selectionErasedPointKeys.remove(m_selectedSelectionId);
@@ -200,7 +204,31 @@ bool EditorStore::deleteSelectedSelection() {
     return true;
 }
 
+bool EditorStore::undo() {
+    if (m_undoStack.isEmpty()) return false;
+    const bool wasCanUndo = canUndo();
+    const bool wasCanRedo = canRedo();
+    m_redoStack.push_back(makeHistoryState());
+    restoreHistoryState(m_undoStack.takeLast());
+    emitHistoryChangedIfNeeded(wasCanUndo, wasCanRedo);
+    return true;
+}
+
+bool EditorStore::redo() {
+    if (m_redoStack.isEmpty()) return false;
+    const bool wasCanUndo = canUndo();
+    const bool wasCanRedo = canRedo();
+    m_undoStack.push_back(makeHistoryState());
+    restoreHistoryState(m_redoStack.takeLast());
+    emitHistoryChangedIfNeeded(wasCanUndo, wasCanRedo);
+    return true;
+}
+
 void EditorStore::startStroke(const QPointF &point) {
+    if (!m_historyStrokeOpen) {
+        pushUndoState();
+        m_historyStrokeOpen = true;
+    }
     Stroke stroke;
     stroke.id = makeStrokeId();
     stroke.points.push_back(Stroke::StrokePoint{point, false});
@@ -224,7 +252,10 @@ void EditorStore::replaceActiveStrokePoints(const QVector<QPointF> &points) {
     emit strokesChanged();
 }
 
-void EditorStore::endStroke() { m_currentStrokeId.clear(); }
+void EditorStore::endStroke() {
+    m_currentStrokeId.clear();
+    m_historyStrokeOpen = false;
+}
 
 void EditorStore::setSelectionDraftRect(const SelectionRect *rect) {
     if (!rect) {
@@ -247,6 +278,7 @@ QString EditorStore::commitSelectionDraftRect() {
         emit selectionChanged();
         return QString();
     }
+    pushUndoState();
     SelectionBox box;
     box.id = makeSelectionId();
     box.orderIndex = m_nextSelectionOrder++;
@@ -271,6 +303,11 @@ void EditorStore::setSelectionRect(const QString &selectionId, const SelectionRe
     bool ok = false;
     const SelectionRect normalized = normalizeRect(*rect, &ok);
     if (!ok) return;
+    const SelectionRect &current = m_selectionBoxes[idx].rect;
+    if (qAbs(current.x - normalized.x) <= 1e-6 && qAbs(current.y - normalized.y) <= 1e-6
+        && qAbs(current.width - normalized.width) <= 1e-6 && qAbs(current.height - normalized.height) <= 1e-6)
+        return;
+    pushUndoState();
     m_selectionBoxes[idx].rect = normalized;
     recomputeSelectionAnchors();
     markDirty();
@@ -300,9 +337,26 @@ bool EditorStore::setSelectionAnchorPoint(const QString &selectionId, const QPoi
         || qAbs(box->manualAnchorRx - rx) > 0.0001
         || qAbs(box->manualAnchorRy - ry) > 0.0001;
     if (!changed) return false;
+    pushUndoState();
     box->hasManualAnchor = true;
     box->manualAnchorRx = rx;
     box->manualAnchorRy = ry;
+    recomputeSelectionAnchors();
+    markDirty();
+    return true;
+}
+
+bool EditorStore::setSelectionAssignment(const QString &selectionId, int asciiCode, const QString &fileStem, JoinMode joinMode) {
+    SelectionBox *box = selectionByIdMutable(selectionId);
+    if (!box) return false;
+    const bool changed = !box->assigned || box->assignedAscii != asciiCode || box->fileStem != fileStem
+                         || box->joinMode != joinMode;
+    if (!changed) return false;
+    pushUndoState();
+    box->assigned = true;
+    box->assignedAscii = asciiCode;
+    box->fileStem = fileStem;
+    box->joinMode = joinMode;
     recomputeSelectionAnchors();
     markDirty();
     return true;
@@ -328,6 +382,7 @@ bool EditorStore::erasePointsInSelectedSelectionPath(const QVector<QPointF> &cen
     const qreal minY = box->rect.y;
     const qreal maxX = box->rect.x + box->rect.width;
     const qreal maxY = box->rect.y + box->rect.height;
+    pushUndoState();
     bool changed = false;
     for (const QPointF &center : centers) {
         const int minCellX = static_cast<int>(qFloor((center.x() - effectiveRadius) / kSpatialCellSizePx));
@@ -360,6 +415,11 @@ bool EditorStore::erasePointsInSelectedSelectionPath(const QVector<QPointF> &cen
     if (changed) {
         markDirty();
         emit strokesChanged();
+    } else {
+        const bool wasCanUndo = canUndo();
+        const bool wasCanRedo = canRedo();
+        if (!m_undoStack.isEmpty()) m_undoStack.removeLast();
+        emitHistoryChangedIfNeeded(wasCanUndo, wasCanRedo);
     }
     return changed;
 }
@@ -400,6 +460,7 @@ bool EditorStore::removeStrokePointsNearPath(const QVector<QPointF> &centers, qr
         }
     }
     if (removePointIndicesByStroke.isEmpty()) return false;
+    pushUndoState();
 
     QVector<Stroke> next;
     next.reserve(m_strokes.size() + 4);
@@ -476,6 +537,8 @@ void EditorStore::clearProjectFilePath() {
 }
 
 void EditorStore::clearAll() {
+    const bool wasCanUndo = canUndo();
+    const bool wasCanRedo = canRedo();
     m_strokes.clear();
     m_currentStrokeId.clear();
     m_selectionBoxes.clear();
@@ -488,6 +551,7 @@ void EditorStore::clearAll() {
     m_selectionErasedPointIndex.clear();
     clearPointSpatialIndex();
     m_highlightedSelectionIds.clear();
+    m_historyStrokeOpen = false;
     m_isDirty = false;
     if (m_drawStrokeEraseActive) {
         m_drawStrokeEraseActive = false;
@@ -496,6 +560,8 @@ void EditorStore::clearAll() {
     emit strokesChanged();
     emit selectionChanged();
     emit isDirtyChanged();
+    clearHistory();
+    emitHistoryChangedIfNeeded(wasCanUndo, wasCanRedo);
 }
 
 QString EditorStore::fileStemForAscii(int asciiCode) {
@@ -612,6 +678,7 @@ void EditorStore::setStrokes(const QVector<Stroke> &strokes) {
     m_selectionErasedPointKeys.clear();
     m_selectionErasedPointIndex.clear();
     m_pointSpatialIndexDirty = true;
+    m_historyStrokeOpen = false;
     emit strokesChanged();
 }
 
@@ -748,6 +815,77 @@ int EditorStore::parsePointIndexFromKey(const QString &key) {
     bool ok = false;
     const int idx = key.mid(sep + 1).toInt(&ok);
     return ok ? idx : -1;
+}
+
+EditorStore::HistoryState EditorStore::makeHistoryState() const {
+    HistoryState state;
+    state.strokes = m_strokes;
+    state.currentStrokeId = m_currentStrokeId;
+    state.selectionBoxes = m_selectionBoxes;
+    state.selectedSelectionId = m_selectedSelectionId;
+    state.hasSelectionDraftRect = m_hasSelectionDraftRect;
+    state.selectionDraftRect = m_selectionDraftRect;
+    state.hasResizeState = m_hasResizeState;
+    state.resizeState = m_resizeState;
+    state.nextSelectionOrder = m_nextSelectionOrder;
+    state.specialCharStemMap = m_specialCharStemMap;
+    state.selectionErasedPointKeys = m_selectionErasedPointKeys;
+    state.highlightedSelectionIds = m_highlightedSelectionIds;
+    state.isDirty = m_isDirty;
+    return state;
+}
+
+void EditorStore::restoreHistoryState(const HistoryState &state) {
+    const bool dirtyChanged = m_isDirty != state.isDirty;
+    m_strokes = state.strokes;
+    m_currentStrokeId = state.currentStrokeId;
+    m_selectionBoxes = state.selectionBoxes;
+    m_selectedSelectionId = state.selectedSelectionId;
+    m_hasSelectionDraftRect = state.hasSelectionDraftRect;
+    m_selectionDraftRect = state.selectionDraftRect;
+    m_hasResizeState = state.hasResizeState;
+    m_resizeState = state.resizeState;
+    m_nextSelectionOrder = state.nextSelectionOrder;
+    m_specialCharStemMap = state.specialCharStemMap;
+    m_selectionErasedPointKeys = state.selectionErasedPointKeys;
+    m_highlightedSelectionIds = state.highlightedSelectionIds;
+    m_isDirty = state.isDirty;
+    m_historyStrokeOpen = false;
+    m_selectionErasedPointIndex.clear();
+    for (auto it = m_selectionErasedPointKeys.cbegin(); it != m_selectionErasedPointKeys.cend(); ++it) {
+        QHash<QString, QSet<int>> byStroke;
+        for (const QString &key : it.value()) {
+            const int sep = key.indexOf(QLatin1Char('#'));
+            if (sep <= 0) continue;
+            const QString strokeId = key.left(sep);
+            const int pointIndex = parsePointIndexFromKey(key);
+            if (pointIndex < 0) continue;
+            byStroke[strokeId].insert(pointIndex);
+        }
+        if (!byStroke.isEmpty()) m_selectionErasedPointIndex.insert(it.key(), byStroke);
+    }
+    m_pointSpatialIndexDirty = true;
+    emit strokesChanged();
+    emit selectionChanged();
+    if (dirtyChanged) emit isDirtyChanged();
+}
+
+void EditorStore::pushUndoState() {
+    const bool wasCanUndo = canUndo();
+    const bool wasCanRedo = canRedo();
+    m_undoStack.push_back(makeHistoryState());
+    if (m_undoStack.size() > kMaxUndoSteps) m_undoStack.removeFirst();
+    m_redoStack.clear();
+    emitHistoryChangedIfNeeded(wasCanUndo, wasCanRedo);
+}
+
+void EditorStore::clearHistory() {
+    m_undoStack.clear();
+    m_redoStack.clear();
+}
+
+void EditorStore::emitHistoryChangedIfNeeded(bool wasCanUndo, bool wasCanRedo) {
+    if (wasCanUndo != canUndo() || wasCanRedo != canRedo()) emit historyChanged();
 }
 
 void EditorStore::clearPointSpatialIndex() {

@@ -57,6 +57,16 @@ ApplicationWindow {
     onClosing: appController.setBoardCursorActive(false)
     property string pendingSelectionAssignId: ""
     property string pendingAssignJoin: "N"
+    Shortcut {
+        sequence: StandardKey.Undo
+        enabled: editorStoreModel.canUndo
+        onActivated: editorStoreModel.undo()
+    }
+    Shortcut {
+        sequence: StandardKey.Redo
+        enabled: editorStoreModel.canRedo
+        onActivated: editorStoreModel.redo()
+    }
 
     header: Frame {
         background: Rectangle { color: "#fafafa"; border.color: "#d4d4d8" }
@@ -111,6 +121,16 @@ ApplicationWindow {
                     text: "Save"
                     onTriggered: appController.saveProject()
                 }
+            }
+            Button {
+                text: "Undo"
+                enabled: editorStoreModel.canUndo
+                onClicked: editorStoreModel.undo()
+            }
+            Button {
+                text: "Redo"
+                enabled: editorStoreModel.canRedo
+                onClicked: editorStoreModel.redo()
             }
 
             Button {
