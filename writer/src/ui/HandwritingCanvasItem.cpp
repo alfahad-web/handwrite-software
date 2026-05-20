@@ -287,7 +287,8 @@ void HandwritingCanvasItem::drawRunProgressAlongPath(QPainter *painter, double p
 QPointF HandwritingCanvasItem::pagePlotOriginCm(int page) const {
     if (!m_ctrl || !m_ctrl->settings()) return QPointF();
     const AppSettings *st = m_ctrl->settings();
-    return QPointF(0, page * st->pageHeightCm() + st->verticalGapCm());
+    // Page-local CNC origin is page top-left in writer coordinates.
+    return QPointF(0, page * st->pageHeightCm());
 }
 
 QPointF HandwritingCanvasItem::layoutCmFromMachineMm(double mmX, double mmY) const {

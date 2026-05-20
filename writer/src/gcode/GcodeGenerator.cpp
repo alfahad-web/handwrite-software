@@ -235,7 +235,8 @@ QString GcodeGenerator::generateSinglePage(const PathBuildResult &path, int page
                                            const AppSettings *settings) {
     if (!settings) return QStringLiteral("; No settings\n");
 
-    const QPointF plotOriginCm(0, pageIndex * settings->pageHeightCm() + settings->verticalGapCm());
+    // Page-local CNC origin is page top-left in writer coordinates.
+    const QPointF plotOriginCm(0, pageIndex * settings->pageHeightCm());
     PathBuildResult pagePath;
     for (const PathSegment &seg : path.segments) {
         if (seg.pageIndex != pageIndex) continue;
